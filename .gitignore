@@ -267,3 +267,10 @@ __pycache__/
 
 library.db
 .envrc
+
+.venv
+.env
+
+# Verify
+*.received.*
+*.received/
