@@ -2,11 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace Api.Dtos;
 
-public record Organisation
+public record OrganisationRegistration
 {
-    [JsonPropertyName("id")]
-    public required Guid Id { get; init; }
-
     [JsonPropertyName("name")]
     public required string Name { get; init; }
 
@@ -22,6 +19,6 @@ public record Organisation
     [JsonPropertyName("address")]
     public required Address Address { get; init; }
 
-    [JsonPropertyName("registrations")]
-    public Registration[] Registrations { get; init; } = [];
+    [JsonPropertyName("registration")]
+    public required Registration Registration { get; init; }
 }
