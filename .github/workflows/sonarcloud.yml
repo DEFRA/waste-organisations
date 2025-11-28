@@ -63,8 +63,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Sonar does not like use of filter category so target each test project separately
+        # in order to report code coverage
         run: |
-          ./.sonar/scanner/dotnet-sonarscanner begin /k:"DEFRA_cdp-dotnet-backend-template" /o:"defra" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
+          ./.sonar/scanner/dotnet-sonarscanner begin /k:"DEFRA_waste-organisations" /o:"defra" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage*.xml
           dotnet build --no-incremental
-          ./.sonar/coverage/dotnet-coverage collect "dotnet test" -f xml -o "coverage.xml"
-          ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          ./.sonar/coverage/dotnet-coverage collect "dotnet test tests/Api.Tests" -f xml -o "coverage.Api.Tests.xml"
+          ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"

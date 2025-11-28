@@ -1,0 +1,15 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/Api/Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Api.IntegrationTests/Api.IntegrationTests.csproj" />
+    <Project Path="tests/Api.Tests/Api.Tests.csproj" />
+    <Project Path="tests/Testing/Testing.csproj" />
+  </Folder>
+</Solution>

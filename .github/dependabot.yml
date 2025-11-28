@@ -1,0 +1,30 @@
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    open-pull-requests-limit: 10
+    schedule:
+      interval: daily
+      time: '10:30'
+      timezone: 'Europe/London'
+    groups:
+      # Group all patch updates into a single PR
+      patch-updates:
+        applies-to: version-updates
+        update-types:
+          - 'patch'
+      # Group all minor updates into a single PR
+      minor-updates:
+        applies-to: version-updates
+        update-types:
+          - 'minor'
+      # Major updates will be created individually (ungrouped)
+      # No specific configuration needed for major updates as they'll be handled separately
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      time: '10:30'
+      timezone: 'Europe/London'
