@@ -5,8 +5,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Api.Tests;
 
-public class StartupTests(TestWebApplicationFactory<Program> factory)
-    : IClassFixture<TestWebApplicationFactory<Program>>
+public class StartupTests(ApiWebApplicationFactory factory) : IClassFixture<ApiWebApplicationFactory>
 {
     [Fact]
     public void WhenFaultOnStartup_ShouldThrow()

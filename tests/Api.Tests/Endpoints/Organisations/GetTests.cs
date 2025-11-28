@@ -3,12 +3,13 @@ using AwesomeAssertions;
 
 namespace Api.Tests.Endpoints.Organisations;
 
-public class GetTests(TestWebApplicationFactory<Program> factory) : IClassFixture<TestWebApplicationFactory<Program>>
+public class GetTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
+    : EndpointTestBase(factory, outputHelper)
 {
     [Fact]
     public async Task WhenOrganisationFound_ShouldBeOk()
     {
-        var client = factory.CreateClient();
+        var client = CreateClient();
 
         var response = await client.GetStringAsync(
             Testing.Endpoints.Organisations.Get("b6f76437-65b6-4ed2-a7d5-c50e9af76201"),
@@ -21,7 +22,7 @@ public class GetTests(TestWebApplicationFactory<Program> factory) : IClassFixtur
     [Fact]
     public async Task WhenOrganisationNotFound_ShouldBeNotFound()
     {
-        var client = factory.CreateClient();
+        var client = CreateClient();
 
         var response = await client.GetAsync(
             Testing.Endpoints.Organisations.Get(Guid.Empty.ToString()),
