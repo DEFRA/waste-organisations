@@ -1,3 +1,4 @@
+using Api.Authentication;
 using Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,8 @@ public static class Delete
             .WithSummary("Update an existing registration")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequireAuthorization(PolicyNames.Write);
     }
 
     [HttpDelete]

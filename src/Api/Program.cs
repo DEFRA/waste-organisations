@@ -1,4 +1,4 @@
-using System.ComponentModel;
+using Api.Authentication;
 using Api.Dtos;
 using Api.Endpoints;
 using Api.Utils;
@@ -80,10 +80,13 @@ try
             }
         );
     });
+    builder.Services.AddAuthenticationAuthorization();
 
     var app = builder.Build();
 
     app.UseHeaderPropagation();
+    app.UseAuthentication();
+    app.UseAuthorization();
     app.MapHealth();
     app.UseExceptionHandler(
         new ExceptionHandlerOptions

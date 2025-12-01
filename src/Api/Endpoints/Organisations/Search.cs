@@ -1,3 +1,4 @@
+using Api.Authentication;
 using Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,7 +15,8 @@ public static class Search
             .WithDescription("Returns all organisations filtered by multiple criteria")
             .Produces<OrganisationSearch>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequireAuthorization(PolicyNames.Read);
     }
 
     [HttpGet]
