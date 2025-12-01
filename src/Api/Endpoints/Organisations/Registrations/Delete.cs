@@ -1,7 +1,7 @@
 using Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Endpoints.Registrations;
+namespace Api.Endpoints.Organisations.Registrations;
 
 public static class Delete
 {

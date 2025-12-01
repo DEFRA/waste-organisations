@@ -1,22 +1,22 @@
 using Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Endpoints.Registrations;
+namespace Api.Endpoints.Organisations.Registrations;
 
-public static class Post
+public static class Put
 {
-    public static void MapRegistrationsPost(this IEndpointRouteBuilder app)
+    public static void MapRegistrationsPut(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/organisations/{id:guid}/registrations/{type}-{submissionYear:int}", Handle)
-            .WithName("CreateRegistration")
+        app.MapPut("/organisations/{id:guid}/registrations/{type}-{submissionYear:int}", Handle)
+            .WithName("UpdateRegistration")
             .WithTags("Registrations")
-            .WithSummary("Create a new registration")
-            .Produces<Registration>(statusCode: StatusCodes.Status201Created)
+            .WithSummary("Update an existing registration")
+            .Produces<Registration>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
     }
 
-    [HttpPost]
+    [HttpPut]
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
         [FromRoute] RegistrationTypeFromRoute type,
@@ -27,8 +27,7 @@ public static class Post
     {
         await Task.Yield();
 
-        return Results.Created(
-            $"/organisations/{id}/registrations/{type}-{submissionYear}",
+        return Results.Ok(
             new Registration
             {
                 Status = status,

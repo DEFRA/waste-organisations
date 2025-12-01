@@ -1,5 +1,5 @@
 using Api.Endpoints.Organisations;
-using Api.Endpoints.Registrations;
+using Api.Endpoints.Organisations.Registrations;
 
 namespace Api.Endpoints;
 

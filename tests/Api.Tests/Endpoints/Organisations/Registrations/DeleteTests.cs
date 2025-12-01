@@ -3,7 +3,7 @@ using Api.Dtos;
 using AwesomeAssertions;
 using Testing;
 
-namespace Api.Tests.Endpoints.Registrations;
+namespace Api.Tests.Endpoints.Organisations.Registrations;
 
 public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
     : EndpointTestBase(factory, outputHelper)
