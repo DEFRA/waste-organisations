@@ -21,7 +21,7 @@ public static class Post
         [FromRoute] Guid id,
         [FromRoute] RegistrationTypeFromRoute type,
         [FromRoute] int submissionYear,
-        [FromBody] RegistrationStatus status,
+        [FromBody] RegistrationRequest request,
         CancellationToken cancellationToken
     )
     {
@@ -31,7 +31,7 @@ public static class Post
             $"/organisations/{id}/registrations/{type}-{submissionYear}",
             new Registration
             {
-                Status = status,
+                Status = request.Status,
                 Type = type.RegistrationType,
                 SubmissionYear = submissionYear,
             }

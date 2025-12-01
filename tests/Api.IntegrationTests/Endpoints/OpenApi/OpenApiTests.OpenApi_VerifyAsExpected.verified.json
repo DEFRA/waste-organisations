@@ -23,8 +23,7 @@
           {
             "name": "registrations",
             "in": "query",
-            "description": "Command separated list of registration types - example SMALL_PRODUCER,LARGE_PRODUCER",
-            "required": true,
+            "description": "Command separated list of registration types",
             "schema": {
               "type": "array",
               "items": {
@@ -35,8 +34,7 @@
           {
             "name": "submissionYears",
             "in": "query",
-            "description": "Comma separated list of years - example 2025,2026",
-            "required": true,
+            "description": "Comma separated list of years",
             "schema": {
               "maximum": 2050,
               "minimum": 2023,
@@ -65,16 +63,6 @@
           },
           "400": {
             "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -260,7 +248,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegistrationStatus"
+                "$ref": "#/components/schemas/RegistrationRequest"
               }
             }
           },
@@ -338,7 +326,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegistrationStatus"
+                "$ref": "#/components/schemas/RegistrationRequest"
               }
             }
           },
@@ -650,6 +638,17 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "RegistrationRequest": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/RegistrationStatus"
           }
         }
       },

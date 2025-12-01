@@ -7,12 +7,12 @@ namespace Api.Dtos;
 // ReSharper disable once ClassNeverInstantiated.Global
 public record OrganisationSearchRequest
 {
-    [Description("Command separated list of registration types - example SMALL_PRODUCER,LARGE_PRODUCER")]
+    [Description("Command separated list of registration types")]
     [FromQuery(Name = "registrations")]
-    public RegistrationType[] Registrations { get; init; } = [];
+    public RegistrationType[]? Registrations { get; init; } = [];
 
-    [Description("Comma separated list of years - example 2025,2026")]
+    [Description("Comma separated list of years")]
     [FromQuery(Name = "submissionYears")]
     [Range(2023, 2050)]
-    public int[] SubmissionYears { get; init; } = [];
+    public int[]? SubmissionYears { get; init; } = [];
 }

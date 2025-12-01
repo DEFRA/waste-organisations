@@ -17,7 +17,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
 
         var response = await client.PostAsJsonAsync(
             Testing.Endpoints.Organisations.RegistrationsPost(id, RegistrationType.LargeProducer.ToJsonValue(), "2025"),
-            RegistrationStatus.Registered,
+            new RegistrationRequest { Status = RegistrationStatus.Registered },
             TestContext.Current.CancellationToken
         );
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -34,7 +34,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
 
         var response = await client.PostAsJsonAsync(
             Testing.Endpoints.Organisations.RegistrationsPost(id, "UNKNOWN", "2025"),
-            RegistrationStatus.Registered,
+            new RegistrationRequest { Status = RegistrationStatus.Registered },
             TestContext.Current.CancellationToken
         );
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);

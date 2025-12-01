@@ -14,7 +14,6 @@ public static class Search
             .WithDescription("Returns all organisations filtered by multiple criteria")
             .Produces<OrganisationSearch>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
     }
 

@@ -17,7 +17,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
 
         var response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.RegistrationsPut(id, RegistrationType.LargeProducer.ToJsonValue(), "2025"),
-            RegistrationStatus.Cancelled,
+            new RegistrationRequest { Status = RegistrationStatus.Cancelled },
             TestContext.Current.CancellationToken
         );
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);

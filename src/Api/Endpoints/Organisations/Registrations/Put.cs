@@ -21,7 +21,7 @@ public static class Put
         [FromRoute] Guid id,
         [FromRoute] RegistrationTypeFromRoute type,
         [FromRoute] int submissionYear,
-        [FromBody] RegistrationStatus status,
+        [FromBody] RegistrationRequest request,
         CancellationToken cancellationToken
     )
     {
@@ -30,7 +30,7 @@ public static class Put
         return Results.Ok(
             new Registration
             {
-                Status = status,
+                Status = request.Status,
                 Type = type.RegistrationType,
                 SubmissionYear = submissionYear,
             }
