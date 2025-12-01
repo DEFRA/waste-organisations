@@ -4,7 +4,7 @@ namespace Api.IntegrationTests;
 [Collection("Integration Tests")]
 public abstract class IntegrationTestBase
 {
-    protected static HttpClient CreateHttpClient()
+    protected static HttpClient CreateClient()
     {
         var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:8080") };
 

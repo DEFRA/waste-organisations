@@ -1,9 +1,12 @@
+using System.ComponentModel;
 using Api.Dtos;
+using Api.Endpoints;
 using Api.Utils;
 using Api.Utils.Health;
 using Api.Utils.Logging;
 using Elastic.CommonSchema.Serilog;
-using Scalar.AspNetCore;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.OpenApi;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console(new EcsTextFormatter()).CreateBootstrapLogger();
@@ -24,23 +27,101 @@ try
     });
     builder.Services.AddProblemDetails();
     builder.Services.AddHealth();
-    builder.Services.AddOpenApi();
+    builder.Services.AddOpenApi(options =>
+    {
+        options.AddDocumentTransformer(
+            (document, _, _) =>
+            {
+                document.Info = new OpenApiInfo
+                {
+                    Title = "Waste Organisations REST API",
+                    Version = "0.0.1",
+                    Description = "Save and retrieve organisations alongside their yearly registrations",
+                };
+
+                document.Components?.Schemas?.Remove(nameof(RegistrationTypeFromRoute));
+
+                return Task.CompletedTask;
+            }
+        );
+        options.AddOperationTransformer(
+            (operation, _, _) =>
+            {
+                if (operation.OperationId is "CreateRegistration" or "UpdateRegistration" or "DeleteRegistration")
+                {
+                    var typeParameter = operation.Parameters?.FirstOrDefault(p =>
+                        p is { Name: "type", In: ParameterLocation.Path }
+                    );
+
+                    if (typeParameter != null)
+                    {
+                        operation.Parameters?.Remove(typeParameter);
+
+                        var newTypeParameter = new OpenApiParameter
+                        {
+                            Name = "type",
+                            In = ParameterLocation.Path,
+                            Required = true,
+                            Schema = new OpenApiSchemaReference(nameof(RegistrationType))
+                            {
+                                Reference = new JsonSchemaReference
+                                {
+                                    Type = ReferenceType.Schema,
+                                    Id = nameof(RegistrationType),
+                                },
+                            },
+                        };
+
+                        operation.Parameters?.Insert(1, newTypeParameter);
+                    }
+                }
+
+                return Task.CompletedTask;
+            }
+        );
+    });
 
     var app = builder.Build();
 
     app.UseHeaderPropagation();
     app.MapHealth();
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.UseExceptionHandler(
+        new ExceptionHandlerOptions
+        {
+            AllowStatusCode404Response = true,
+            ExceptionHandler = async context =>
+            {
+                var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                var error = exceptionHandlerFeature?.Error;
+                string? detail = null;
 
-    app.MapGet(
-            "/organisations/{id:guid}",
-            (Guid id) =>
-                id == new Guid("b6f76437-65b6-4ed2-a7d5-c50e9af76201")
-                    ? Results.Ok(new Organisation(id))
-                    : Results.NotFound()
-        )
-        .WithName("GetOrganisation");
+                if (error is BadHttpRequestException badHttpRequestException)
+                {
+                    context.Response.StatusCode = badHttpRequestException.StatusCode;
+                    detail = badHttpRequestException.Message;
+                }
+
+                await context
+                    .RequestServices.GetRequiredService<IProblemDetailsService>()
+                    .WriteAsync(
+                        new ProblemDetailsContext
+                        {
+                            HttpContext = context,
+                            AdditionalMetadata = exceptionHandlerFeature?.Endpoint?.Metadata,
+                            ProblemDetails = { Status = context.Response.StatusCode, Detail = detail },
+                        }
+                    );
+            },
+        }
+    );
+    app.MapOpenApi();
+    app.UseReDoc(options =>
+    {
+        options.RoutePrefix = "redoc";
+        options.SpecUrl = "/openapi/v1.json";
+    });
+
+    app.MapApiEndpoints();
 
     await app.RunAsync();
 }

@@ -1,0 +1,22 @@
+﻿{
+  "id": "26647e8d-176e-440e-b7e4-75a9252cbd4b",
+  "name": "name",
+  "tradingName": null,
+  "businessCountry": null,
+  "companiesHouseNumber": null,
+  "address": {
+    "addressLine1": null,
+    "addressLine2": null,
+    "town": null,
+    "county": null,
+    "postcode": null,
+    "country": null
+  },
+  "registrations": [
+    {
+      "status": "REGISTERED",
+      "type": "SMALL_PRODUCER",
+      "submissionYear": 0
+    }
+  ]
+}
