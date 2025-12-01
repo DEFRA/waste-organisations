@@ -9,5 +9,6 @@ public static class VerifySettings
     {
         VerifierSettings.UseStrictJson();
         VerifierSettings.DontIgnoreEmptyCollections();
+        VerifierSettings.ScrubMember("traceId");
     }
 }
