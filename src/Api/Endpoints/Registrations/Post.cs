@@ -19,7 +19,7 @@ public static class Post
     [HttpPost]
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
-        [FromRoute] RegistrationType type,
+        [FromRoute] RegistrationTypeFromRoute type,
         [FromRoute] int submissionYear,
         [FromBody] RegistrationStatus status,
         CancellationToken cancellationToken
@@ -32,7 +32,7 @@ public static class Post
             new Registration
             {
                 Status = status,
-                Type = type,
+                Type = type.RegistrationType,
                 SubmissionYear = submissionYear,
             }
         );

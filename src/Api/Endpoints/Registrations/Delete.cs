@@ -19,9 +19,8 @@ public static class Delete
     [HttpDelete]
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
-        [FromRoute] RegistrationType type,
+        [FromRoute] RegistrationTypeFromRoute type,
         [FromRoute] int submissionYear,
-        [FromBody] RegistrationStatus status,
         CancellationToken cancellationToken
     )
     {

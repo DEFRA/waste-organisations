@@ -1,8 +1,11 @@
+using System.ComponentModel;
+using Api.Dtos;
 using Api.Endpoints;
 using Api.Utils;
 using Api.Utils.Health;
 using Api.Utils.Logging;
 using Elastic.CommonSchema.Serilog;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.OpenApi;
 using Serilog;
 
@@ -36,6 +39,43 @@ try
                     Description = "Save and retrieve organisations alongside their yearly registrations",
                 };
 
+                document.Components?.Schemas?.Remove(nameof(RegistrationTypeFromRoute));
+
+                return Task.CompletedTask;
+            }
+        );
+        options.AddOperationTransformer(
+            (operation, _, _) =>
+            {
+                if (operation.OperationId is "CreateRegistration" or "UpdateRegistration" or "DeleteRegistration")
+                {
+                    var typeParameter = operation.Parameters?.FirstOrDefault(p =>
+                        p is { Name: "type", In: ParameterLocation.Path }
+                    );
+
+                    if (typeParameter != null)
+                    {
+                        operation.Parameters?.Remove(typeParameter);
+
+                        var newTypeParameter = new OpenApiParameter
+                        {
+                            Name = "type",
+                            In = ParameterLocation.Path,
+                            Required = true,
+                            Schema = new OpenApiSchemaReference(nameof(RegistrationType))
+                            {
+                                Reference = new JsonSchemaReference
+                                {
+                                    Type = ReferenceType.Schema,
+                                    Id = nameof(RegistrationType),
+                                },
+                            },
+                        };
+
+                        operation.Parameters?.Insert(1, newTypeParameter);
+                    }
+                }
+
                 return Task.CompletedTask;
             }
         );
@@ -45,6 +85,35 @@ try
 
     app.UseHeaderPropagation();
     app.MapHealth();
+    app.UseExceptionHandler(
+        new ExceptionHandlerOptions
+        {
+            AllowStatusCode404Response = true,
+            ExceptionHandler = async context =>
+            {
+                var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                var error = exceptionHandlerFeature?.Error;
+                string? detail = null;
+
+                if (error is BadHttpRequestException badHttpRequestException)
+                {
+                    context.Response.StatusCode = badHttpRequestException.StatusCode;
+                    detail = badHttpRequestException.Message;
+                }
+
+                await context
+                    .RequestServices.GetRequiredService<IProblemDetailsService>()
+                    .WriteAsync(
+                        new ProblemDetailsContext
+                        {
+                            HttpContext = context,
+                            AdditionalMetadata = exceptionHandlerFeature?.Endpoint?.Metadata,
+                            ProblemDetails = { Status = context.Response.StatusCode, Detail = detail },
+                        }
+                    );
+            },
+        }
+    );
     app.MapOpenApi();
     app.UseReDoc(options =>
     {
