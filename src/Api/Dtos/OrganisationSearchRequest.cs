@@ -7,7 +7,7 @@ namespace Api.Dtos;
 // ReSharper disable once ClassNeverInstantiated.Global
 public record OrganisationSearchRequest
 {
-    [Description("Command separated list of registration types")]
+    [Description("Comma separated list of registration types")]
     [FromQuery(Name = "registrations")]
     public RegistrationType[]? Registrations { get; init; } = [];
 

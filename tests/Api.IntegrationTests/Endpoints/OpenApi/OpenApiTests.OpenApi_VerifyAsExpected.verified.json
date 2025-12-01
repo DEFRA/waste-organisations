@@ -23,7 +23,7 @@
           {
             "name": "registrations",
             "in": "query",
-            "description": "Command separated list of registration types",
+            "description": "Comma separated list of registration types",
             "schema": {
               "type": "array",
               "items": {
