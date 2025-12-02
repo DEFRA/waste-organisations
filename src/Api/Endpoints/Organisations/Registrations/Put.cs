@@ -1,3 +1,4 @@
+using Api.Authentication;
 using Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,8 @@ public static class Put
             .WithSummary("Update an existing registration")
             .Produces<Registration>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequireAuthorization(PolicyNames.Write);
     }
 
     [HttpPut]

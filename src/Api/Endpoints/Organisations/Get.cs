@@ -1,3 +1,4 @@
+using Api.Authentication;
 using Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,7 +15,8 @@ public static class Get
             .WithDescription("Returns the organisation details for a specific organisation ID")
             .Produces<Organisation>()
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequireAuthorization(PolicyNames.Read);
     }
 
     [HttpGet]

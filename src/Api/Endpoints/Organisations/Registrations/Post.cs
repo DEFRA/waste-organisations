@@ -1,3 +1,4 @@
+using Api.Authentication;
 using Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,8 @@ public static class Post
             .WithSummary("Create a new registration")
             .Produces<Registration>(statusCode: StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequireAuthorization(PolicyNames.Write);
     }
 
     [HttpPost]
