@@ -48,6 +48,17 @@
                 "format": "int32"
               }
             }
+          },
+          {
+            "name": "statuses",
+            "in": "query",
+            "description": "Comma separated list of registration statuses",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/RegistrationStatus"
+              }
+            }
           }
         ],
         "responses": {

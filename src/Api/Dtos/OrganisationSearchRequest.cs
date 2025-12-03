@@ -15,4 +15,8 @@ public record OrganisationSearchRequest
     [FromQuery(Name = "registrationYears")]
     [Range(2023, 2050)]
     public int[]? RegistrationYears { get; init; } = [];
+
+    [Description("Comma separated list of registration statuses")]
+    [FromQuery(Name = "statuses")]
+    public RegistrationStatus[]? Statuses { get; init; } = [];
 }
