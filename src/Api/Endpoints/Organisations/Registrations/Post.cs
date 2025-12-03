@@ -8,7 +8,7 @@ public static class Post
 {
     public static void MapRegistrationsPost(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/organisations/{id:guid}/registrations/{type}-{submissionYear:int}", Handle)
+        app.MapPost("/organisations/{id:guid}/registrations/{type}-{registrationYear:int}", Handle)
             .WithName("CreateRegistration")
             .WithTags("Registrations")
             .WithSummary("Create a new registration")
@@ -22,7 +22,7 @@ public static class Post
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
         [FromRoute] RegistrationTypeFromRoute type,
-        [FromRoute] int submissionYear,
+        [FromRoute] int registrationYear,
         [FromBody] RegistrationRequest request,
         CancellationToken cancellationToken
     )
@@ -30,12 +30,12 @@ public static class Post
         await Task.Yield();
 
         return Results.Created(
-            $"/organisations/{id}/registrations/{type}-{submissionYear}",
+            $"/organisations/{id}/registrations/{type}-{registrationYear}",
             new Registration
             {
                 Status = request.Status,
                 Type = type.RegistrationType,
-                SubmissionYear = submissionYear,
+                RegistrationYear = registrationYear,
             }
         );
     }

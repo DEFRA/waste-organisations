@@ -10,6 +10,6 @@ public record Registration
     [JsonPropertyName("type")]
     public required RegistrationType Type { get; init; }
 
-    [JsonPropertyName("submissionYear")]
-    public int SubmissionYear { get; init; }
+    [JsonPropertyName("registrationYear")]
+    public int RegistrationYear { get; init; }
 }

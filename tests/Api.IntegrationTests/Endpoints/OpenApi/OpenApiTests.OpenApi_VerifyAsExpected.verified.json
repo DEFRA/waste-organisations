@@ -32,7 +32,7 @@
             }
           },
           {
-            "name": "submissionYears",
+            "name": "registrationYears",
             "in": "query",
             "description": "Comma separated list of years",
             "schema": {
@@ -208,7 +208,7 @@
         }
       }
     },
-    "/organisations/{id}/registrations/{type}-{submissionYear}": {
+    "/organisations/{id}/registrations/{type}-{registrationYear}": {
       "post": {
         "tags": [
           "Registrations"
@@ -234,7 +234,7 @@
             }
           },
           {
-            "name": "submissionYear",
+            "name": "registrationYear",
             "in": "path",
             "required": true,
             "schema": {
@@ -312,7 +312,7 @@
             }
           },
           {
-            "name": "submissionYear",
+            "name": "registrationYear",
             "in": "path",
             "required": true,
             "schema": {
@@ -390,7 +390,7 @@
             }
           },
           {
-            "name": "submissionYear",
+            "name": "registrationYear",
             "in": "path",
             "required": true,
             "schema": {
@@ -631,7 +631,7 @@
           "type": {
             "$ref": "#/components/schemas/RegistrationType"
           },
-          "submissionYear": {
+          "registrationYear": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",

@@ -8,7 +8,7 @@ public static class Put
 {
     public static void MapRegistrationsPut(this IEndpointRouteBuilder app)
     {
-        app.MapPut("/organisations/{id:guid}/registrations/{type}-{submissionYear:int}", Handle)
+        app.MapPut("/organisations/{id:guid}/registrations/{type}-{registrationYear:int}", Handle)
             .WithName("UpdateRegistration")
             .WithTags("Registrations")
             .WithSummary("Update an existing registration")
@@ -22,7 +22,7 @@ public static class Put
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
         [FromRoute] RegistrationTypeFromRoute type,
-        [FromRoute] int submissionYear,
+        [FromRoute] int registrationYear,
         [FromBody] RegistrationRequest request,
         CancellationToken cancellationToken
     )
@@ -34,7 +34,7 @@ public static class Put
             {
                 Status = request.Status,
                 Type = type.RegistrationType,
-                SubmissionYear = submissionYear,
+                RegistrationYear = registrationYear,
             }
         );
     }

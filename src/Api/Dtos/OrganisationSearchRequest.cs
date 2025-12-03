@@ -12,7 +12,7 @@ public record OrganisationSearchRequest
     public RegistrationType[]? Registrations { get; init; } = [];
 
     [Description("Comma separated list of years")]
-    [FromQuery(Name = "submissionYears")]
+    [FromQuery(Name = "registrationYears")]
     [Range(2023, 2050)]
-    public int[]? SubmissionYears { get; init; } = [];
+    public int[]? RegistrationYears { get; init; } = [];
 }
