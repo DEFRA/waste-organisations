@@ -11,7 +11,6 @@ public static class Endpoints
         app.MapOrganisationsGet();
         app.MapOrganisationsPut();
 
-        app.MapRegistrationsPost();
         app.MapRegistrationsPut();
         app.MapRegistrationsDelete();
     }

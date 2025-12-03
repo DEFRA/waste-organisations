@@ -24,13 +24,10 @@ public static class Endpoints
 
         private static string RegistrationsGet(string id) => $"{Get(id)}/registrations";
 
-        public static string RegistrationsPost(string id, string type, string registrationYear) =>
+        public static string RegistrationsPut(string id, string type, string registrationYear) =>
             $"{RegistrationsGet(id)}/{type}-{registrationYear}";
 
-        public static string RegistrationsPut(string id, string type, string registrationYear) =>
-            RegistrationsPost(id, type, registrationYear);
-
         public static string RegistrationsDelete(string id, string type, string registrationYear) =>
-            RegistrationsPost(id, type, registrationYear);
+            RegistrationsPut(id, type, registrationYear);
     }
 }

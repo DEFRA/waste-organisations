@@ -47,7 +47,7 @@ try
         options.AddOperationTransformer(
             (operation, _, _) =>
             {
-                if (operation.OperationId is "CreateRegistration" or "UpdateRegistration" or "DeleteRegistration")
+                if (operation.OperationId is "CreateOrUpdateRegistration" or "DeleteRegistration")
                 {
                     var typeParameter = operation.Parameters?.FirstOrDefault(p =>
                         p is { Name: "type", In: ParameterLocation.Path }

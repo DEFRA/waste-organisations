@@ -23,6 +23,22 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         await VerifyJson(content).DontScrubGuids();
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task WhenInvalidRoute_ShouldBeBadRequest()
+    {
+        var client = CreateClient();
+        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b").ToString();
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.RegistrationsPut(id, "UNKNOWN", "2025"),
+            new RegistrationRequest { Status = RegistrationStatus.Registered },
+            TestContext.Current.CancellationToken
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        await VerifyJson(content).DontScrubGuids();
     }
 }
