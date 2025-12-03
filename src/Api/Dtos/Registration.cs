@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Api.Dtos;
@@ -10,6 +11,7 @@ public record Registration
     [JsonPropertyName("type")]
     public required RegistrationType Type { get; init; }
 
-    [JsonPropertyName("submissionYear")]
-    public int SubmissionYear { get; init; }
+    [JsonPropertyName("registrationYear")]
+    [Range(2023, 2050)]
+    public int RegistrationYear { get; init; }
 }

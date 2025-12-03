@@ -8,7 +8,7 @@ public static class Delete
 {
     public static void MapRegistrationsDelete(this IEndpointRouteBuilder app)
     {
-        app.MapDelete("/organisations/{id:guid}/registrations/{type}-{submissionYear:int}", Handle)
+        app.MapDelete("/organisations/{id:guid}/registrations/{type}-{registrationYear:int}", Handle)
             .WithName("DeleteRegistration")
             .WithTags("Registrations")
             .WithSummary("Update an existing registration")
@@ -22,7 +22,7 @@ public static class Delete
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
         [FromRoute] RegistrationTypeFromRoute type,
-        [FromRoute] int submissionYear,
+        [FromRoute] int registrationYear,
         CancellationToken cancellationToken
     )
     {
