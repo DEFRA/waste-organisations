@@ -575,6 +575,8 @@
             "$ref": "#/components/schemas/RegistrationType"
           },
           "registrationYear": {
+            "maximum": 2050,
+            "minimum": 2023,
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",
