@@ -1,9 +1,22 @@
 ﻿{
   "id": "b6f76437-65b6-4ed2-a7d5-c50e9af76201",
-  "name": null,
-  "tradingName": null,
-  "businessCountry": null,
-  "companiesHouseNumber": null,
-  "address": null,
-  "registrations": []
+  "name": "England Ltd",
+  "tradingName": "Trading Name",
+  "businessCountry": "GB-ENG",
+  "companiesHouseNumber": "12345678",
+  "address": {
+    "addressLine1": "England Ltd",
+    "addressLine2": "123 Street",
+    "town": "Town",
+    "county": "County",
+    "postcode": "UK1",
+    "country": "UK"
+  },
+  "registrations": [
+    {
+      "status": "REGISTERED",
+      "type": "SMALL_PRODUCER",
+      "registrationYear": 2025
+    }
+  ]
 }

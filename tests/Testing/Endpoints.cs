@@ -18,6 +18,8 @@ public static class Endpoints
 
         public static string Get(string id) => $"{Root}/{id}";
 
+        public static string Get(Guid id) => Get(id.ToString());
+
         public static string Search() => Root;
 
         public static string Put(string id) => Get(id);

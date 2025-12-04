@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Testing;
+namespace Api.Extensions;
 
 public static class EnumExtensions
 {
