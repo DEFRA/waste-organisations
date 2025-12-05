@@ -1,4 +1,5 @@
 using Api.Dtos;
+using Api.Extensions;
 using AutoFixture;
 using AutoFixture.Dsl;
 using Organisation = Api.Data.Entities.Organisation;
@@ -11,9 +12,9 @@ public static class OrganisationEntityFixtures
 
     private static string RandomBusinessCountry()
     {
-        var names = Enum.GetNames<BusinessCountry>();
+        var values = Enum.GetValues<BusinessCountry>();
 
-        return names[Random.Shared.Next(0, names.Length)];
+        return values[Random.Shared.Next(0, values.Length)].ToJsonValue();
     }
 
     public static IPostprocessComposer<Organisation> Organisation()
@@ -30,7 +31,7 @@ public static class OrganisationEntityFixtures
         return Organisation()
             .With(x => x.Name, "England Ltd")
             .With(x => x.TradingName, "Trading Name")
-            .With(x => x.BusinessCountry, nameof(BusinessCountry.England))
+            .With(x => x.BusinessCountry, BusinessCountry.England.ToJsonValue())
             .With(x => x.CompaniesHouseNumber, "12345678")
             .With(x => x.Address, AddressEntityFixtures.Default().Create())
             .With(x => x.Registrations, () => [RegistrationEntityFixtures.Default().Create()]);

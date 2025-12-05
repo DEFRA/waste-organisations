@@ -1,4 +1,5 @@
 using Api.Dtos;
+using Api.Extensions;
 using AutoFixture;
 using AutoFixture.Dsl;
 using Registration = Api.Data.Entities.Registration;
@@ -16,16 +17,16 @@ public static class RegistrationEntityFixtures
 
     private static string RandomType()
     {
-        var names = Enum.GetNames<RegistrationType>();
+        var values = Enum.GetValues<RegistrationType>();
 
-        return names[Random.Shared.Next(0, names.Length)];
+        return values[Random.Shared.Next(0, values.Length)].ToJsonValue();
     }
 
     private static string RandomStatus()
     {
-        var names = Enum.GetNames<RegistrationStatus>();
+        var values = Enum.GetValues<RegistrationStatus>();
 
-        return names[Random.Shared.Next(0, names.Length)];
+        return values[Random.Shared.Next(0, values.Length)].ToJsonValue();
     }
 
     public static IPostprocessComposer<Registration> Registration()
@@ -40,8 +41,8 @@ public static class RegistrationEntityFixtures
     public static IPostprocessComposer<Registration> Default()
     {
         return Registration()
-            .With(x => x.Type, nameof(RegistrationType.SmallProducer))
+            .With(x => x.Type, RegistrationType.SmallProducer.ToJsonValue())
             .With(x => x.RegistrationYear, 2025)
-            .With(x => x.Status, nameof(RegistrationStatus.Registered));
+            .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue());
     }
 }

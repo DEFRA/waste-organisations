@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Api.Dtos;
 using Api.Extensions;
 using AwesomeAssertions;
@@ -18,6 +20,21 @@ public class EnumExtensionsTests
         FixtureType.Value1.ToJsonValue().Should().Be("Value1");
     }
 
+    [Fact]
+    public void FromJsonValue_AsExpected()
+    {
+        "LARGE_PRODUCER".FromJsonValue<RegistrationType>().Should().Be(RegistrationType.LargeProducer);
+    }
+
+    [Fact]
+    public void FromJsonValue_WhenInvalid_ShouldThrow()
+    {
+        var act = () => "INVALID".FromJsonValue<RegistrationType>();
+
+        act.Should().Throw<JsonException>();
+    }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     private enum FixtureType
     {
         Value1,

@@ -1,4 +1,5 @@
 using Api.Dtos;
+using Api.Extensions;
 
 namespace Api.Mapping;
 
@@ -11,8 +12,7 @@ public static class OrganisationExtensions
             Id = id,
             Name = organisationRegistration.Name,
             TradingName = organisationRegistration.TradingName,
-            // should this be the same string?
-            BusinessCountry = organisationRegistration.BusinessCountry?.ToString(),
+            BusinessCountry = organisationRegistration.BusinessCountry?.ToJsonValue(),
             CompaniesHouseNumber = organisationRegistration.CompaniesHouseNumber,
             Address = new Data.Entities.Address
             {
@@ -27,9 +27,8 @@ public static class OrganisationExtensions
             [
                 new Data.Entities.Registration
                 {
-                    // should this be the same string?
-                    Status = organisationRegistration.Registration.Status.ToString(),
-                    Type = organisationRegistration.Registration.Type.ToString(),
+                    Status = organisationRegistration.Registration.Status.ToJsonValue(),
+                    Type = organisationRegistration.Registration.Type.ToJsonValue(),
                     RegistrationYear = organisationRegistration.Registration.RegistrationYear,
                 },
             ],
@@ -42,7 +41,7 @@ public static class OrganisationExtensions
         {
             BusinessCountry? businessCountry = null;
             if (organisation.BusinessCountry is not null)
-                businessCountry = Enum.Parse<BusinessCountry>(organisation.BusinessCountry);
+                businessCountry = organisation.BusinessCountry.FromJsonValue<BusinessCountry>();
 
             return new Organisation
             {
@@ -63,8 +62,8 @@ public static class OrganisationExtensions
                 Registrations = organisation
                     .Registrations.Select(x => new Registration
                     {
-                        Status = Enum.Parse<RegistrationStatus>(x.Status),
-                        Type = Enum.Parse<RegistrationType>(x.Type),
+                        Status = x.Status.FromJsonValue<RegistrationStatus>(),
+                        Type = x.Type.FromJsonValue<RegistrationType>(),
                         RegistrationYear = x.RegistrationYear,
                     })
                     .ToArray(),
@@ -74,17 +73,17 @@ public static class OrganisationExtensions
         public Data.Entities.Organisation Patch(OrganisationRegistration organisationRegistration)
         {
             var registrations = organisation.Registrations.ToDictionary(x => $"{x.Type}-{x.RegistrationYear}", x => x);
-            var key =
-                $"{organisationRegistration.Registration.Type.ToString()}-{organisationRegistration.Registration.RegistrationYear}";
+            var type = organisationRegistration.Registration.Type.ToJsonValue();
+            var key = $"{type}-{organisationRegistration.Registration.RegistrationYear}";
 
             registrations.Remove(key);
             registrations.Add(
                 key,
                 new Data.Entities.Registration
                 {
-                    Type = organisationRegistration.Registration.Type.ToString(),
+                    Type = type,
                     RegistrationYear = organisationRegistration.Registration.RegistrationYear,
-                    Status = organisationRegistration.Registration.Status.ToString(),
+                    Status = organisationRegistration.Registration.Status.ToJsonValue(),
                 }
             );
 
@@ -92,7 +91,7 @@ public static class OrganisationExtensions
             {
                 Name = organisationRegistration.Name,
                 TradingName = organisationRegistration.TradingName,
-                BusinessCountry = organisationRegistration.BusinessCountry?.ToString(),
+                BusinessCountry = organisationRegistration.BusinessCountry?.ToJsonValue(),
                 CompaniesHouseNumber = organisationRegistration.CompaniesHouseNumber,
                 Address = new Data.Entities.Address
                 {

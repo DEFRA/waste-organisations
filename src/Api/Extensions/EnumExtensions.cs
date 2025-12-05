@@ -1,22 +1,11 @@
-using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace Api.Extensions;
 
 public static class EnumExtensions
 {
-    public static string ToJsonValue(this Enum value)
-    {
-        var memberInfo = value.GetType().GetMember(value.ToString())[0];
-        var attribute = memberInfo.CustomAttributes.FirstOrDefault(x =>
-            x.AttributeType == typeof(JsonStringEnumMemberNameAttribute)
-        );
+    public static string ToJsonValue<TEnum>(this TEnum value) => JsonSerializer.Serialize(value).Trim('"');
 
-        if (attribute != null)
-        {
-            // The constructor argument contains the Name value
-            return attribute.ConstructorArguments.FirstOrDefault().Value?.ToString() ?? value.ToString();
-        }
-
-        return value.ToString();
-    }
+    public static TEnum FromJsonValue<TEnum>(this string value)
+        where TEnum : struct, Enum => JsonSerializer.Deserialize<TEnum>($"\"{value}\"");
 }

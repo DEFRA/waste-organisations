@@ -1,4 +1,5 @@
 using Api.Dtos;
+using Api.Extensions;
 using Api.Mapping;
 using AutoFixture;
 using AwesomeAssertions;
@@ -56,7 +57,10 @@ public class OrganisationExtensionsTests
             .Registrations.Should()
             .BeEquivalentTo([
                 RegistrationEntityFixtures.Default().Create(),
-                RegistrationEntityFixtures.Default().With(x => x.Type, nameof(RegistrationType.LargeProducer)).Create(),
+                RegistrationEntityFixtures
+                    .Default()
+                    .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
+                    .Create(),
             ]);
     }
 
@@ -77,7 +81,10 @@ public class OrganisationExtensionsTests
         organisation
             .Registrations.Should()
             .BeEquivalentTo([
-                RegistrationEntityFixtures.Default().With(x => x.Status, nameof(RegistrationStatus.Cancelled)).Create(),
+                RegistrationEntityFixtures
+                    .Default()
+                    .With(x => x.Status, RegistrationStatus.Cancelled.ToJsonValue())
+                    .Create(),
             ]);
     }
 }
