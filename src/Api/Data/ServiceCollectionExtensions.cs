@@ -32,19 +32,24 @@ public static class ServiceCollectionExtensions
             var options =
                 sp.GetService<IOptions<MongoDbOptions>>() ?? throw new InvalidOperationException("Options not found");
             var settings = MongoClientSettings.FromConnectionString(options.Value.DatabaseUri);
-
             var client = new MongoClient(settings);
-            var conventionPack = new ConventionPack
-            {
-                new CamelCaseElementNameConvention(),
-                new EnumRepresentationConvention(BsonType.String),
-            };
 
-            ConventionRegistry.Register(nameof(conventionPack), conventionPack, _ => true);
+            RegisterConventions();
 
             return client.GetDatabase(options.Value.DatabaseName);
         });
 
         return services;
+    }
+
+    public static void RegisterConventions()
+    {
+        var conventionPack = new ConventionPack
+        {
+            new CamelCaseElementNameConvention(),
+            new EnumRepresentationConvention(BsonType.String),
+        };
+
+        ConventionRegistry.Register(nameof(conventionPack), conventionPack, _ => true);
     }
 }

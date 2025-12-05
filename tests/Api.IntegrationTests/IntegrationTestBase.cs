@@ -1,10 +1,9 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using Api.Authentication;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using Testing;
+using ServiceCollectionExtensions = Api.Data.ServiceCollectionExtensions;
 
 namespace Api.IntegrationTests;
 
@@ -42,21 +41,8 @@ public abstract class IntegrationTestBase
         return new MongoClient(settings).GetDatabase("waste-organisations");
     }
 
-    protected static IMongoCollection<T> GetMongoCollection<T>()
+    static IntegrationTestBase()
     {
-        var db = GetMongoDatabase();
-
-        return db.GetCollection<T>(typeof(T).Name);
-    }
-
-    protected IntegrationTestBase()
-    {
-        var conventionPack = new ConventionPack
-        {
-            new CamelCaseElementNameConvention(),
-            new EnumRepresentationConvention(BsonType.String),
-        };
-
-        ConventionRegistry.Register(nameof(conventionPack), conventionPack, _ => true);
+        ServiceCollectionExtensions.RegisterConventions();
     }
 }
