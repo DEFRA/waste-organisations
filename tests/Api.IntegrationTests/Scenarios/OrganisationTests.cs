@@ -13,7 +13,7 @@ public class OrganisationTests : IntegrationTestBase
     public async Task OrganisationCreatedAndUpdated()
     {
         var client = CreateClient();
-        var id = Guid.NewGuid().ToString();
+        var id = Guid.NewGuid();
 
         var response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.Put(id),

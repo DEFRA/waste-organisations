@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Api.Authentication;
 using Api.Data;
 using Api.Dtos;
@@ -106,6 +107,12 @@ try
                 {
                     context.Response.StatusCode = badHttpRequestException.StatusCode;
                     detail = badHttpRequestException.Message;
+
+                    if (error.InnerException is JsonException jsonException)
+                    {
+                        detail +=
+                            $" - {jsonException.Message.Replace("Api.Dtos.", "").Replace("System.Nullable`1[", "").Replace("].", ".")} {jsonException.Path}";
+                    }
                 }
 
                 await context

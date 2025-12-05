@@ -24,6 +24,8 @@ public static class Endpoints
 
         public static string Put(string id) => Get(id);
 
+        public static string Put(Guid id) => Put(id.ToString());
+
         private static string RegistrationsGet(string id) => $"{Get(id)}/registrations";
 
         public static string RegistrationsPut(string id, string type, string registrationYear) =>

@@ -34,7 +34,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns(request.ToEntity(id));
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.Put(id.ToString()),
+            Testing.Endpoints.Organisations.Put(id),
             request,
             TestContext.Current.CancellationToken
         );
@@ -60,7 +60,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns<Organisation>(args => (Organisation)args[0]);
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.Put(id.ToString()),
+            Testing.Endpoints.Organisations.Put(id),
             request,
             TestContext.Current.CancellationToken
         );
@@ -70,6 +70,48 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    // Still need request/payload validation for things like enums etc
-    // Need auto fixture to thin out type creation
+    [Fact]
+    public async Task WhenInvalidRequest_BusinessCountryIsInvalid_ShouldNotCreate()
+    {
+        var client = CreateClient();
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            new { BusinessCountry = "Invalid" },
+            TestContext.Current.CancellationToken
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        await VerifyJson(content).DontScrubGuids();
+    }
+
+    [Fact]
+    public async Task WhenInvalidRequest_RegistrationIsInvalid_ShouldNotCreate()
+    {
+        var client = CreateClient();
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            new { Address = new { }, Registration = new { } },
+            TestContext.Current.CancellationToken
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        await VerifyJson(content).DontScrubGuids();
+    }
+
+    [Fact]
+    public async Task WhenInvalidRequest_RegistrationStatusIsInvalid_ShouldNotCreate()
+    {
+        var client = CreateClient();
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            new { Address = new { }, Registration = new { Status = "Invalid" } },
+            TestContext.Current.CancellationToken
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        await VerifyJson(content).DontScrubGuids();
+    }
 }
