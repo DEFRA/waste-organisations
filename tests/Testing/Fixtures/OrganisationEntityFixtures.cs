@@ -2,7 +2,10 @@ using Api.Dtos;
 using Api.Extensions;
 using AutoFixture;
 using AutoFixture.Dsl;
+using EnumExtensions = Testing.Extensions.EnumExtensions;
 using Organisation = Api.Data.Entities.Organisation;
+
+// ReSharper disable ConvertClosureToMethodGroup
 
 namespace Testing.Fixtures;
 
@@ -10,20 +13,15 @@ public static class OrganisationEntityFixtures
 {
     private static Fixture GetFixture() => new();
 
-    private static string RandomBusinessCountry()
-    {
-        var values = Enum.GetValues<BusinessCountry>();
-
-        return values[Random.Shared.Next(0, values.Length)].ToJsonValue();
-    }
-
     public static IPostprocessComposer<Organisation> Organisation()
     {
         var fixture = GetFixture();
 
         RegistrationEntityFixtures.ConfigureDefaults(fixture);
 
-        return fixture.Build<Organisation>().With(x => x.BusinessCountry, RandomBusinessCountry());
+        return fixture
+            .Build<Organisation>()
+            .With(x => x.BusinessCountry, () => EnumExtensions.RandomJsonValue<BusinessCountry>());
     }
 
     public static IPostprocessComposer<Organisation> Default()
