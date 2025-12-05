@@ -1,5 +1,7 @@
 using Api.Authentication;
 using Api.Dtos;
+using Api.Mapping;
+using Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Endpoints.Organisations;
@@ -26,23 +28,22 @@ public static class Put
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
         [FromBody] OrganisationRegistration organisation,
+        [FromServices] IOrganisationService organisationService,
         CancellationToken cancellationToken
     )
     {
-        await Task.Yield();
+        var existing = await organisationService.Get(id, cancellationToken);
+        if (existing is null)
+        {
+            var created = await organisationService.Create(organisation.ToEntity(id), cancellationToken);
 
-        return Results.Created(
-            $"/organisations/{id}",
-            new Organisation
-            {
-                Id = id,
-                Name = organisation.Name,
-                TradingName = organisation.TradingName,
-                BusinessCountry = organisation.BusinessCountry,
-                CompaniesHouseNumber = organisation.CompaniesHouseNumber,
-                Address = organisation.Address,
-                Registrations = [organisation.Registration],
-            }
-        );
+            return Results.Created($"/organisations/{id}", created.ToDto());
+        }
+
+        var updated = existing.Patch(organisation);
+
+        updated = await organisationService.Update(updated, cancellationToken);
+
+        return Results.Ok(updated.ToDto());
     }
 }

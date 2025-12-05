@@ -2,6 +2,8 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using Api.Authentication;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Testing;
 
 namespace Api.Tests.Endpoints;
@@ -16,13 +18,24 @@ public class EndpointTestBase : IClassFixture<ApiWebApplicationFactory>
         _factory.OutputHelper = outputHelper;
     }
 
+    /// <summary>
+    /// Use this to override DI services.
+    /// </summary>
+    /// <param name="services"></param>
+    protected virtual void ConfigureTestServices(IServiceCollection services) { }
+
     protected HttpClient CreateClient(
         bool addAuthorizationHeader = true,
         TestUser testUser = TestUser.ReadWrite,
         AclOptions.ClientType clientType = AclOptions.ClientType.ApiKey
     )
     {
-        var client = _factory.CreateClient();
+        var builder = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(ConfigureTestServices);
+        });
+
+        var client = builder.CreateClient();
 
         if (!addAuthorizationHeader)
             return client;

@@ -1,5 +1,5 @@
 ﻿{
-  "id": "26647e8d-176e-440e-b7e4-75a9252cbd4b",
+  "id": "Guid_1",
   "name": "England Ltd",
   "tradingName": "Trading Name",
   "businessCountry": "GB-ENG",
@@ -16,6 +16,11 @@
     {
       "status": "REGISTERED",
       "type": "SMALL_PRODUCER",
+      "registrationYear": 2025
+    },
+    {
+      "status": "REGISTERED",
+      "type": "LARGE_PRODUCER",
       "registrationYear": 2025
     }
   ]

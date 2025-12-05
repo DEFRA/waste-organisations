@@ -1,5 +1,7 @@
 using Api.Authentication;
 using Api.Dtos;
+using Api.Mapping;
+using Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Endpoints.Organisations;
@@ -20,19 +22,14 @@ public static class Get
     }
 
     [HttpGet]
-    private static async Task<IResult> Handle([FromRoute] Guid id, CancellationToken cancellationToken)
+    private static async Task<IResult> Handle(
+        [FromRoute] Guid id,
+        [FromServices] IOrganisationService organisationService,
+        CancellationToken cancellationToken
+    )
     {
-        await Task.Yield();
+        var organisation = await organisationService.Get(id, cancellationToken);
 
-        return id == new Guid("b6f76437-65b6-4ed2-a7d5-c50e9af76201")
-            ? Results.Ok(
-                new Organisation
-                {
-                    Id = id,
-                    Name = null!,
-                    Address = null!,
-                }
-            )
-            : Results.NotFound();
+        return organisation is null ? Results.NotFound() : Results.Ok(organisation.ToDto());
     }
 }
