@@ -32,7 +32,7 @@ public abstract class IntegrationTestBase
         return Jwt.GenerateJwt(claims);
     }
 
-    private static IMongoDatabase GetMongoDatabase()
+    protected static IMongoDatabase GetMongoDatabase()
     {
         var settings = MongoClientSettings.FromConnectionString("mongodb://127.0.0.1:27017");
         settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
