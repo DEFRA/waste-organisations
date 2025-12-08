@@ -1,0 +1,7 @@
+﻿{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Failed to read parameter \"OrganisationRegistration organisation\" from the request body as JSON. - The JSON value could not be converted to System.Nullable`1[BusinessCountry]. Path: $.businessCountry | LineNumber: 0 | BytePositionInLine: 28. $.businessCountry",
+  "traceId": "{Scrubbed}"
+}

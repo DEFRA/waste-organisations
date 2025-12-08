@@ -1,6 +1,9 @@
+using System.Text.Json;
 using Api.Authentication;
+using Api.Data;
 using Api.Dtos;
 using Api.Endpoints;
+using Api.Services;
 using Api.Utils;
 using Api.Utils.Health;
 using Api.Utils.Logging;
@@ -81,6 +84,8 @@ try
         );
     });
     builder.Services.AddAuthenticationAuthorization();
+    builder.Services.AddDbContext(builder.Configuration, integrationTest);
+    builder.Services.AddTransient<IOrganisationService, OrganisationService>();
 
     var app = builder.Build();
 
@@ -102,6 +107,11 @@ try
                 {
                     context.Response.StatusCode = badHttpRequestException.StatusCode;
                     detail = badHttpRequestException.Message;
+
+                    if (error.InnerException is JsonException jsonException)
+                    {
+                        detail += $" - {jsonException.Message.Replace("Api.Dtos.", "")} {jsonException.Path}";
+                    }
                 }
 
                 await context

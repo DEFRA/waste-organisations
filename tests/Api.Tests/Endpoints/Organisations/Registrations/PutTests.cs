@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using Api.Dtos;
+using Api.Extensions;
 using AwesomeAssertions;
-using Testing;
 
 namespace Api.Tests.Endpoints.Organisations.Registrations;
 
