@@ -61,8 +61,8 @@ public class SearchQueryOperationTransformer : IOpenApiOperationTransformer
                 Schema = new OpenApiSchema
                 {
                     Type = JsonSchemaType.Array,
-                    Maximum = "2050",
-                    Minimum = "2023",
+                    Minimum = RegistrationYear.Minimum.ToString(),
+                    Maximum = RegistrationYear.Maximum.ToString(),
                     Items = new OpenApiSchema
                     {
                         Pattern = "^-?(?:0|[1-9]\\d*)$",

@@ -12,6 +12,6 @@ public record Registration
     public required RegistrationType Type { get; init; }
 
     [JsonPropertyName("registrationYear")]
-    [Range(2023, 2050)]
+    [Range(Api.RegistrationYear.Minimum, Api.RegistrationYear.Maximum)]
     public int RegistrationYear { get; init; }
 }

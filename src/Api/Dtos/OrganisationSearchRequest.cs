@@ -15,7 +15,11 @@ public record OrganisationSearchRequest
 
     [Description("Comma separated list of years")]
     [FromQuery(Name = "registrationYears")]
-    [NumericCommaSeparatedList(2023, 2050, ErrorMessage = "Invalid registration year(s)")]
+    [NumericCommaSeparatedList(
+        RegistrationYear.Minimum,
+        RegistrationYear.Maximum,
+        ErrorMessage = "Invalid registration year(s)"
+    )]
     public string? RegistrationYears { get; init; }
 
     [Description("Comma separated list of registration statuses")]
