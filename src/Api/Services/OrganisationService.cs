@@ -1,7 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Api.Data;
-using Api.Data.Entities;
+using Api.Dtos;
 using MongoDB.Driver;
+using Organisation = Api.Data.Entities.Organisation;
 
 namespace Api.Services;
 
@@ -42,5 +43,17 @@ public class OrganisationService(IDbContext dbContext) : IOrganisationService
         return replaceOneResult.ModifiedCount == 0
             ? throw new ConcurrencyException("Concurrency issue on write, organisation was not updated")
             : organisation;
+    }
+
+    public async Task<List<Organisation>> Search(
+        List<RegistrationType> registrationTypes,
+        List<int> registrationYears,
+        List<RegistrationStatus> registrationStatuses,
+        CancellationToken cancellationToken
+    )
+    {
+        await Task.Yield();
+
+        return [];
     }
 }

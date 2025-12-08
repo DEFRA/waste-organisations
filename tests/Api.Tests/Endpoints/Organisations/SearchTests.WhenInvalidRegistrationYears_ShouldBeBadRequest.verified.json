@@ -1,0 +1,11 @@
+﻿{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "RegistrationYears": [
+      "Invalid registration year(s) - INVALID, INVALID_2, 2022, 2051"
+    ]
+  },
+  "traceId": "{Scrubbed}"
+}

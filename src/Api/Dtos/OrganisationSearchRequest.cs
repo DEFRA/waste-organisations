@@ -1,5 +1,6 @@
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
+using Api.Dtos.Attributes;
+using Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Dtos;
@@ -9,14 +10,25 @@ public record OrganisationSearchRequest
 {
     [Description("Comma separated list of registration types")]
     [FromQuery(Name = "registrations")]
-    public RegistrationType[]? Registrations { get; init; } = [];
+    [EnumCommaSeparatedList(typeof(RegistrationType), ErrorMessage = "Invalid registration type(s)")]
+    public string? Registrations { get; init; }
 
     [Description("Comma separated list of years")]
     [FromQuery(Name = "registrationYears")]
-    [Range(2023, 2050)]
-    public int[]? RegistrationYears { get; init; } = [];
+    [NumericCommaSeparatedList(2023, 2050, ErrorMessage = "Invalid registration year(s)")]
+    public string? RegistrationYears { get; init; }
 
     [Description("Comma separated list of registration statuses")]
     [FromQuery(Name = "statuses")]
-    public RegistrationStatus[]? Statuses { get; init; } = [];
+    [EnumCommaSeparatedList(typeof(RegistrationStatus), ErrorMessage = "Invalid registration status(s)")]
+    public string? Statuses { get; init; }
+
+    public List<RegistrationType> ParsedRegistrationTypes() =>
+        Registrations?.Split(',').NotNull().Select(x => x.FromJsonValue<RegistrationType>()).ToList() ?? [];
+
+    public List<int> ParsedRegistrationYears() =>
+        RegistrationYears?.Split(',').NotNull().Select(int.Parse).ToList() ?? [];
+
+    public List<RegistrationStatus> ParsedRegistrationStatuses() =>
+        Statuses?.Split(',').NotNull().Select(x => x.FromJsonValue<RegistrationStatus>()).ToList() ?? [];
 }

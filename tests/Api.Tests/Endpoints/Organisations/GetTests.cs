@@ -17,7 +17,7 @@ public class GetTests(ApiWebApplicationFactory factory, ITestOutputHelper output
     {
         base.ConfigureTestServices(services);
 
-        services.AddTransient<IOrganisationService>(sp => MockOrganisationService);
+        services.AddTransient<IOrganisationService>(_ => MockOrganisationService);
     }
 
     [Fact]

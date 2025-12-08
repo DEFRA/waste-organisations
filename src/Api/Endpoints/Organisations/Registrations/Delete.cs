@@ -6,10 +6,12 @@ namespace Api.Endpoints.Organisations.Registrations;
 
 public static class Delete
 {
+    public const string OperationId = "DeleteRegistration";
+
     public static void MapRegistrationsDelete(this IEndpointRouteBuilder app)
     {
         app.MapDelete("/organisations/{id:guid}/registrations/{type}-{registrationYear:int}", Handle)
-            .WithName("DeleteRegistration")
+            .WithName(OperationId)
             .WithTags("Registrations")
             .WithSummary("Update an existing registration")
             .Produces(StatusCodes.Status204NoContent)

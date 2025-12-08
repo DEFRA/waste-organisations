@@ -6,10 +6,12 @@ namespace Api.Endpoints.Organisations.Registrations;
 
 public static class Put
 {
+    public const string OperationId = "CreateOrUpdateRegistration";
+
     public static void MapRegistrationsPut(this IEndpointRouteBuilder app)
     {
         app.MapPut("/organisations/{id:guid}/registrations/{type}-{registrationYear:int}", Handle)
-            .WithName("CreateOrUpdateRegistration")
+            .WithName(OperationId)
             .WithTags("Registrations")
             .WithSummary("Create or update a registration")
             .Produces<Registration>()

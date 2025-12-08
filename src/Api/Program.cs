@@ -1,15 +1,15 @@
 using System.Text.Json;
 using Api.Authentication;
 using Api.Data;
-using Api.Dtos;
 using Api.Endpoints;
+using Api.Endpoints.Organisations;
+using Api.Endpoints.Organisations.Registrations;
 using Api.Services;
 using Api.Utils;
 using Api.Utils.Health;
 using Api.Utils.Logging;
 using Elastic.CommonSchema.Serilog;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.OpenApi;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console(new EcsTextFormatter()).CreateBootstrapLogger();
@@ -32,59 +32,13 @@ try
     builder.Services.AddHealth();
     builder.Services.AddOpenApi(options =>
     {
-        options.AddDocumentTransformer(
-            (document, _, _) =>
-            {
-                document.Info = new OpenApiInfo
-                {
-                    Title = "Waste Organisations REST API",
-                    Version = "0.0.1",
-                    Description = "Save and retrieve organisations alongside their yearly registrations",
-                };
-
-                document.Components?.Schemas?.Remove(nameof(RegistrationTypeFromRoute));
-
-                return Task.CompletedTask;
-            }
-        );
-        options.AddOperationTransformer(
-            (operation, _, _) =>
-            {
-                if (operation.OperationId is "CreateOrUpdateRegistration" or "DeleteRegistration")
-                {
-                    var typeParameter = operation.Parameters?.FirstOrDefault(p =>
-                        p is { Name: "type", In: ParameterLocation.Path }
-                    );
-
-                    if (typeParameter != null)
-                    {
-                        operation.Parameters?.Remove(typeParameter);
-
-                        var newTypeParameter = new OpenApiParameter
-                        {
-                            Name = "type",
-                            In = ParameterLocation.Path,
-                            Required = true,
-                            Schema = new OpenApiSchemaReference(nameof(RegistrationType))
-                            {
-                                Reference = new JsonSchemaReference
-                                {
-                                    Type = ReferenceType.Schema,
-                                    Id = nameof(RegistrationType),
-                                },
-                            },
-                        };
-
-                        operation.Parameters?.Insert(1, newTypeParameter);
-                    }
-                }
-
-                return Task.CompletedTask;
-            }
-        );
+        options.AddDocumentTransformer<OpenApiDocumentTransformer>();
+        options.AddOperationTransformer<RegistrationKeyOperationTransformer>();
+        options.AddOperationTransformer<SearchQueryOperationTransformer>();
     });
     builder.Services.AddAuthenticationAuthorization();
     builder.Services.AddDbContext(builder.Configuration, integrationTest);
+    builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
 
     var app = builder.Build();
