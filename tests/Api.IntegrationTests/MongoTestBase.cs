@@ -8,7 +8,11 @@ public class MongoTestBase : IntegrationTestBase, IAsyncLifetime
 {
     public required IMongoCollection<Organisation> Organisations { get; set; }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
+    }
 
     public async ValueTask InitializeAsync()
     {
