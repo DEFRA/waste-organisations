@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Api.Data;
 using Api.Dtos;
+using Api.Extensions;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using Organisation = Api.Data.Entities.Organisation;
 
 namespace Api.Services;
@@ -52,8 +54,19 @@ public class OrganisationService(IDbContext dbContext) : IOrganisationService
         CancellationToken cancellationToken
     )
     {
-        await Task.Yield();
+        var registrationTypeStrings = registrationTypes.Select(x => x.ToJsonValue()).ToList();
+        var registrationStatusStrings = registrationStatuses.Select(x => x.ToJsonValue()).ToList();
 
-        return [];
+        var query = dbContext
+            .Organisations.AsQueryable()
+            .Where(x =>
+                x.Registrations.Any(y =>
+                    (registrationTypeStrings.Count == 0 || registrationTypeStrings.Contains(y.Type))
+                    && (registrationYears.Count == 0 || registrationYears.Contains(y.RegistrationYear))
+                    && (registrationStatusStrings.Count == 0 || registrationStatusStrings.Contains(y.Status))
+                )
+            );
+
+        return await query.ToListAsync(cancellationToken);
     }
 }

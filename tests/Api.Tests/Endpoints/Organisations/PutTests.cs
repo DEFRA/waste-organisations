@@ -115,4 +115,42 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
 
         await VerifyJson(content).DontScrubGuids();
     }
+
+    [Fact]
+    public async Task WhenInvalidRequest_RegistrationTypeIsInvalid_ShouldNotCreate()
+    {
+        var client = CreateClient();
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            new { Address = new { }, Registration = new { Type = "Invalid" } },
+            TestContext.Current.CancellationToken
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        await VerifyJson(content).DontScrubGuids();
+    }
+
+    [Theory]
+    [InlineData(2022)]
+    [InlineData(2051)]
+    public async Task WhenInvalidRequest_RegistrationYearIsInvalid_ShouldNotCreate(int registrationYear)
+    {
+        var client = CreateClient();
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            OrganisationRegistrationDtoFixtures
+                .Default()
+                .With(
+                    x => x.Registration,
+                    RegistrationDtoFixtures.Default().With(x => x.RegistrationYear, registrationYear).Create()
+                )
+                .Create(),
+            TestContext.Current.CancellationToken
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        await VerifyJson(content).IgnoreParameters().DontScrubGuids();
+    }
 }

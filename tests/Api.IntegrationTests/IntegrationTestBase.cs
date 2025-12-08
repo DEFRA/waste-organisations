@@ -1,9 +1,7 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using Api.Authentication;
-using MongoDB.Driver;
 using Testing;
-using ServiceCollectionExtensions = Api.Data.ServiceCollectionExtensions;
 
 namespace Api.IntegrationTests;
 
@@ -29,20 +27,5 @@ public abstract class IntegrationTestBase
         var claims = new[] { new Claim(Claims.ClientId, clientId) };
 
         return Jwt.GenerateJwt(claims);
-    }
-
-    protected static IMongoDatabase GetMongoDatabase()
-    {
-        var settings = MongoClientSettings.FromConnectionString("mongodb://127.0.0.1:27017");
-        settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
-        settings.ConnectTimeout = TimeSpan.FromSeconds(5);
-        settings.SocketTimeout = TimeSpan.FromSeconds(5);
-
-        return new MongoClient(settings).GetDatabase("waste-organisations");
-    }
-
-    static IntegrationTestBase()
-    {
-        ServiceCollectionExtensions.RegisterConventions();
     }
 }

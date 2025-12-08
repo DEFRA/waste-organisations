@@ -8,7 +8,7 @@ public static class OrganisationRegistrationDtoFixtures
 {
     private static Fixture GetFixture() => new();
 
-    private static IPostprocessComposer<OrganisationRegistration> Organisation()
+    public static IPostprocessComposer<OrganisationRegistration> Organisation()
     {
         return GetFixture().Build<OrganisationRegistration>();
     }
