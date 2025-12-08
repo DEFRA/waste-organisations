@@ -110,8 +110,7 @@ try
 
                     if (error.InnerException is JsonException jsonException)
                     {
-                        detail +=
-                            $" - {jsonException.Message.Replace("Api.Dtos.", "").Replace("System.Nullable`1[", "").Replace("].", ".")} {jsonException.Path}";
+                        detail += $" - {jsonException.Message.Replace("Api.Dtos.", "")} {jsonException.Path}";
                     }
                 }
 

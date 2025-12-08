@@ -29,8 +29,7 @@ public static class ServiceCollectionExtensions
         {
             MongoClientSettings.Extensions.AddAWSAuthentication();
 
-            var options =
-                sp.GetService<IOptions<MongoDbOptions>>() ?? throw new InvalidOperationException("Options not found");
+            var options = sp.GetRequiredService<IOptions<MongoDbOptions>>();
             var settings = MongoClientSettings.FromConnectionString(options.Value.DatabaseUri);
             var client = new MongoClient(settings);
 

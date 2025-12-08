@@ -29,8 +29,9 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
         var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b");
         var request = OrganisationRegistrationDtoFixtures.Default().Create();
+        MockOrganisationService.Get(id, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Organisation?>(null));
         MockOrganisationService
-            .Create(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
+            .Create(Arg.Is<Organisation>(x => x.Id == id), Arg.Any<CancellationToken>())
             .Returns(request.ToEntity(id));
 
         var response = await client.PutAsJsonAsync(

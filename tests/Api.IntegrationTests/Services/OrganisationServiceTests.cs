@@ -81,7 +81,7 @@ public class OrganisationServiceTests : IntegrationTestBase
         var act = async () => await Subject.Update(retrieved2, TestContext.Current.CancellationToken);
 
         await act.Should()
-            .ThrowAsync<InvalidOperationException>()
+            .ThrowAsync<ConcurrencyException>()
             .WithMessage("Concurrency issue on write, organisation was not updated");
     }
 }

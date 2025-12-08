@@ -9,12 +9,9 @@ namespace Api.Services;
 public class OrganisationService(IDbContext dbContext) : IOrganisationService
 {
     public async Task<Organisation?> Get(Guid id, CancellationToken cancellationToken) =>
-        await (
-            await dbContext.Organisations.FindAsync(
-                Builders<Organisation>.Filter.Eq(x => x.Id, id),
-                cancellationToken: cancellationToken
-            )
-        ).FirstOrDefaultAsync(cancellationToken: cancellationToken);
+        await dbContext
+            .Organisations.Find(Builders<Organisation>.Filter.Eq(x => x.Id, id))
+            .FirstOrDefaultAsync(cancellationToken: cancellationToken);
 
     public async Task<Organisation> Create(Organisation organisation, CancellationToken cancellationToken)
     {
@@ -43,7 +40,7 @@ public class OrganisationService(IDbContext dbContext) : IOrganisationService
         );
 
         return replaceOneResult.ModifiedCount == 0
-            ? throw new InvalidOperationException("Concurrency issue on write, organisation was not updated")
+            ? throw new ConcurrencyException("Concurrency issue on write, organisation was not updated")
             : organisation;
     }
 }
