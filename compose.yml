@@ -17,6 +17,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__DatabaseUri: mongodb://mongodb:27017/
       PORT: 8080
+      AWS_EMF_ENVIRONMENT: Local
     ports:
       - 8080:8080
     healthcheck:
