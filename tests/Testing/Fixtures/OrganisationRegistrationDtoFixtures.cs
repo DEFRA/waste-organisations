@@ -16,7 +16,7 @@ public static class OrganisationRegistrationDtoFixtures
     public static IPostprocessComposer<OrganisationRegistration> Default()
     {
         return Organisation()
-            .With(x => x.Name, "England Ltd")
+            .With(x => x.Name, "Test Name Ltd")
             .With(x => x.TradingName, "Trading Name")
             .With(x => x.BusinessCountry, BusinessCountry.England)
             .With(x => x.CompaniesHouseNumber, "12345678")

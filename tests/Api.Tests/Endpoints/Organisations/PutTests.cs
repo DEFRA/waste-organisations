@@ -45,6 +45,34 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
+    [Theory]
+    [InlineData(2023)]
+    [InlineData(2050)]
+    public async Task WhenNoOrganisation_AndRegistrationYearOnBoundary_ShouldCreate(int registrationYear)
+    {
+        var client = CreateClient();
+        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b");
+        var request = OrganisationRegistrationDtoFixtures
+            .Default()
+            .With(
+                x => x.Registration,
+                RegistrationDtoFixtures.Default().With(x => x.RegistrationYear, registrationYear).Create()
+            )
+            .Create();
+        MockOrganisationService.Get(id, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Organisation?>(null));
+        MockOrganisationService
+            .Create(Arg.Is<Organisation>(x => x.Id == id), Arg.Any<CancellationToken>())
+            .Returns(request.ToEntity(id));
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(id),
+            request,
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
     [Fact]
     public async Task WhenOrganisation_ShouldUpdate()
     {

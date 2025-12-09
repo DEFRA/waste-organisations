@@ -2,12 +2,12 @@
   "organisations": [
     {
       "id": "d9a5615a-ebe8-4486-a057-f1aa9b6746fc",
-      "name": "England Ltd",
+      "name": "Test Name Ltd",
       "tradingName": "Trading Name",
       "businessCountry": "GB-ENG",
       "companiesHouseNumber": "12345678",
       "address": {
-        "addressLine1": "England Ltd",
+        "addressLine1": "Test Name Ltd",
         "addressLine2": "123 Street",
         "town": "Town",
         "county": "County",

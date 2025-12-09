@@ -109,7 +109,5 @@ public class OrganisationTests : MongoTestBase
 
         largeProducerOrganisations.Should().NotBeNull();
         largeProducerOrganisations.Organisations.Length.Should().Be(largeProducers.Length);
-
-        Console.WriteLine("Found {0} large producers", largeProducers.Length);
     }
 }

@@ -10,7 +10,7 @@ public record OrganisationSearchRequest
 {
     [Description("Comma separated list of registration types")]
     [FromQuery(Name = "registrations")]
-    [EnumCommaSeparatedList(typeof(RegistrationType), ErrorMessage = "Invalid registration type(s)")]
+    [EnumCommaSeparatedList<RegistrationType>(ErrorMessage = "Invalid registration type(s)")]
     public string? Registrations { get; init; }
 
     [Description("Comma separated list of years")]
@@ -24,7 +24,7 @@ public record OrganisationSearchRequest
 
     [Description("Comma separated list of registration statuses")]
     [FromQuery(Name = "statuses")]
-    [EnumCommaSeparatedList(typeof(RegistrationStatus), ErrorMessage = "Invalid registration status(s)")]
+    [EnumCommaSeparatedList<RegistrationStatus>(ErrorMessage = "Invalid registration status(s)")]
     public string? Statuses { get; init; }
 
     public List<RegistrationType> ParsedRegistrationTypes() =>

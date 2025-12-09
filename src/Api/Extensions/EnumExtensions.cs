@@ -5,7 +5,7 @@ namespace Api.Extensions;
 
 [SuppressMessage(
     "Minor Code Smell",
-    "S2325:Methods and properties that don\'t access instance data should be static - Sonar has not caught up with latest syntax"
+    "S2325:Methods and properties that don't access instance data should be static - Sonar has not caught up with latest syntax"
 )]
 public static class EnumExtensions
 {
@@ -16,7 +16,5 @@ public static class EnumExtensions
     {
         public TEnum FromJsonValue<TEnum>()
             where TEnum : struct, Enum => JsonSerializer.Deserialize<TEnum>($"\"{value}\"");
-
-        public object? FromJsonValue(Type enumType) => JsonSerializer.Deserialize($"\"{value}\"", enumType);
     }
 }

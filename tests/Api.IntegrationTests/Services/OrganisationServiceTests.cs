@@ -117,21 +117,23 @@ public class OrganisationServiceTests : MongoTestBase
         results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
     }
 
-    [Fact]
-    public async Task Search_WhenRegistrationYearMatch_ShouldBeFound()
+    [Theory]
+    [InlineData(2025)]
+    [InlineData(2026)]
+    public async Task Search_WhenRegistrationYearMatch_ShouldBeFound(int registrationYear)
     {
         var initial = await Subject.Create(
             OrganisationEntityFixtures
                 .Default()
                 .With(
                     x => x.Registrations,
-                    [RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2025).Create()]
+                    [RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, registrationYear).Create()]
                 )
                 .Create(),
             TestContext.Current.CancellationToken
         );
 
-        var results = await Subject.Search([], [2025], [], TestContext.Current.CancellationToken);
+        var results = await Subject.Search([], [registrationYear], [], TestContext.Current.CancellationToken);
 
         results.Should().ContainSingle();
         results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());

@@ -15,7 +15,7 @@ public static class RegistrationEntityFixtures
     private static Fixture GetFixture() => new();
 
     private static int RandomRegistrationYear() =>
-        Random.Shared.Next(RegistrationYear.Minimum, RegistrationYear.Maximum);
+        Random.Shared.Next(RegistrationYear.Minimum, RegistrationYear.Maximum + 1);
 
     public static void ConfigureDefaults(Fixture fixture)
     {

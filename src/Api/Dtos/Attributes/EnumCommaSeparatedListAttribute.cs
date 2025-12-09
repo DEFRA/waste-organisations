@@ -4,34 +4,21 @@ using Api.Extensions;
 namespace Api.Dtos.Attributes;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
-public class EnumCommaSeparatedListAttribute(Type enumType) : ValidationAttribute
+public class EnumCommaSeparatedListAttribute<T> : BaseCommaSeparatedListAttribute
+    where T : struct, Enum
 {
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        var values = (value as string)?.Split(',');
-
-        if (values is null || values.Length <= 0)
-            return ValidationResult.Success;
-
-        var invalidValues = new List<string>();
-
-        foreach (var val in values)
-        {
-            try
+        var invalidValues = ParseInvalidValues(
+            value,
+            val =>
             {
-                val.FromJsonValue(enumType);
-            }
-            catch (Exception)
-            {
-                invalidValues.Add(val);
-            }
-        }
+                val.FromJsonValue<T>();
 
-        return invalidValues.Count != 0 ? new ValidationResult(FormatError(invalidValues)) : ValidationResult.Success;
+                return true;
+            }
+        );
+
+        return HandleInvalidValues(invalidValues);
     }
-
-    private string FormatError(List<string> invalidValues) =>
-        ErrorMessage is not null
-            ? $"{ErrorMessage} - {string.Join(", ", invalidValues)}"
-            : string.Join(", ", invalidValues);
 }
