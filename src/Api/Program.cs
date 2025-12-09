@@ -8,6 +8,7 @@ using Api.Services;
 using Api.Utils;
 using Api.Utils.Health;
 using Api.Utils.Logging;
+using Api.Utils.Metrics;
 using Elastic.CommonSchema.Serilog;
 using Microsoft.AspNetCore.Diagnostics;
 using Serilog;
@@ -40,12 +41,16 @@ try
     builder.Services.AddDbContext(builder.Configuration, integrationTest);
     builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
+    builder.Services.AddTransient<MetricsMiddleware>();
+    builder.Services.AddSingleton<RequestMetrics>();
 
     var app = builder.Build();
 
+    app.UseMetrics();
     app.UseHeaderPropagation();
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseMiddleware<MetricsMiddleware>();
     app.MapHealth();
     app.UseExceptionHandler(
         new ExceptionHandlerOptions

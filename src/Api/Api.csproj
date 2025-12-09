@@ -24,5 +24,6 @@
     <PackageReference Include="MongoDB.Driver.Authentication.AWS" Version="3.5.2" />
     <PackageReference Include="MongoDB.Driver" Version="3.5.2" />
     <PackageReference Include="Swashbuckle.AspNetCore.ReDoc" Version="10.0.1" />
+    <PackageReference Include="Amazon.CloudWatch.EMF" Version="2.2.0" />
   </ItemGroup>
 </Project>
