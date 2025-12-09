@@ -1,99 +1,113 @@
-# waste-organisations
+# Waste Organisations
 
-Core delivery C# ASP.NET backend template.
+An API for managing organisation data and their ongoing registrations in relation to EPR.
 
-* [Install MongoDB](#install-mongodb)
-* [Inspect MongoDB](#inspect-mongodb)
-* [Testing](#testing)
-* [Running](#running)
-* [Dependabot](#dependabot)
+## Prerequisites
 
+- .NET 10
+- Docker
 
-### Docker Compose
+## Setup process
 
-A Docker Compose template is in [compose.yml](compose.yml).
+- Ensure .NET 10 SDK is installed
+- Ensure a container runtime is installed
 
-A local environment with:
-
-- Localstack for AWS services (S3, SQS)
-- Redis
-- MongoDB
-- This service.
-- A commented out frontend example.
+### Running locally via Docker
 
 ```bash
-docker compose up --build -d
+docker compose up -d
 ```
 
-A more extensive setup is available in [github.com/DEFRA/cdp-local-environment](https://github.com/DEFRA/cdp-local-environment)
+### Running via .NET
 
-### MongoDB
+Mongo will be needed and can be started as follows:
 
-#### MongoDB via Docker
-
-See above.
-
-```
-docker compose up -d mongodb
-```
-
-#### MongoDB locally
-
-Alternatively install MongoDB locally:
-
-- Install [MongoDB](https://www.mongodb.com/docs/manual/tutorial/#installation) on your local machine
-- Start MongoDB:
 ```bash
-sudo mongod --dbpath ~/mongodb-cdp
+docker compose up mongodb -d
 ```
 
-#### MongoDB in CDP environments
+Start the API as follows:
 
-In CDP environments a MongoDB instance is already set up
-and the credentials exposed as enviromment variables.
-
-
-### Inspect MongoDB
-
-To inspect the Database and Collections locally:
 ```bash
-mongosh
+dotnet run --project ./src/Api --launch-profile Api
 ```
 
-You can use the CDP Terminal to access the environments' MongoDB.
+The same port (8080) is used for launch profile and Docker compose configuration, therefore only one can run at any one time. 
 
-### Testing
+### Documentation
 
-Run the tests with:
+API documentation can be viewed at http://localhost:8080/redoc/index.html once the service is running.
 
-Tests run by running a full `WebApplication` backed by [Ephemeral MongoDB](https://github.com/asimmon/ephemeral-mongo).
-Tests do not use mocking of any sort and read and write from the in-memory database.
+### Stopping and clearing local resources
+
+```bash
+docker compose down
+```
+
+To remove local data:
+
+```bash
+docker compose down -v --remove-orphans
+```
+
+## Tests
+
+Tests with the `IntegrationTests` trait require additional local dependencies - either the API running in Docker or Mongo.
+
+Running tests without dependencies:
+
+```bash
+dotnet test --filter "Category!=IntegrationTests"
+```
+
+Running tests with dependencies:
+
+```bash
+dotnet test --filter "Category=IntegrationTests"
+```
+
+Running all:
 
 ```bash
 dotnet test
-````
-
-### Running
-
-Run CDP-Deployments application:
-```bash
-dotnet run --project WasteOrganisations --launch-profile Development
 ```
 
-### SonarCloud
+## Code quality
 
-Example SonarCloud configuration are available in the GitHub Action workflows.
+SonarQube cloud is configured and all Defra rules are mandated. 
 
-### Dependabot
+See https://sonarcloud.io/project/overview?id=DEFRA_waste-organisations for project information.
 
-We have added an example dependabot configuration file to the repository. You can enable it by renaming
-the [.github/example.dependabot.yml](.github/example.dependabot.yml) to `.github/dependabot.yml`
+## Dependency management
 
+Dependabot is configured for ongoing dependency management.
+
+See [dependabot.yml](.github/dependabot.yml) for group configuration.
+
+## Build pipeline
+
+- [Pull requests](.github/workflows/check-pull-request.yml)
+  - Run all tests
+  - Build Docker image
+  - Check image with Trivy
+  - Sonar
+- [Publish](.github/workflows/publish.yml)
+  - Merge PR to main
+  - Build Docker image and publish to CDP
+  - Sonar
+
+## CDP
+
+Review CDP documentation and process for relevant portal operations.
+
+## Licence Information
+
+THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:
+
+http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3
 
 ### About the licence
 
-The Open Government Licence (OGL) was developed by the Controller of Her Majesty's Stationery Office (HMSO) to enable
-information providers in the public sector to license the use and re-use of their information under a common open
-licence.
+The Open Government Licence (OGL) was developed by the Controller of Her Majesty's Stationery Office (HMSO) to enable information providers in the public sector to license the use and re-use of their information under a common open licence.
 
 It is designed to encourage use and re-use of information freely and flexibly, with only a few conditions.
