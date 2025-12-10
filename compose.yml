@@ -17,9 +17,6 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__DatabaseUri: mongodb://mongodb:27017/
       PORT: 8080
-      Acl__Clients__IntegrationTest__Type: OAuth
-      Acl__Clients__IntegrationTest__Scopes__0: read
-      Acl__Clients__IntegrationTest__Scopes__1: write
     ports:
       - 8080:8080
     healthcheck:
