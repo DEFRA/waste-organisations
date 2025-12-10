@@ -8,6 +8,7 @@ using Api.Services;
 using Api.Utils;
 using Api.Utils.Health;
 using Api.Utils.Logging;
+using Api.Utils.Metrics;
 using Elastic.CommonSchema.Serilog;
 using Microsoft.AspNetCore.Diagnostics;
 using Serilog;
@@ -37,6 +38,7 @@ try
         options.AddOperationTransformer<SearchQueryOperationTransformer>();
     });
     builder.Services.AddAuthenticationAuthorization();
+    builder.Services.AddRequestMetrics();
     builder.Services.AddDbContext(builder.Configuration, integrationTest);
     builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
@@ -81,6 +83,7 @@ try
             },
         }
     );
+    app.UseRequestMetrics();
     app.MapOpenApi();
     app.UseReDoc(options =>
     {
