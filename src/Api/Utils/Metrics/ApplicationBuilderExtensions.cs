@@ -5,8 +5,10 @@ namespace Api.Utils.Metrics;
 [ExcludeFromCodeCoverage]
 public static class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseMetrics(this IApplicationBuilder builder)
+    public static IApplicationBuilder UseRequestMetrics(this IApplicationBuilder builder)
     {
+        builder.UseMiddleware<MetricsMiddleware>();
+
         var config = builder.ApplicationServices.GetRequiredService<IConfiguration>();
         var enabled = config.GetValue("AWS_EMF_ENABLED", true);
 

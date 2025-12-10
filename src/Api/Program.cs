@@ -38,19 +38,16 @@ try
         options.AddOperationTransformer<SearchQueryOperationTransformer>();
     });
     builder.Services.AddAuthenticationAuthorization();
+    builder.Services.AddRequestMetrics();
     builder.Services.AddDbContext(builder.Configuration, integrationTest);
     builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
-    builder.Services.AddTransient<MetricsMiddleware>();
-    builder.Services.AddSingleton<RequestMetrics>();
 
     var app = builder.Build();
 
-    app.UseMetrics();
     app.UseHeaderPropagation();
     app.UseAuthentication();
     app.UseAuthorization();
-    app.UseMiddleware<MetricsMiddleware>();
     app.MapHealth();
     app.UseExceptionHandler(
         new ExceptionHandlerOptions
@@ -86,6 +83,7 @@ try
             },
         }
     );
+    app.UseRequestMetrics();
     app.MapOpenApi();
     app.UseReDoc(options =>
     {

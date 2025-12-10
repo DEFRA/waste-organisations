@@ -6,7 +6,7 @@ using Amazon.CloudWatch.EMF.Model;
 namespace Api.Utils.Metrics;
 
 [ExcludeFromCodeCoverage]
-public class RequestMetrics
+public class RequestMetrics : IRequestMetrics
 {
     private readonly Counter<long> _requestsReceived;
     private readonly Counter<long> _requestsFaulted;
