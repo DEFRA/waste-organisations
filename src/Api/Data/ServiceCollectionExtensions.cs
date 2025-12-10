@@ -24,6 +24,7 @@ public static class ServiceCollectionExtensions
         if (integrationTest)
             return services;
 
+        services.AddHostedService<MongoIndexService>();
         services.AddScoped<IDbContext, MongoDbContext>();
         services.AddSingleton(sp =>
         {

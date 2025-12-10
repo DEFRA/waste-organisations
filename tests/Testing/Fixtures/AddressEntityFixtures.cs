@@ -16,7 +16,7 @@ public static class AddressEntityFixtures
     public static IPostprocessComposer<Address> Default()
     {
         return Address()
-            .With(x => x.AddressLine1, "England Ltd")
+            .With(x => x.AddressLine1, "Test Name Ltd")
             .With(x => x.AddressLine2, "123 Street")
             .With(x => x.Town, "Town")
             .With(x => x.County, "County")

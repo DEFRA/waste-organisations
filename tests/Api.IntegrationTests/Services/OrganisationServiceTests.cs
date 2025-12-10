@@ -1,4 +1,6 @@
 using Api.Data;
+using Api.Dtos;
+using Api.Extensions;
 using Api.Services;
 using AutoFixture;
 using AwesomeAssertions;
@@ -7,7 +9,7 @@ using Testing.Fixtures;
 
 namespace Api.IntegrationTests.Services;
 
-public class OrganisationServiceTests : IntegrationTestBase
+public class OrganisationServiceTests : MongoTestBase
 {
     private OrganisationService Subject { get; } = new(new MongoDbContext(GetMongoDatabase()));
 
@@ -83,5 +85,119 @@ public class OrganisationServiceTests : IntegrationTestBase
         await act.Should()
             .ThrowAsync<ConcurrencyException>()
             .WithMessage("Concurrency issue on write, organisation was not updated");
+    }
+
+    [Fact]
+    public async Task Search_WhenRegistrationTypeMatch_ShouldBeFound()
+    {
+        var initial = await Subject.Create(
+            OrganisationEntityFixtures
+                .Default()
+                .With(
+                    x => x.Registrations,
+                    [
+                        RegistrationEntityFixtures
+                            .Default()
+                            .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
+                            .Create(),
+                    ]
+                )
+                .Create(),
+            TestContext.Current.CancellationToken
+        );
+
+        var results = await Subject.Search(
+            [RegistrationType.LargeProducer],
+            [],
+            [],
+            TestContext.Current.CancellationToken
+        );
+
+        results.Should().ContainSingle();
+        results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
+    }
+
+    [Theory]
+    [InlineData(2025)]
+    [InlineData(2026)]
+    public async Task Search_WhenRegistrationYearMatch_ShouldBeFound(int registrationYear)
+    {
+        var initial = await Subject.Create(
+            OrganisationEntityFixtures
+                .Default()
+                .With(
+                    x => x.Registrations,
+                    [RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, registrationYear).Create()]
+                )
+                .Create(),
+            TestContext.Current.CancellationToken
+        );
+
+        var results = await Subject.Search([], [registrationYear], [], TestContext.Current.CancellationToken);
+
+        results.Should().ContainSingle();
+        results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
+    }
+
+    [Fact]
+    public async Task Search_WhenRegistrationStatusMatch_ShouldBeFound()
+    {
+        var initial = await Subject.Create(
+            OrganisationEntityFixtures
+                .Default()
+                .With(
+                    x => x.Registrations,
+                    [
+                        RegistrationEntityFixtures
+                            .Default()
+                            .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
+                            .Create(),
+                    ]
+                )
+                .Create(),
+            TestContext.Current.CancellationToken
+        );
+
+        var results = await Subject.Search(
+            [],
+            [],
+            [RegistrationStatus.Registered],
+            TestContext.Current.CancellationToken
+        );
+
+        results.Should().ContainSingle();
+        results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
+    }
+
+    [Fact]
+    public async Task Search_WhenMultipleRegistrationFieldsMatch_ShouldBeFound()
+    {
+        var initial = await Subject.Create(
+            OrganisationEntityFixtures
+                .Default()
+                .With(
+                    x => x.Registrations,
+                    [
+                        RegistrationEntityFixtures
+                            .Default()
+                            .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
+                            .With(x => x.RegistrationYear, 2025)
+                            .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
+                            .Create(),
+                    ]
+                )
+                .Create(),
+            TestContext.Current.CancellationToken
+        );
+
+        var results = await Subject.Search(
+            [RegistrationType.LargeProducer],
+            [2025],
+            [RegistrationStatus.Registered],
+            TestContext.Current.CancellationToken
+        );
+
+        results.Should().ContainSingle();
+        results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
     }
 }

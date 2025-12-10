@@ -20,7 +20,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
     {
         base.ConfigureTestServices(services);
 
-        services.AddTransient<IOrganisationService>(sp => MockOrganisationService);
+        services.AddTransient<IOrganisationService>(_ => MockOrganisationService);
     }
 
     [Fact]
@@ -42,6 +42,34 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         await VerifyJson(content).DontScrubGuids();
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Theory]
+    [InlineData(2023)]
+    [InlineData(2050)]
+    public async Task WhenNoOrganisation_AndRegistrationYearOnBoundary_ShouldCreate(int registrationYear)
+    {
+        var client = CreateClient();
+        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b");
+        var request = OrganisationRegistrationDtoFixtures
+            .Default()
+            .With(
+                x => x.Registration,
+                RegistrationDtoFixtures.Default().With(x => x.RegistrationYear, registrationYear).Create()
+            )
+            .Create();
+        MockOrganisationService.Get(id, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Organisation?>(null));
+        MockOrganisationService
+            .Create(Arg.Is<Organisation>(x => x.Id == id), Arg.Any<CancellationToken>())
+            .Returns(request.ToEntity(id));
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(id),
+            request,
+            TestContext.Current.CancellationToken
+        );
+
         response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -114,5 +142,43 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         await VerifyJson(content).DontScrubGuids();
+    }
+
+    [Fact]
+    public async Task WhenInvalidRequest_RegistrationTypeIsInvalid_ShouldNotCreate()
+    {
+        var client = CreateClient();
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            new { Address = new { }, Registration = new { Type = "Invalid" } },
+            TestContext.Current.CancellationToken
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        await VerifyJson(content).DontScrubGuids();
+    }
+
+    [Theory]
+    [InlineData(2022)]
+    [InlineData(2051)]
+    public async Task WhenInvalidRequest_RegistrationYearIsInvalid_ShouldNotCreate(int registrationYear)
+    {
+        var client = CreateClient();
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            OrganisationRegistrationDtoFixtures
+                .Default()
+                .With(
+                    x => x.Registration,
+                    RegistrationDtoFixtures.Default().With(x => x.RegistrationYear, registrationYear).Create()
+                )
+                .Create(),
+            TestContext.Current.CancellationToken
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        await VerifyJson(content).IgnoreParameters().DontScrubGuids();
     }
 }

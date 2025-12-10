@@ -1,3 +1,4 @@
+using Api;
 using Api.Dtos;
 using Api.Extensions;
 using AutoFixture;
@@ -13,7 +14,8 @@ public static class RegistrationEntityFixtures
 {
     private static Fixture GetFixture() => new();
 
-    private static int RandomRegistrationYear() => Random.Shared.Next(2023, 2050);
+    private static int RandomRegistrationYear() =>
+        Random.Shared.Next(RegistrationYear.Minimum, RegistrationYear.Maximum + 1);
 
     public static void ConfigureDefaults(Fixture fixture)
     {

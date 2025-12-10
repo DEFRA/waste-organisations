@@ -312,7 +312,7 @@
         "tags": [
           "Registrations"
         ],
-        "summary": "Update an existing registration",
+        "summary": "Delete an existing registration",
         "operationId": "DeleteRegistration",
         "parameters": [
           {
