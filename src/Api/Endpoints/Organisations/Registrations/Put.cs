@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Api.Authentication;
 using Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +26,7 @@ public static class Put
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
         [FromRoute] RegistrationTypeFromRoute type,
-        [FromRoute] int registrationYear,
+        [FromRoute] [Range(RegistrationYear.Minimum, RegistrationYear.Maximum)] int registrationYear,
         [FromBody] RegistrationRequest request,
         CancellationToken cancellationToken
     )

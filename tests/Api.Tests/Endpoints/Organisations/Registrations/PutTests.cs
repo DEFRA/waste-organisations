@@ -29,13 +29,16 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
-    [Fact]
-    public async Task WhenInvalidRoute_ShouldBeBadRequest()
+    [Theory]
+    [InlineData("UNKNOWN", "2025")]
+    [InlineData("SMALL_PRODUCER", "2022")]
+    [InlineData("SMALL_PRODUCER", "2051")]
+    public async Task WhenInvalidRoute_ShouldBeBadRequest(string type, string registrationYear)
     {
         var client = CreateClient();
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(OrganisationData.Id, "UNKNOWN", "2025"),
+            Testing.Endpoints.Organisations.RegistrationsPut(OrganisationData.Id, type, registrationYear),
             new RegistrationRequest { Status = RegistrationStatus.Registered },
             TestContext.Current.CancellationToken
         );
