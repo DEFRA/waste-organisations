@@ -73,6 +73,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         );
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.Headers.Location.Should().Be($"/organisations/{OrganisationData.Id}");
     }
 
     [Fact]
