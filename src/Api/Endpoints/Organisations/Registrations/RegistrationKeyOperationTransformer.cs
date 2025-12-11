@@ -22,6 +22,8 @@ public class RegistrationKeyOperationTransformer : IOpenApiOperationTransformer
         if (typeParameter == null)
             return Task.CompletedTask;
 
+        // This is removing the auto generated reference to RegistrationTypeFromRoute
+        // used in the route operations above.
         operation.Parameters?.Remove(typeParameter);
 
         var newTypeParameter = new OpenApiParameter
@@ -35,6 +37,8 @@ public class RegistrationKeyOperationTransformer : IOpenApiOperationTransformer
             },
         };
 
+        // This inserts the replacement reference type to the actual enum
+        // that is expected in the path
         operation.Parameters?.Insert(1, newTypeParameter);
 
         return Task.CompletedTask;
