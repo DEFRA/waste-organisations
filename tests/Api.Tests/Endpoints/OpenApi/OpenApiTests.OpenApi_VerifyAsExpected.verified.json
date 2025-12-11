@@ -568,7 +568,8 @@
       "Registration": {
         "required": [
           "status",
-          "type"
+          "type",
+          "registrationYear"
         ],
         "type": "object",
         "properties": {
