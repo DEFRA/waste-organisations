@@ -10,13 +10,15 @@ namespace Api.Utils.Metrics;
 public static class MetricsExporter
 {
     private static readonly MeterListener s_meterListener = new();
-    private static ILogger s_logger = null!;
+
+    // ReSharper disable once InconsistentNaming (this name is for Sonars benefit)
+    private static ILogger _logger = null!;
     private static ILoggerFactory s_loggerFactory = NullLoggerFactory.Instance;
     private static string? s_awsNamespace;
 
     public static void Init(ILoggerFactory loggerFactory, string? awsNamespace)
     {
-        s_logger = loggerFactory.CreateLogger(nameof(MetricsExporter));
+        _logger = loggerFactory.CreateLogger(nameof(MetricsExporter));
         s_loggerFactory = loggerFactory;
         s_awsNamespace = awsNamespace;
 
@@ -63,7 +65,7 @@ public static class MetricsExporter
         }
         catch (Exception ex)
         {
-            s_logger.LogError(ex, "Failed to push EMF metric");
+            _logger.LogError(ex, "Failed to push EMF metric");
         }
     }
 }
