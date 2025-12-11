@@ -19,6 +19,8 @@ public class OpenApiDocumentTransformer : IOpenApiDocumentTransformer
             Description = "Save and retrieve organisations alongside their yearly registrations",
         };
 
+        // This is removed from the whole schema and where it's used,
+        // the actual enum of RegistrationType will be used instead
         document.Components?.Schemas?.Remove(nameof(RegistrationTypeFromRoute));
 
         return Task.CompletedTask;

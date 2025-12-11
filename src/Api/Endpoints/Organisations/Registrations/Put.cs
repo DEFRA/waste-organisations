@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using Api.Authentication;
 using Api.Dtos;
+using Api.Mapping;
+using Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Endpoints.Organisations.Registrations;
@@ -25,21 +28,25 @@ public static class Put
     private static async Task<IResult> Handle(
         [FromRoute] Guid id,
         [FromRoute] RegistrationTypeFromRoute type,
-        [FromRoute] int registrationYear,
+        [FromRoute] [Range(RegistrationYear.Minimum, RegistrationYear.Maximum)] int registrationYear,
         [FromBody] RegistrationRequest request,
+        [FromServices] IOrganisationService organisationService,
         CancellationToken cancellationToken
     )
     {
-        await Task.Yield();
+        var organisation = await organisationService.Get(id, cancellationToken);
+        if (organisation is null)
+            return Results.NotFound();
 
-        return Results.Created(
-            $"/organisations/{id}/registrations/{type}-{registrationYear}",
-            new Registration
-            {
-                Status = request.Status,
-                Type = type.RegistrationType,
-                RegistrationYear = registrationYear,
-            }
-        );
+        var (updated, isAdded) = organisation.Patch(type.RegistrationType, registrationYear, request);
+
+        updated = await organisationService.Update(updated, cancellationToken);
+
+        var registration = updated.GetRegistration(type.RegistrationType, registrationYear);
+        var result = registration.ToDto();
+
+        return isAdded
+            ? Results.Created($"/organisations/{id}/registrations/{registration.Key}", result)
+            : Results.Ok(result);
     }
 }

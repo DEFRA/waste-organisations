@@ -62,7 +62,7 @@ try
                 if (error is BadHttpRequestException badHttpRequestException)
                 {
                     context.Response.StatusCode = badHttpRequestException.StatusCode;
-                    detail = badHttpRequestException.Message;
+                    detail = RegistrationKeyErrorHandler.ReplaceSchemaReference(badHttpRequestException.Message);
 
                     if (error.InnerException is JsonException jsonException)
                     {
