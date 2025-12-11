@@ -13,10 +13,13 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
     public async Task WhenRegistration_ShouldUpdate()
     {
         var client = CreateClient();
-        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b").ToString();
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(id, RegistrationType.LargeProducer.ToJsonValue(), "2025"),
+            Testing.Endpoints.Organisations.RegistrationsPut(
+                OrganisationData.Id,
+                RegistrationType.LargeProducer.ToJsonValue(),
+                "2025"
+            ),
             new RegistrationRequest { Status = RegistrationStatus.Cancelled },
             TestContext.Current.CancellationToken
         );
@@ -30,10 +33,9 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
     public async Task WhenInvalidRoute_ShouldBeBadRequest()
     {
         var client = CreateClient();
-        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b").ToString();
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(id, "UNKNOWN", "2025"),
+            Testing.Endpoints.Organisations.RegistrationsPut(OrganisationData.Id, "UNKNOWN", "2025"),
             new RegistrationRequest { Status = RegistrationStatus.Registered },
             TestContext.Current.CancellationToken
         );

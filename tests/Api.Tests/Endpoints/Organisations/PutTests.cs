@@ -27,15 +27,16 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
     public async Task WhenNoOrganisation_ShouldCreate()
     {
         var client = CreateClient();
-        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b");
         var request = OrganisationRegistrationDtoFixtures.Default().Create();
-        MockOrganisationService.Get(id, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Organisation?>(null));
         MockOrganisationService
-            .Create(Arg.Is<Organisation>(x => x.Id == id), Arg.Any<CancellationToken>())
-            .Returns(request.ToEntity(id));
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<Organisation?>(null));
+        MockOrganisationService
+            .Create(Arg.Is<Organisation>(x => x.Id == OrganisationData.Id), Arg.Any<CancellationToken>())
+            .Returns(request.ToEntity(OrganisationData.Id));
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.Put(id),
+            Testing.Endpoints.Organisations.Put(OrganisationData.Id),
             request,
             TestContext.Current.CancellationToken
         );
@@ -51,7 +52,6 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
     public async Task WhenNoOrganisation_AndRegistrationYearOnBoundary_ShouldCreate(int registrationYear)
     {
         var client = CreateClient();
-        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b");
         var request = OrganisationRegistrationDtoFixtures
             .Default()
             .With(
@@ -59,13 +59,15 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
                 RegistrationDtoFixtures.Default().With(x => x.RegistrationYear, registrationYear).Create()
             )
             .Create();
-        MockOrganisationService.Get(id, Arg.Any<CancellationToken>()).Returns(Task.FromResult<Organisation?>(null));
         MockOrganisationService
-            .Create(Arg.Is<Organisation>(x => x.Id == id), Arg.Any<CancellationToken>())
-            .Returns(request.ToEntity(id));
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<Organisation?>(null));
+        MockOrganisationService
+            .Create(Arg.Is<Organisation>(x => x.Id == OrganisationData.Id), Arg.Any<CancellationToken>())
+            .Returns(request.ToEntity(OrganisationData.Id));
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.Put(id),
+            Testing.Endpoints.Organisations.Put(OrganisationData.Id),
             request,
             TestContext.Current.CancellationToken
         );
@@ -77,19 +79,22 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
     public async Task WhenOrganisation_ShouldUpdate()
     {
         var client = CreateClient();
-        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b");
         var request = OrganisationRegistrationDtoFixtures.Default().Create();
         MockOrganisationService
-            .Get(id, Arg.Any<CancellationToken>())
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
             .Returns(
-                OrganisationEntityFixtures.Organisation().With(x => x.Id, id).With(x => x.Registrations, []).Create()
+                OrganisationEntityFixtures
+                    .Organisation()
+                    .With(x => x.Id, OrganisationData.Id)
+                    .With(x => x.Registrations, [])
+                    .Create()
             );
         MockOrganisationService
             .Update(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
             .Returns<Organisation>(args => (Organisation)args[0]);
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.Put(id),
+            Testing.Endpoints.Organisations.Put(OrganisationData.Id),
             request,
             TestContext.Current.CancellationToken
         );

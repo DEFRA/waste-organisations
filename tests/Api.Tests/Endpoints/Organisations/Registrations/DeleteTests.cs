@@ -12,11 +12,10 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
     public async Task WhenRegistration_ShouldDelete()
     {
         var client = CreateClient();
-        var id = new Guid("26647e8d-176e-440e-b7e4-75a9252cbd4b").ToString();
 
         var response = await client.DeleteAsync(
             Testing.Endpoints.Organisations.RegistrationsDelete(
-                id,
+                OrganisationData.Id,
                 RegistrationType.LargeProducer.ToJsonValue(),
                 "2025"
             ),

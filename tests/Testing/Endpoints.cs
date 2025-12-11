@@ -31,7 +31,13 @@ public static class Endpoints
         public static string RegistrationsPut(string id, string type, string registrationYear) =>
             $"{RegistrationsGet(id)}/{type}-{registrationYear}";
 
+        public static string RegistrationsPut(Guid id, string type, string registrationYear) =>
+            RegistrationsPut(id.ToString(), type, registrationYear);
+
         public static string RegistrationsDelete(string id, string type, string registrationYear) =>
+            RegistrationsPut(id, type, registrationYear);
+
+        public static string RegistrationsDelete(Guid id, string type, string registrationYear) =>
             RegistrationsPut(id, type, registrationYear);
     }
 }
