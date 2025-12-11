@@ -1,6 +1,8 @@
 using Api.Dtos;
 using Api.Extensions;
 
+// ReSharper disable ConvertToExtensionBlock
+
 namespace Api.Mapping;
 
 public static class OrganisationExtensions
@@ -106,6 +108,22 @@ public static class OrganisationExtensions
         return (organisation with { Registrations = registrations }, isAdded);
     }
 
+    public static Data.Entities.Organisation Remove(
+        this Data.Entities.Organisation organisation,
+        Data.Entities.Registration registration
+    )
+    {
+        var key = registration.Key;
+        var registrations = organisation
+            .Registrations.Where(x => new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear) != key)
+            .ToArray();
+
+        return organisation with
+        {
+            Registrations = registrations,
+        };
+    }
+
     private static (Data.Entities.Registration[], bool) Patch(
         this Data.Entities.Organisation organisation,
         RegistrationType type,
@@ -144,6 +162,16 @@ public static class OrganisationExtensions
         int registrationYear
     ) =>
         organisation.Registrations.Single(x =>
+            new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear)
+            == new Data.Entities.RegistrationKey(type, registrationYear)
+        );
+
+    public static Data.Entities.Registration? FindRegistration(
+        this Data.Entities.Organisation organisation,
+        RegistrationType type,
+        int registrationYear
+    ) =>
+        organisation.Registrations.SingleOrDefault(x =>
             new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear)
             == new Data.Entities.RegistrationKey(type, registrationYear)
         );

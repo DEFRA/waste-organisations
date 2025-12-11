@@ -1,28 +1,26 @@
 using System.Net;
 using Api.Dtos;
 using Api.Extensions;
+using Api.Services;
+using AutoFixture;
 using AwesomeAssertions;
+using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
+using Testing.Fixtures;
+using Organisation = Api.Data.Entities.Organisation;
 
 namespace Api.Tests.Endpoints.Organisations.Registrations;
 
 public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
     : EndpointTestBase(factory, outputHelper)
 {
-    [Fact]
-    public async Task WhenRegistration_ShouldDelete()
+    private IOrganisationService MockOrganisationService { get; } = Substitute.For<IOrganisationService>();
+
+    protected override void ConfigureTestServices(IServiceCollection services)
     {
-        var client = CreateClient();
+        base.ConfigureTestServices(services);
 
-        var response = await client.DeleteAsync(
-            Testing.Endpoints.Organisations.RegistrationsDelete(
-                OrganisationData.Id,
-                RegistrationType.LargeProducer.ToJsonValue(),
-                "2025"
-            ),
-            TestContext.Current.CancellationToken
-        );
-
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        services.AddTransient<IOrganisationService>(_ => MockOrganisationService);
     }
 
     [Theory]
@@ -40,5 +38,83 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         await VerifyJson(content).DontScrubGuids();
+    }
+
+    [Fact]
+    public async Task WhenOrganisationNotFound_ShouldBeNotFound()
+    {
+        var client = CreateClient();
+        MockOrganisationService
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<Organisation?>(null));
+
+        var response = await client.DeleteAsync(
+            Testing.Endpoints.Organisations.RegistrationsDelete(
+                OrganisationData.Id,
+                RegistrationType.SmallProducer.ToJsonValue(),
+                "2025"
+            ),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task WhenOrganisationFound_AndRegistrationNotFound_ShouldBeNotFound()
+    {
+        var client = CreateClient();
+        MockOrganisationService
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(OrganisationEntityFixtures.Default().With(x => x.Id, OrganisationData.Id).Create());
+
+        var response = await client.DeleteAsync(
+            Testing.Endpoints.Organisations.RegistrationsDelete(
+                OrganisationData.Id,
+                RegistrationType.SmallProducer.ToJsonValue(),
+                "2026"
+            ),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task WhenOrganisationFound_AndRegistrationFound_ShouldBeDeleted()
+    {
+        var client = CreateClient();
+        var remaining = RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2026).Create();
+        MockOrganisationService
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(
+                OrganisationEntityFixtures
+                    .Default()
+                    .With(x => x.Id, OrganisationData.Id)
+                    .With(x => x.Registrations, [RegistrationEntityFixtures.Default().Create(), remaining])
+                    .Create()
+            );
+        Organisation? organisation = null;
+        MockOrganisationService
+            .Update(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
+            .Returns<Organisation>(args =>
+            {
+                organisation = (Organisation)args[0];
+                return organisation;
+            });
+
+        var response = await client.DeleteAsync(
+            Testing.Endpoints.Organisations.RegistrationsDelete(
+                OrganisationData.Id,
+                RegistrationType.SmallProducer.ToJsonValue(),
+                "2025"
+            ),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        organisation.Should().NotBeNull();
+        organisation.Registrations.Should().BeEquivalentTo([remaining]);
     }
 }
