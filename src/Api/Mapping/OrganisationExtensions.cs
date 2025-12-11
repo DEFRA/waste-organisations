@@ -117,7 +117,7 @@ public static class OrganisationExtensions
             x => new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear),
             x => x
         );
-        var key = Data.Entities.RegistrationKey.From(type, registrationYear);
+        var key = new Data.Entities.RegistrationKey(type, registrationYear);
 
         var isAdded = !registrations.Remove(key);
         registrations.Add(
@@ -145,6 +145,6 @@ public static class OrganisationExtensions
     ) =>
         organisation.Registrations.Single(x =>
             new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear)
-            == Data.Entities.RegistrationKey.From(type, registrationYear)
+            == new Data.Entities.RegistrationKey(type, registrationYear)
         );
 }
