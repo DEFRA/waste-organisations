@@ -25,11 +25,11 @@ public class BasicAuthenticationHandler(
 
         var authorizationHeader = Request.Headers.Authorization.ToString();
         if (string.IsNullOrEmpty(authorizationHeader))
-            return Fail();
+            return NoResult();
 
         var authenticationHeaderValue = AuthenticationHeaderValue.Parse(Request.Headers.Authorization.ToString());
         if (authenticationHeaderValue.Scheme != SchemeName)
-            return Fail();
+            return NoResult();
 
         var credentialBytes = Convert.FromBase64String(authenticationHeaderValue.Parameter ?? string.Empty);
         var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
