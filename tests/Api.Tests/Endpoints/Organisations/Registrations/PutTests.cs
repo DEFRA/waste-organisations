@@ -69,13 +69,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
         MockOrganisationService
             .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
-            .Returns(
-                OrganisationEntityFixtures
-                    .Default()
-                    .With(x => x.Id, OrganisationData.Id)
-                    .With(x => x.Registrations, [RegistrationEntityFixtures.Default().Create()])
-                    .Create()
-            );
+            .Returns(OrganisationEntityFixtures.Default().Create());
         Organisation? organisation = null;
         MockOrganisationService
             .Update(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())

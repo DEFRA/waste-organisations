@@ -1,0 +1,27 @@
+﻿{
+  "id": "Guid_1",
+  "name": "Test Name Ltd",
+  "tradingName": "Trading Name",
+  "businessCountry": "GB-ENG",
+  "companiesHouseNumber": "12345678",
+  "address": {
+    "addressLine1": "Test Name Ltd",
+    "addressLine2": "123 Street",
+    "town": "Town",
+    "county": "County",
+    "postcode": "UK1",
+    "country": "UK"
+  },
+  "registrations": [
+    {
+      "status": "REGISTERED",
+      "type": "SMALL_PRODUCER",
+      "registrationYear": 2025
+    },
+    {
+      "status": "CANCELLED",
+      "type": "LARGE_PRODUCER",
+      "registrationYear": 2026
+    }
+  ]
+}

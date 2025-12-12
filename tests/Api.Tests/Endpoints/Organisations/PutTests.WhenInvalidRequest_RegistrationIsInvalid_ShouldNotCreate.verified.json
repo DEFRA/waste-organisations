@@ -2,6 +2,6 @@
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "Bad Request",
   "status": 400,
-  "detail": "Failed to read parameter \"OrganisationRegistration organisation\" from the request body as JSON. - JSON deserialization for type 'Registration' was missing required properties including: 'status', 'type'. $.registration",
+  "detail": "Failed to read parameter \"OrganisationRegistration organisation\" from the request body as JSON. - JSON deserialization for type 'Registration' was missing required properties including: 'status', 'type', 'registrationYear'. $.registration",
   "traceId": "{Scrubbed}"
 }
