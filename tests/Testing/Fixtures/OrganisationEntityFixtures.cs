@@ -1,13 +1,13 @@
-using Api.Dtos;
-using Api.Extensions;
 using AutoFixture;
 using AutoFixture.Dsl;
-using EnumExtensions = Testing.Extensions.EnumExtensions;
-using Organisation = Api.Data.Entities.Organisation;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
+using EnumExtensions = Defra.WasteOrganisations.Testing.Extensions.EnumExtensions;
+using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
 // ReSharper disable ConvertClosureToMethodGroup
 
-namespace Testing.Fixtures;
+namespace Defra.WasteOrganisations.Testing.Fixtures;
 
 public static class OrganisationEntityFixtures
 {

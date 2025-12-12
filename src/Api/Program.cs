@@ -1,14 +1,15 @@
 using System.Text.Json;
-using Api.Authentication;
-using Api.Data;
-using Api.Endpoints;
-using Api.Endpoints.Organisations;
-using Api.Endpoints.Organisations.Registrations;
-using Api.Services;
-using Api.Utils;
-using Api.Utils.Health;
-using Api.Utils.Logging;
-using Api.Utils.Metrics;
+using Defra.WasteOrganisations.Api.Authentication;
+using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Endpoints;
+using Defra.WasteOrganisations.Api.Endpoints.Organisations;
+using Defra.WasteOrganisations.Api.Endpoints.Organisations.Registrations;
+using Defra.WasteOrganisations.Api.Services;
+using Defra.WasteOrganisations.Api.Utils;
+using Defra.WasteOrganisations.Api.Utils.Health;
+using Defra.WasteOrganisations.Api.Utils.Logging;
+using Defra.WasteOrganisations.Api.Utils.Metrics;
 using Elastic.CommonSchema.Serilog;
 using Microsoft.AspNetCore.Diagnostics;
 using Serilog;
@@ -66,7 +67,8 @@ try
 
                     if (error.InnerException is JsonException jsonException)
                     {
-                        detail += $" - {jsonException.Message.Replace("Api.Dtos.", "")} {jsonException.Path}";
+                        var ns = $"{typeof(Organisation).Namespace}.";
+                        detail += $" - {jsonException.Message.Replace(ns, "")} {jsonException.Path}";
                     }
                 }
 

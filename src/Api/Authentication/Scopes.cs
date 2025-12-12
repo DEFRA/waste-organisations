@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Api.Authentication;
+namespace Defra.WasteOrganisations.Api.Authentication;
 
 [ExcludeFromCodeCoverage]
 public static class Scopes

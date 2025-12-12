@@ -1,7 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace Api.Data.Entities;
+namespace Defra.WasteOrganisations.Api.Data.Entities;
 
 public record Organisation
 {

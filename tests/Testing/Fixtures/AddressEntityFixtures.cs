@@ -1,8 +1,8 @@
-using Api.Data.Entities;
 using AutoFixture;
 using AutoFixture.Dsl;
+using Defra.WasteOrganisations.Api.Data.Entities;
 
-namespace Testing.Fixtures;
+namespace Defra.WasteOrganisations.Testing.Fixtures;
 
 public static class AddressEntityFixtures
 {

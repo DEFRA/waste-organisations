@@ -1,9 +1,9 @@
-using Api.Dtos;
-using Api.Extensions;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
 
 // ReSharper disable ConvertToExtensionBlock
 
-namespace Api.Mapping;
+namespace Defra.WasteOrganisations.Api.Mapping;
 
 public static class OrganisationExtensions
 {

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Api.Dtos.Attributes;
+namespace Defra.WasteOrganisations.Api.Dtos.Attributes;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public class NumericCommaSeparatedListAttribute(int minimum, int maximum) : BaseCommaSeparatedListAttribute

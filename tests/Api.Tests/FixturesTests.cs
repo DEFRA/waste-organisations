@@ -1,8 +1,8 @@
 using AutoFixture;
 using AwesomeAssertions;
-using Testing.Fixtures;
+using Defra.WasteOrganisations.Testing.Fixtures;
 
-namespace Api.Tests;
+namespace Defra.WasteOrganisations.Api.Tests;
 
 public class FixturesTests
 {

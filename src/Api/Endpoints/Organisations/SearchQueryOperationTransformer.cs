@@ -1,8 +1,8 @@
-using Api.Dtos;
+using Defra.WasteOrganisations.Api.Dtos;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
-namespace Api.Endpoints.Organisations;
+namespace Defra.WasteOrganisations.Api.Endpoints.Organisations;
 
 public class SearchQueryOperationTransformer : IOpenApiOperationTransformer
 {

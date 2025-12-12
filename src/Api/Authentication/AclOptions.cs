@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Api.Authentication;
+namespace Defra.WasteOrganisations.Api.Authentication;
 
 public class AclOptions
 {

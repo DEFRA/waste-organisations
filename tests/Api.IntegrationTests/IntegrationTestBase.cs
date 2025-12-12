@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using Api.Authentication;
-using Testing;
+using Defra.WasteOrganisations.Api.Authentication;
+using Defra.WasteOrganisations.Testing;
 
-namespace Api.IntegrationTests;
+namespace Defra.WasteOrganisations.Api.IntegrationTests;
 
 [Trait("Category", "IntegrationTests")]
 [Collection("Integration Tests")]

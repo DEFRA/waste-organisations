@@ -1,10 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Api.Dtos;
-using Api.Extensions;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
 
-namespace Api.Tests.Extensions;
+namespace Defra.WasteOrganisations.Api.Tests.Extensions;
 
 public class EnumExtensionsTests
 {

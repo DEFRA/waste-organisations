@@ -1,4 +1,4 @@
-namespace Api.Utils.Metrics;
+namespace Defra.WasteOrganisations.Api.Utils.Metrics;
 
 public interface IRequestMetrics
 {

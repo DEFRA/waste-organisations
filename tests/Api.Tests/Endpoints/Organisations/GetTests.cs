@@ -1,12 +1,12 @@
 using System.Net;
-using Api.Services;
 using AutoFixture;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Services;
+using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Testing.Fixtures;
 
-namespace Api.Tests.Endpoints.Organisations;
+namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations;
 
 public class GetTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
     : EndpointTestBase(factory, outputHelper)
@@ -30,7 +30,7 @@ public class GetTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns(OrganisationEntityFixtures.Default().With(x => x.Id, id).Create());
 
         var response = await client.GetStringAsync(
-            Testing.Endpoints.Organisations.Get(id),
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Get(id),
             TestContext.Current.CancellationToken
         );
 
@@ -43,7 +43,7 @@ public class GetTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
 
         var response = await client.GetAsync(
-            Testing.Endpoints.Organisations.Get(Guid.Empty.ToString()),
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Get(Guid.Empty.ToString()),
             TestContext.Current.CancellationToken
         );
 

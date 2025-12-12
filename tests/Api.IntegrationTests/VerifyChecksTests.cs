@@ -1,4 +1,4 @@
-namespace Api.IntegrationTests;
+namespace Defra.WasteOrganisations.Api.IntegrationTests;
 
 public class VerifyChecksTests
 {

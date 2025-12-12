@@ -1,6 +1,6 @@
-using Api.Extensions;
+using Defra.WasteOrganisations.Api.Extensions;
 
-namespace Testing.Extensions;
+namespace Defra.WasteOrganisations.Testing.Extensions;
 
 public static class EnumExtensions
 {

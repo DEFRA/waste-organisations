@@ -1,14 +1,14 @@
 using System.Net;
-using Api.Data.Entities;
-using Api.Services;
-using Api.Utils.Metrics;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Data.Entities;
+using Defra.WasteOrganisations.Api.Services;
+using Defra.WasteOrganisations.Api.Utils.Metrics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
-namespace Api.Tests.Endpoints.Organisations;
+namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations;
 
 public class RequestMetricsTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
     : EndpointTestBase(factory, outputHelper)

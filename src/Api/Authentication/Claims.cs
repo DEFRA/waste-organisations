@@ -1,4 +1,4 @@
-namespace Api.Authentication;
+namespace Defra.WasteOrganisations.Api.Authentication;
 
 public static class Claims
 {

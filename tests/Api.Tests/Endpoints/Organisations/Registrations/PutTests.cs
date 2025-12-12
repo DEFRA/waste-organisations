@@ -1,16 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
-using Api.Dtos;
-using Api.Extensions;
-using Api.Services;
 using AutoFixture;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
+using Defra.WasteOrganisations.Api.Services;
+using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Testing.Fixtures;
-using Organisation = Api.Data.Entities.Organisation;
+using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
-namespace Api.Tests.Endpoints.Organisations.Registrations;
+namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations.Registrations;
 
 public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
     : EndpointTestBase(factory, outputHelper)
@@ -33,7 +33,11 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(OrganisationData.Id, type, registrationYear),
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsPut(
+                OrganisationData.Id,
+                type,
+                registrationYear
+            ),
             new RegistrationRequest { Status = RegistrationStatus.Registered },
             TestContext.Current.CancellationToken
         );
@@ -51,7 +55,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns(Task.FromResult<Organisation?>(null));
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsPut(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2025"
@@ -80,7 +84,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             });
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsPut(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2026"
@@ -134,7 +138,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             });
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsPut(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2025"

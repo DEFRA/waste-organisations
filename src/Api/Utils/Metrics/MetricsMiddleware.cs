@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Api.Utils.Metrics;
+namespace Defra.WasteOrganisations.Api.Utils.Metrics;
 
 [ExcludeFromCodeCoverage]
 public class MetricsMiddleware(IRequestMetrics requestMetrics) : IMiddleware

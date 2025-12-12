@@ -1,7 +1,7 @@
 using System.Net;
 using AwesomeAssertions;
 
-namespace Api.Tests.Endpoints.Health;
+namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Health;
 
 public class HealthTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
     : EndpointTestBase(factory, outputHelper)

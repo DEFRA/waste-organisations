@@ -1,7 +1,7 @@
-using Api.Dtos;
-using Api.Extensions;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
 
-namespace Api.Data.Entities;
+namespace Defra.WasteOrganisations.Api.Data.Entities;
 
 public record RegistrationKey(string Type, int RegistrationYear)
 {

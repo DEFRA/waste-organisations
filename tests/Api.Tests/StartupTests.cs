@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Api.Tests;
+namespace Defra.WasteOrganisations.Api.Tests;
 
 public class StartupTests(ApiWebApplicationFactory factory) : IClassFixture<ApiWebApplicationFactory>
 {

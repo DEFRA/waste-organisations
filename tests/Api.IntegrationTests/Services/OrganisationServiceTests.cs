@@ -1,13 +1,13 @@
-using Api.Data;
-using Api.Dtos;
-using Api.Extensions;
-using Api.Services;
 using AutoFixture;
 using AwesomeAssertions;
-using Testing.Extensions;
-using Testing.Fixtures;
+using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
+using Defra.WasteOrganisations.Api.Services;
+using Defra.WasteOrganisations.Testing.Extensions;
+using Defra.WasteOrganisations.Testing.Fixtures;
 
-namespace Api.IntegrationTests.Services;
+namespace Defra.WasteOrganisations.Api.IntegrationTests.Services;
 
 public class OrganisationServiceTests : MongoTestBase
 {

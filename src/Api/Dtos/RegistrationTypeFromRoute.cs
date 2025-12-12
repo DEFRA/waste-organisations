@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Api.Dtos;
+namespace Defra.WasteOrganisations.Api.Dtos;
 
 public class RegistrationTypeFromRoute
 {

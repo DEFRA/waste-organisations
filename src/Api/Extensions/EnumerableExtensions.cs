@@ -1,4 +1,4 @@
-namespace Api.Extensions;
+namespace Defra.WasteOrganisations.Api.Extensions;
 
 public static class EnumerableExtensions
 {

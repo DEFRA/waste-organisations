@@ -1,8 +1,8 @@
-using Api.Data;
-using Api.Dtos;
+using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Dtos;
 using MongoDB.Driver;
 
-namespace Api.IntegrationTests;
+namespace Defra.WasteOrganisations.Api.IntegrationTests;
 
 public class MongoTestBase : IntegrationTestBase, IAsyncLifetime
 {

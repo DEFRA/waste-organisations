@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Api.Utils.Metrics;
+namespace Defra.WasteOrganisations.Api.Utils.Metrics;
 
 [ExcludeFromCodeCoverage]
 public static class Metrics

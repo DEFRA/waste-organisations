@@ -1,7 +1,7 @@
-using Api.Dtos;
-using Organisation = Api.Data.Entities.Organisation;
+using Defra.WasteOrganisations.Api.Dtos;
+using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
-namespace Api.Services;
+namespace Defra.WasteOrganisations.Api.Services;
 
 public interface IOrganisationService
 {

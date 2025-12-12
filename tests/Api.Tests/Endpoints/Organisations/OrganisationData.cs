@@ -1,4 +1,4 @@
-namespace Api.Tests.Endpoints.Organisations;
+namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations;
 
 public static class OrganisationData
 {

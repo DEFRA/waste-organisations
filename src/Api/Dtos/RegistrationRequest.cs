@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Api.Dtos;
+namespace Defra.WasteOrganisations.Api.Dtos;
 
 public record RegistrationRequest
 {

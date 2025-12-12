@@ -1,12 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
-using Api.Dtos;
-using Api.Extensions;
 using AutoFixture;
 using AwesomeAssertions;
-using Testing.Fixtures;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
+using Defra.WasteOrganisations.Testing.Fixtures;
 
-namespace Api.IntegrationTests.Scenarios;
+namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
 public class RegistrationTests : MongoTestBase
 {

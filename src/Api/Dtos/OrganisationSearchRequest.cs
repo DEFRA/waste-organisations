@@ -1,9 +1,9 @@
 using System.ComponentModel;
-using Api.Dtos.Attributes;
-using Api.Extensions;
+using Defra.WasteOrganisations.Api.Dtos.Attributes;
+using Defra.WasteOrganisations.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Dtos;
+namespace Defra.WasteOrganisations.Api.Dtos;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public record OrganisationSearchRequest

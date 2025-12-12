@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Testing;
+namespace Defra.WasteOrganisations.Testing;
 
 public static class Jwt
 {

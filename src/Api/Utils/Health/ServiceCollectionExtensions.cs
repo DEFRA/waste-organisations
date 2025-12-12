@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Api.Utils.Health;
+namespace Defra.WasteOrganisations.Api.Utils.Health;
 
 [ExcludeFromCodeCoverage]
 public static class ServiceCollectionExtensions

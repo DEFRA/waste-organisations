@@ -1,15 +1,15 @@
 using System.Net;
-using Api.Dtos;
-using Api.Extensions;
-using Api.Services;
 using AutoFixture;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
+using Defra.WasteOrganisations.Api.Services;
+using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Testing.Fixtures;
-using Organisation = Api.Data.Entities.Organisation;
+using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
-namespace Api.Tests.Endpoints.Organisations.Registrations;
+namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations.Registrations;
 
 public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
     : EndpointTestBase(factory, outputHelper)
@@ -32,7 +32,11 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         var client = CreateClient();
 
         var response = await client.DeleteAsync(
-            Testing.Endpoints.Organisations.RegistrationsDelete(OrganisationData.Id, type, registrationYear),
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsDelete(
+                OrganisationData.Id,
+                type,
+                registrationYear
+            ),
             TestContext.Current.CancellationToken
         );
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -49,7 +53,7 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             .Returns(Task.FromResult<Organisation?>(null));
 
         var response = await client.DeleteAsync(
-            Testing.Endpoints.Organisations.RegistrationsDelete(
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsDelete(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2025"
@@ -69,7 +73,7 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             .Returns(OrganisationEntityFixtures.Default().With(x => x.Id, OrganisationData.Id).Create());
 
         var response = await client.DeleteAsync(
-            Testing.Endpoints.Organisations.RegistrationsDelete(
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsDelete(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2026"
@@ -104,7 +108,7 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             });
 
         var response = await client.DeleteAsync(
-            Testing.Endpoints.Organisations.RegistrationsDelete(
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsDelete(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2025"

@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using Api.Data.Entities;
+using Defra.WasteOrganisations.Api.Data.Entities;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace Api.Data;
+namespace Defra.WasteOrganisations.Api.Data;
 
 [ExcludeFromCodeCoverage(Justification = "See integration tests")]
 public class MongoIndexService(IMongoDatabase database, ILogger<MongoIndexService> logger) : IHostedService

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Api.Data;
+namespace Defra.WasteOrganisations.Api.Data;
 
 [ExcludeFromCodeCoverage]
 public class MongoDbOptions
