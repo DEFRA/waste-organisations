@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Api.Utils.Logging;
+namespace Defra.WasteOrganisations.Api.Utils.Logging;
 
 public class TraceHeader
 {

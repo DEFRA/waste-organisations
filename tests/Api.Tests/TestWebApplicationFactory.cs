@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Api.Tests;
+namespace Defra.WasteOrganisations.Api.Tests;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public class TestWebApplicationFactory<T> : WebApplicationFactory<T>, ITestOutputHelperAccessor

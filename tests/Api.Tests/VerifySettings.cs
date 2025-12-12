@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Api.Tests;
+namespace Defra.WasteOrganisations.Api.Tests;
 
 public static class VerifySettings
 {

@@ -1,6 +1,6 @@
-using Api.Dtos;
+using Defra.WasteOrganisations.Api.Dtos;
 
-namespace Api.Endpoints.Organisations.Registrations;
+namespace Defra.WasteOrganisations.Api.Endpoints.Organisations.Registrations;
 
 public static class RegistrationKeyErrorHandler
 {

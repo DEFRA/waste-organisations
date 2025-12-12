@@ -1,11 +1,11 @@
-using Api.Dtos;
-using Api.Extensions;
-using Api.Mapping;
 using AutoFixture;
 using AwesomeAssertions;
-using Testing.Fixtures;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
+using Defra.WasteOrganisations.Api.Mapping;
+using Defra.WasteOrganisations.Testing.Fixtures;
 
-namespace Api.Tests.Mapping;
+namespace Defra.WasteOrganisations.Api.Tests.Mapping;
 
 public class OrganisationExtensionsTests
 {

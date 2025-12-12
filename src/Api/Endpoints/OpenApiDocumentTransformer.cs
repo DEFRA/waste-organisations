@@ -1,8 +1,8 @@
-using Api.Dtos;
+using Defra.WasteOrganisations.Api.Dtos;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
-namespace Api.Endpoints;
+namespace Defra.WasteOrganisations.Api.Endpoints;
 
 public class OpenApiDocumentTransformer : IOpenApiDocumentTransformer
 {

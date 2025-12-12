@@ -1,8 +1,8 @@
-using Api.Dtos;
 using AutoFixture;
 using AutoFixture.Dsl;
+using Defra.WasteOrganisations.Api.Dtos;
 
-namespace Testing.Fixtures;
+namespace Defra.WasteOrganisations.Testing.Fixtures;
 
 public static class RegistrationDtoFixtures
 {

@@ -1,4 +1,4 @@
-namespace Testing.Extensions;
+namespace Defra.WasteOrganisations.Testing.Extensions;
 
 public static class DateTimeExtensions
 {

@@ -1,4 +1,4 @@
-namespace Testing;
+namespace Defra.WasteOrganisations.Testing;
 
 public class EndpointQuery
 {

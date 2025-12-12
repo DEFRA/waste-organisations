@@ -1,7 +1,7 @@
 using AwesomeAssertions;
 using AwesomeAssertions.Equivalency;
 
-namespace Testing.Extensions;
+namespace Defra.WasteOrganisations.Testing.Extensions;
 
 public static class AwesomeAssertionsExtensions
 {

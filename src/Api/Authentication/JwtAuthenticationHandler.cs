@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 
-namespace Api.Authentication;
+namespace Defra.WasteOrganisations.Api.Authentication;
 
 public class JwtAuthenticationHandler(
     IOptionsMonitor<JwtBearerOptions> options,

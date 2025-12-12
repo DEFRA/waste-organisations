@@ -5,7 +5,7 @@ using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using MongoDB.Driver.Authentication.AWS;
 
-namespace Api.Data;
+namespace Defra.WasteOrganisations.Api.Data;
 
 [ExcludeFromCodeCoverage(Justification = "See integration tests")]
 public static class ServiceCollectionExtensions

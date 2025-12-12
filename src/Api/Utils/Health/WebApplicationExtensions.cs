@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
-namespace Api.Utils.Health;
+namespace Defra.WasteOrganisations.Api.Utils.Health;
 
 [ExcludeFromCodeCoverage]
 public static class WebApplicationExtensions

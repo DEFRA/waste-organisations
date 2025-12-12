@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Api.Authentication;
+namespace Defra.WasteOrganisations.Api.Authentication;
 
 public static class ServiceCollectionExtensions
 {

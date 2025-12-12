@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using Api.Extensions;
+using Defra.WasteOrganisations.Api.Extensions;
 
-namespace Api.Dtos.Attributes;
+namespace Defra.WasteOrganisations.Api.Dtos.Attributes;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public class EnumCommaSeparatedListAttribute<T> : BaseCommaSeparatedListAttribute

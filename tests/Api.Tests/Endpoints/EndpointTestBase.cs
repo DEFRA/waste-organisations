@@ -1,12 +1,12 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
-using Api.Authentication;
+using Defra.WasteOrganisations.Api.Authentication;
+using Defra.WasteOrganisations.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Testing;
 
-namespace Api.Tests.Endpoints;
+namespace Defra.WasteOrganisations.Api.Tests.Endpoints;
 
 public class EndpointTestBase : IClassFixture<ApiWebApplicationFactory>
 {

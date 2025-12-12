@@ -4,7 +4,7 @@ using Amazon.CloudWatch.EMF.Logger;
 using Amazon.CloudWatch.EMF.Model;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Api.Utils.Metrics;
+namespace Defra.WasteOrganisations.Api.Utils.Metrics;
 
 [ExcludeFromCodeCoverage]
 public static class MetricsExporter

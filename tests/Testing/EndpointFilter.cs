@@ -1,7 +1,7 @@
-using Api.Dtos;
-using Api.Extensions;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
 
-namespace Testing;
+namespace Defra.WasteOrganisations.Testing;
 
 public class EndpointFilter
 {

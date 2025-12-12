@@ -1,7 +1,7 @@
-using Api.Endpoints.Organisations;
-using Api.Endpoints.Organisations.Registrations;
+using Defra.WasteOrganisations.Api.Endpoints.Organisations;
+using Defra.WasteOrganisations.Api.Endpoints.Organisations.Registrations;
 
-namespace Api.Endpoints;
+namespace Defra.WasteOrganisations.Api.Endpoints;
 
 public static class Endpoints
 {

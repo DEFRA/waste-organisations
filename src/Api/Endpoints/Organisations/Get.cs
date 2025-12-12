@@ -1,10 +1,10 @@
-using Api.Authentication;
-using Api.Dtos;
-using Api.Mapping;
-using Api.Services;
+using Defra.WasteOrganisations.Api.Authentication;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Mapping;
+using Defra.WasteOrganisations.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Endpoints.Organisations;
+namespace Defra.WasteOrganisations.Api.Endpoints.Organisations;
 
 public static class Get
 {

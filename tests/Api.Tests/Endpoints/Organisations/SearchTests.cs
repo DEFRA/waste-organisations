@@ -1,16 +1,16 @@
 using System.Net;
-using Api.Authentication;
-using Api.Dtos;
-using Api.Extensions;
-using Api.Services;
 using AutoFixture;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Authentication;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
+using Defra.WasteOrganisations.Api.Services;
+using Defra.WasteOrganisations.Testing;
+using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Testing;
-using Testing.Fixtures;
 
-namespace Api.Tests.Endpoints.Organisations;
+namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations;
 
 public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
     : EndpointTestBase(factory, outputHelper)
@@ -38,7 +38,7 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             .Returns([]);
 
         var response = await client.GetStringAsync(
-            Testing.Endpoints.Organisations.Search(),
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(),
             TestContext.Current.CancellationToken
         );
 
@@ -59,7 +59,7 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             .Returns([]);
 
         var response = await client.GetAsync(
-            Testing.Endpoints.Organisations.Search(),
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(),
             TestContext.Current.CancellationToken
         );
 
@@ -72,7 +72,7 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         var client = CreateClient(addAuthorizationHeader: false);
 
         var response = await client.GetAsync(
-            Testing.Endpoints.Organisations.Search(),
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(),
             TestContext.Current.CancellationToken
         );
 
@@ -85,7 +85,7 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         var client = CreateClient(testUser: TestUser.WriteOnly);
 
         var response = await client.GetAsync(
-            Testing.Endpoints.Organisations.Search(),
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(),
             TestContext.Current.CancellationToken
         );
 
@@ -96,7 +96,7 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
     public async Task WhenInvalidRegistrations_ShouldBeBadRequest()
     {
         var client = CreateClient();
-        var requestUri = Testing.Endpoints.Organisations.Search(
+        var requestUri = Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(
             EndpointQuery.New.Where(
                 EndpointFilter.Registrations($"INVALID,INVALID_2,{RegistrationType.LargeProducer.ToJsonValue()}")
             )
@@ -112,7 +112,7 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
     public async Task WhenInvalidRegistrationYears_ShouldBeBadRequest()
     {
         var client = CreateClient();
-        var requestUri = Testing.Endpoints.Organisations.Search(
+        var requestUri = Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(
             EndpointQuery.New.Where(EndpointFilter.RegistrationYears("INVALID,INVALID_2,2025,2022,2023,2050,2051"))
         );
 
@@ -126,7 +126,7 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
     public async Task WhenInvalidStatuses_ShouldBeBadRequest()
     {
         var client = CreateClient();
-        var requestUri = Testing.Endpoints.Organisations.Search(
+        var requestUri = Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(
             EndpointQuery.New.Where(
                 EndpointFilter.Statuses($"INVALID,INVALID_2,{RegistrationStatus.Registered.ToJsonValue()}")
             )
@@ -145,7 +145,7 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         RegistrationType[] registrationsTypes = [RegistrationType.LargeProducer, RegistrationType.SmallProducer];
         int[] registrationYears = [2024, 2025];
         RegistrationStatus[] registrationStatuses = [RegistrationStatus.Registered];
-        var requestUri = Testing.Endpoints.Organisations.Search(
+        var requestUri = Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(
             EndpointQuery
                 .New.Where(EndpointFilter.Registrations(registrationsTypes))
                 .Where(EndpointFilter.RegistrationYears(registrationYears))

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Api.Dtos.Attributes;
+namespace Defra.WasteOrganisations.Api.Dtos.Attributes;
 
 public abstract class BaseCommaSeparatedListAttribute : ValidationAttribute
 {

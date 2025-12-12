@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
 using Amazon.CloudWatch.EMF.Model;
 
-namespace Api.Utils.Metrics;
+namespace Defra.WasteOrganisations.Api.Utils.Metrics;
 
 [ExcludeFromCodeCoverage]
 public class RequestMetrics : IRequestMetrics

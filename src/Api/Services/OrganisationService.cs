@@ -1,12 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
-using Api.Data;
-using Api.Dtos;
-using Api.Extensions;
+using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Extensions;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
-using Organisation = Api.Data.Entities.Organisation;
+using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
-namespace Api.Services;
+namespace Defra.WasteOrganisations.Api.Services;
 
 [ExcludeFromCodeCoverage(Justification = "See integration tests")]
 public class OrganisationService(IDbContext dbContext) : IOrganisationService

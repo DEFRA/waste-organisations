@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
+    <RootNamespace>Defra.WasteOrganisations</RootNamespace>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>

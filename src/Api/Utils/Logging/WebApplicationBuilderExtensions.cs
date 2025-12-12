@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 
-namespace Api.Utils.Logging;
+namespace Defra.WasteOrganisations.Api.Utils.Logging;
 
 [ExcludeFromCodeCoverage]
 public static class WebApplicationBuilderExtensions

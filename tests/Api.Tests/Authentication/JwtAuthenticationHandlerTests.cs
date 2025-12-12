@@ -1,6 +1,7 @@
 using System.Security.Claims;
-using Api.Authentication;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Authentication;
+using Defra.WasteOrganisations.Testing;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
@@ -10,9 +11,8 @@ using Microsoft.Extensions.WebEncoders.Testing;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using NSubstitute;
-using Testing;
 
-namespace Api.Tests.Authentication;
+namespace Defra.WasteOrganisations.Api.Tests.Authentication;
 
 public class JwtAuthenticationHandlerTests
 {

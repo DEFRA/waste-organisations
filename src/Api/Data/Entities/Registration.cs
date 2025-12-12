@@ -1,4 +1,4 @@
-namespace Api.Data.Entities;
+namespace Defra.WasteOrganisations.Api.Data.Entities;
 
 public record Registration
 {

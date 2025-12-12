@@ -1,6 +1,6 @@
 using System.Text;
-using Api.Authentication;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.WebEncoders.Testing;
 using NSubstitute;
 
-namespace Api.Tests.Authentication;
+namespace Defra.WasteOrganisations.Api.Tests.Authentication;
 
 public class BasicAuthenticationHandlerTests
 {

@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
-using Api.Authentication;
-using Api.Dtos;
-using Api.Mapping;
-using Api.Services;
+using Defra.WasteOrganisations.Api.Authentication;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Mapping;
+using Defra.WasteOrganisations.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Endpoints.Organisations.Registrations;
+namespace Defra.WasteOrganisations.Api.Endpoints.Organisations.Registrations;
 
 public static class Put
 {

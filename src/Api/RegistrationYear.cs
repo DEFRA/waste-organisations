@@ -1,4 +1,4 @@
-namespace Api;
+namespace Defra.WasteOrganisations.Api;
 
 public static class RegistrationYear
 {

@@ -1,7 +1,7 @@
-using Api.Data.Entities;
+using Defra.WasteOrganisations.Api.Data.Entities;
 using MongoDB.Driver;
 
-namespace Api.Data;
+namespace Defra.WasteOrganisations.Api.Data;
 
 public interface IDbContext
 {
