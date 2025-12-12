@@ -15,7 +15,7 @@ public class BasicAuthenticationHandlerTests
     private BasicAuthenticationHandler Subject { get; }
     private IOptionsMonitor<AuthenticationSchemeOptions> OptionsMonitor { get; } =
         Substitute.For<IOptionsMonitor<AuthenticationSchemeOptions>>();
-    private AclOptions AclOptions { get; set; } = new();
+    private AclOptions AclOptions { get; } = new();
 
     public BasicAuthenticationHandlerTests()
     {
@@ -30,22 +30,22 @@ public class BasicAuthenticationHandlerTests
     }
 
     [Fact]
-    public async Task WhenNoAuthorizationHeader_ShouldFail()
+    public async Task WhenNoAuthorizationHeader_ShouldNoResult()
     {
         await Subject.InitializeAsync(Scheme(), new DefaultHttpContext());
 
-        await AuthenticateAndAssertFailure();
+        await AuthenticateAndAssertNoResult();
     }
 
     [Fact]
-    public async Task WhenInvalidAuthorizationHeaderScheme_ShouldFail()
+    public async Task WhenInvalidAuthorizationHeaderScheme_ShouldNoResult()
     {
         await Subject.InitializeAsync(
             Scheme(),
             new DefaultHttpContext { Request = { Headers = { Authorization = "InvalidScheme Value" } } }
         );
 
-        await AuthenticateAndAssertFailure();
+        await AuthenticateAndAssertNoResult();
     }
 
     [Fact]
@@ -170,5 +170,15 @@ public class BasicAuthenticationHandlerTests
 
         result.Failure.Should().NotBeNull();
         result.Failure.Should().BeOfType<AuthenticationFailureException>();
+        result.Succeeded.Should().BeFalse();
+    }
+
+    private async Task AuthenticateAndAssertNoResult()
+    {
+        var result = await Subject.AuthenticateAsync();
+
+        result.Failure.Should().BeNull();
+        result.None.Should().BeTrue();
+        result.Succeeded.Should().BeFalse();
     }
 }
