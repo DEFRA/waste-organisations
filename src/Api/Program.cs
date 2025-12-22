@@ -30,6 +30,11 @@ try
         // Without this, bad request detail will only be thrown in DEVELOPMENT mode
         o.ThrowOnBadRequest = true;
     });
+    builder.Services.AddHsts(options =>
+    {
+        options.IncludeSubDomains = true;
+        options.MaxAge = TimeSpan.FromDays(365);
+    });
     builder.Services.AddProblemDetails();
     builder.Services.AddHealth();
     builder.Services.AddOpenApi(options =>
@@ -46,10 +51,6 @@ try
 
     var app = builder.Build();
 
-    app.UseHeaderPropagation();
-    app.UseAuthentication();
-    app.UseAuthorization();
-    app.MapHealth();
     app.UseExceptionHandler(
         new ExceptionHandlerOptions
         {
@@ -85,6 +86,11 @@ try
             },
         }
     );
+    app.UseHsts();
+    app.UseHeaderPropagation();
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapHealth();
     app.UseRequestMetrics();
     app.MapOpenApi();
     app.UseReDoc(options =>
