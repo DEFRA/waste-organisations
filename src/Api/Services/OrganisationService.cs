@@ -9,7 +9,7 @@ using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 namespace Defra.WasteOrganisations.Api.Services;
 
 [ExcludeFromCodeCoverage(Justification = "See integration tests")]
-public class OrganisationService(IDbContext dbContext) : IOrganisationService
+public class OrganisationService(IDbContext dbContext, ILogger<OrganisationService> logger) : IOrganisationService
 {
     public async Task<Organisation?> Get(Guid id, CancellationToken cancellationToken) =>
         await dbContext
@@ -22,6 +22,8 @@ public class OrganisationService(IDbContext dbContext) : IOrganisationService
         organisation = organisation with { Version = 1, Created = utcNow, Updated = utcNow };
 
         await dbContext.Organisations.InsertOneAsync(organisation, cancellationToken: cancellationToken);
+
+        logger.LogInformation("Created organisation with id '{OrganisationId}'", organisation.Id);
 
         return organisation;
     }
@@ -42,9 +44,12 @@ public class OrganisationService(IDbContext dbContext) : IOrganisationService
             cancellationToken: cancellationToken
         );
 
-        return replaceOneResult.ModifiedCount == 0
-            ? throw new ConcurrencyException("Concurrency issue on write, organisation was not updated")
-            : organisation;
+        if (replaceOneResult.ModifiedCount == 0)
+            throw new ConcurrencyException("Concurrency issue on write, organisation was not updated");
+
+        logger.LogInformation("Updated organisation with id '{OrganisationId}'", organisation.Id);
+
+        return organisation;
     }
 
     public async Task<List<Organisation>> Search(
