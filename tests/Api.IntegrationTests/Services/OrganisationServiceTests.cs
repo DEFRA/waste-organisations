@@ -6,12 +6,15 @@ using Defra.WasteOrganisations.Api.Extensions;
 using Defra.WasteOrganisations.Api.Services;
 using Defra.WasteOrganisations.Testing.Extensions;
 using Defra.WasteOrganisations.Testing.Fixtures;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Services;
 
 public class OrganisationServiceTests : MongoTestBase
 {
-    private OrganisationService Subject { get; } = new(new MongoDbContext(GetMongoDatabase()));
+    private OrganisationService Subject { get; } =
+        new(new MongoDbContext(GetMongoDatabase()), Substitute.For<ILogger<OrganisationService>>());
 
     [Fact]
     public async Task Get_WhenNoOrganisation_ShouldBeNull()
