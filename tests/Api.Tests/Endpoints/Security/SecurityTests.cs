@@ -20,6 +20,6 @@ public class SecurityTests(ApiWebApplicationFactory factory, ITestOutputHelper o
 
         var values = response.Headers.GetValues(HeaderNames.StrictTransportSecurity);
         Assert.Contains(values, v => v.Contains("max-age=31536000")); // 365 days
-        await VerifyJson(JsonSerializer.Serialize(response));
+        await Verify(response);
     }
 }

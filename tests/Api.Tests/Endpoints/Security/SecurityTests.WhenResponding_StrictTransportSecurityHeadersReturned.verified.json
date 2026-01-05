@@ -3,19 +3,17 @@
   "Content": {
     "Headers": [
       {
-        "Key": "Content-Type",
-        "Value": [
+        "Content-Type": [
           "application/json; charset=utf-8"
         ]
       }
     ]
   },
-  "StatusCode": 200,
+  "StatusCode": "OK",
   "ReasonPhrase": "OK",
   "Headers": [
     {
-      "Key": "Strict-Transport-Security",
-      "Value": [
+      "Strict-Transport-Security": [
         "max-age=31536000; includeSubDomains"
       ]
     }
@@ -23,21 +21,17 @@
   "TrailingHeaders": [],
   "RequestMessage": {
     "Version": "1.1",
-    "VersionPolicy": 0,
-    "Content": null,
     "Method": {
       "Method": "GET"
     },
     "RequestUri": "http://localhost/openapi/v1.json",
     "Headers": [
       {
-        "Key": "Authorization",
-        "Value": [
+        "Authorization": [
           "Basic SW50ZWdyYXRpb25UZXN0LUFwaUtleS1SZWFkV3JpdGU6aW50ZWdyYXRpb24tdGVzdC1yZWFkd3JpdGU="
         ]
       }
     ],
-    "Properties": {},
     "Options": {}
   },
   "IsSuccessStatusCode": true
