@@ -86,7 +86,7 @@ try
             },
         }
     );
-    app.UseHsts();
+    app.UseHstsUnconditionally();
     app.UseHeaderPropagation();
     app.UseAuthentication();
     app.UseAuthorization();
