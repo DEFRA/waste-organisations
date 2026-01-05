@@ -26,11 +26,7 @@
     },
     "RequestUri": "http://localhost/openapi/v1.json",
     "Headers": [
-      {
-        "Authorization": [
-          "Basic SW50ZWdyYXRpb25UZXN0LUFwaUtleS1SZWFkV3JpdGU6aW50ZWdyYXRpb24tdGVzdC1yZWFkd3JpdGU="
-        ]
-      }
+      {}
     ],
     "Options": {}
   },
