@@ -13,18 +13,6 @@ public static class WebApplicationExtensions
     public const string Ready = "ready";
     public const string Extended = "extended";
 
-    public static void UseHstsUnconditionally(this WebApplication app)
-    {
-        app.Use(
-            async (context, next) =>
-            {
-                context.Response.Headers.StrictTransportSecurity =
-                    $"max-age={TimeSpan.FromDays(365).TotalSeconds}; includeSubDomains";
-                await next();
-            }
-        );
-    }
-
     public static void MapHealth(this WebApplication app)
     {
         app.MapHealthChecks(

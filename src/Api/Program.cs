@@ -10,6 +10,7 @@ using Defra.WasteOrganisations.Api.Utils;
 using Defra.WasteOrganisations.Api.Utils.Health;
 using Defra.WasteOrganisations.Api.Utils.Logging;
 using Defra.WasteOrganisations.Api.Utils.Metrics;
+using Defra.WasteOrganisations.Api.Utils.Security;
 using Elastic.CommonSchema.Serilog;
 using Microsoft.AspNetCore.Diagnostics;
 using Serilog;
