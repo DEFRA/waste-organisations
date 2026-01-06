@@ -87,7 +87,7 @@ public class OrganisationServiceTests : MongoTestBase
 
         await act.Should()
             .ThrowAsync<ConcurrencyException>()
-            .WithMessage("Concurrency issue on write, organisation was not updated");
+            .WithMessage($"Concurrency issue on write, organisation with id '{initial.Id}' was not updated");
     }
 
     [Fact]
