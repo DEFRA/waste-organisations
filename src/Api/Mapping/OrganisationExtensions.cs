@@ -25,15 +25,7 @@ public static class OrganisationExtensions
                 Country = organisationRegistration.Address.Country,
                 Postcode = organisationRegistration.Address.Postcode,
             },
-            Registrations =
-            [
-                new Data.Entities.Registration
-                {
-                    Status = organisationRegistration.Registration.Status.ToJsonValue(),
-                    Type = organisationRegistration.Registration.Type.ToJsonValue(),
-                    RegistrationYear = organisationRegistration.Registration.RegistrationYear,
-                },
-            ],
+            Registrations = [organisationRegistration.Registration.ToEntity()],
         };
     }
 
@@ -59,14 +51,7 @@ public static class OrganisationExtensions
                 Country = organisation.Address.Country,
                 Postcode = organisation.Address.Postcode,
             },
-            Registrations = organisation
-                .Registrations.Select(x => new Registration
-                {
-                    Status = x.Status.FromJsonValue<RegistrationStatus>(),
-                    Type = x.Type.FromJsonValue<RegistrationType>(),
-                    RegistrationYear = x.RegistrationYear,
-                })
-                .ToArray(),
+            Registrations = organisation.Registrations.Select(x => x.ToDto()).ToArray(),
         };
     }
 
@@ -108,19 +93,18 @@ public static class OrganisationExtensions
         return (organisation with { Registrations = registrations }, isAdded);
     }
 
-    public static Data.Entities.Organisation Remove(
+    public static Data.Entities.Organisation RemoveRegistration(
         this Data.Entities.Organisation organisation,
         Data.Entities.Registration registration
     )
     {
-        var key = registration.Key;
-        var registrations = organisation
-            .Registrations.Where(x => new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear) != key)
-            .ToArray();
+        var registrations = organisation.RegistrationsAsDictionary();
+
+        registrations.Remove(registration.Key);
 
         return organisation with
         {
-            Registrations = registrations,
+            Registrations = registrations.Values.ToArray(),
         };
     }
 
@@ -131,13 +115,11 @@ public static class OrganisationExtensions
         RegistrationStatus status
     )
     {
-        var registrations = organisation.Registrations.ToDictionary(
-            x => new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear),
-            x => x
-        );
+        var registrations = organisation.RegistrationsAsDictionary();
         var key = new Data.Entities.RegistrationKey(type, registrationYear);
 
         var isAdded = !registrations.Remove(key);
+
         registrations.Add(
             key,
             new Data.Entities.Registration
@@ -160,19 +142,18 @@ public static class OrganisationExtensions
         this Data.Entities.Organisation organisation,
         RegistrationType type,
         int registrationYear
-    ) =>
-        organisation.Registrations.Single(x =>
-            new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear)
-            == new Data.Entities.RegistrationKey(type, registrationYear)
-        );
+    ) => organisation.RegistrationsAsDictionary()[new Data.Entities.RegistrationKey(type, registrationYear)];
 
     public static Data.Entities.Registration? FindRegistration(
         this Data.Entities.Organisation organisation,
         RegistrationType type,
         int registrationYear
-    ) =>
-        organisation.Registrations.SingleOrDefault(x =>
-            new Data.Entities.RegistrationKey(x.Type, x.RegistrationYear)
-            == new Data.Entities.RegistrationKey(type, registrationYear)
-        );
+    )
+    {
+        organisation
+            .RegistrationsAsDictionary()
+            .TryGetValue(new Data.Entities.RegistrationKey(type, registrationYear), out var result);
+
+        return result;
+    }
 }

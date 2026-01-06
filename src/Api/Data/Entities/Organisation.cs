@@ -17,4 +17,7 @@ public record Organisation
     public string? CompaniesHouseNumber { get; init; }
     public required Address Address { get; init; }
     public Registration[] Registrations { get; init; } = [];
+
+    public Dictionary<RegistrationKey, Registration> RegistrationsAsDictionary() =>
+        Registrations.ToDictionary(x => new RegistrationKey(x.Type, x.RegistrationYear), x => x);
 }
