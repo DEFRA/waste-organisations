@@ -45,7 +45,9 @@ public class OrganisationService(IDbContext dbContext, ILogger<OrganisationServi
         );
 
         if (replaceOneResult.ModifiedCount == 0)
-            throw new ConcurrencyException("Concurrency issue on write, organisation was not updated");
+            throw new ConcurrencyException(
+                $"Concurrency issue on write, organisation with id '{organisation.Id}' was not updated"
+            );
 
         logger.LogInformation("Updated organisation with id '{OrganisationId}'", organisation.Id);
 
