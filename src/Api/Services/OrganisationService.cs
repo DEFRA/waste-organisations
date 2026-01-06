@@ -65,7 +65,7 @@ public class OrganisationService(IDbContext dbContext, ILogger<OrganisationServi
         var query = dbContext
             .Organisations.AsQueryable()
             .Where(x =>
-                x.Registrations.Any(y =>
+                x.Registrations.Values.Any(y =>
                     (registrationTypeStrings.Count == 0 || registrationTypeStrings.Contains(y.Type))
                     && (registrationYears.Count == 0 || registrationYears.Contains(y.RegistrationYear))
                     && (registrationStatusStrings.Count == 0 || registrationStatusStrings.Contains(y.Status))

@@ -32,6 +32,6 @@ public static class OrganisationEntityFixtures
             .With(x => x.BusinessCountry, BusinessCountry.England.ToJsonValue())
             .With(x => x.CompaniesHouseNumber, "12345678")
             .With(x => x.Address, AddressEntityFixtures.Default().Create())
-            .With(x => x.Registrations, () => [RegistrationEntityFixtures.Default().Create()]);
+            .With(x => x.Registrations, () => RegistrationEntityFixtures.Default().CreateAsDictionary());
     }
 }

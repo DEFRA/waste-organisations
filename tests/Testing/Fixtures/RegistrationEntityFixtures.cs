@@ -1,6 +1,7 @@
 using AutoFixture;
 using AutoFixture.Dsl;
 using Defra.WasteOrganisations.Api;
+using Defra.WasteOrganisations.Api.Data.Entities;
 using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
 using EnumExtensions = Defra.WasteOrganisations.Testing.Extensions.EnumExtensions;
@@ -45,5 +46,14 @@ public static class RegistrationEntityFixtures
             .With(x => x.Type, RegistrationType.SmallProducer.ToJsonValue())
             .With(x => x.RegistrationYear, 2025)
             .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue());
+    }
+
+    public static Dictionary<RegistrationKey, Registration> CreateAsDictionary(
+        this IPostprocessComposer<Registration> composer
+    )
+    {
+        var registration = composer.Create();
+
+        return new Dictionary<RegistrationKey, Registration> { { registration.Key, registration } };
     }
 }

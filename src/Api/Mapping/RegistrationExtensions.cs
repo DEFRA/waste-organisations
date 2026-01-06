@@ -12,4 +12,12 @@ public static class RegistrationExtensions
             Type = registration.Type.FromJsonValue<RegistrationType>(),
             RegistrationYear = registration.RegistrationYear,
         };
+
+    public static Data.Entities.Registration ToEntity(this Registration registration) =>
+        new()
+        {
+            Status = registration.Status.ToJsonValue(),
+            Type = registration.Type.ToJsonValue(),
+            RegistrationYear = registration.RegistrationYear,
+        };
 }

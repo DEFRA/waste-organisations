@@ -94,9 +94,9 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         );
 
         organisation.Should().NotBeNull();
-        organisation.Registrations.Length.Should().Be(2);
+        organisation.Registrations.Values.Count.Should().Be(2);
         organisation
-            .Registrations.Should()
+            .Registrations.Values.Should()
             .ContainEquivalentOf(
                 RegistrationEntityFixtures
                     .Default()
@@ -125,7 +125,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
                 OrganisationEntityFixtures
                     .Default()
                     .With(x => x.Id, OrganisationData.Id)
-                    .With(x => x.Registrations, [RegistrationEntityFixtures.Default().Create()])
+                    .With(x => x.Registrations, RegistrationEntityFixtures.Default().CreateAsDictionary())
                     .Create()
             );
         Organisation? organisation = null;
@@ -148,17 +148,17 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         );
 
         organisation.Should().NotBeNull();
-        organisation.Registrations.Length.Should().Be(1);
+        organisation.Registrations.Values.Count.Should().Be(1);
         organisation
             .Registrations.Should()
-            .BeEquivalentTo([
+            .BeEquivalentTo(
                 RegistrationEntityFixtures
                     .Default()
                     .With(x => x.Type, RegistrationType.SmallProducer.ToJsonValue())
                     .With(x => x.RegistrationYear, 2025)
                     .With(x => x.Status, RegistrationStatus.Cancelled.ToJsonValue())
-                    .Create(),
-            ]);
+                    .CreateAsDictionary()
+            );
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 

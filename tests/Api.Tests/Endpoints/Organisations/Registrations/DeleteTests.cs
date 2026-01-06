@@ -88,14 +88,17 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
     public async Task WhenOrganisationFound_AndRegistrationFound_ShouldBeDeleted()
     {
         var client = CreateClient();
-        var remaining = RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2026).Create();
+        var remaining = RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2026).CreateAsDictionary();
         MockOrganisationService
             .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
             .Returns(
                 OrganisationEntityFixtures
                     .Default()
                     .With(x => x.Id, OrganisationData.Id)
-                    .With(x => x.Registrations, [RegistrationEntityFixtures.Default().Create(), remaining])
+                    .With(
+                        x => x.Registrations,
+                        RegistrationEntityFixtures.Default().CreateAsDictionary().Concat(remaining).ToDictionary()
+                    )
                     .Create()
             );
         Organisation? organisation = null;
@@ -119,6 +122,6 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         organisation.Should().NotBeNull();
-        organisation.Registrations.Should().BeEquivalentTo([remaining]);
+        organisation.Registrations.Should().BeEquivalentTo(remaining);
     }
 }

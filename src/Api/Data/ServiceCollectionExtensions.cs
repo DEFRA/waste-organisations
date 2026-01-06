@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
+using Defra.WasteOrganisations.Api.Data.Entities;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using MongoDB.Driver.Authentication.AWS;
@@ -51,5 +53,7 @@ public static class ServiceCollectionExtensions
         };
 
         ConventionRegistry.Register(nameof(conventionPack), conventionPack, _ => true);
+
+        BsonSerializer.RegisterSerializer(new RegistrationKeySerializer());
     }
 }

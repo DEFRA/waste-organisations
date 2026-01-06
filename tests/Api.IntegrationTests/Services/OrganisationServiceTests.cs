@@ -98,12 +98,10 @@ public class OrganisationServiceTests : MongoTestBase
                 .Default()
                 .With(
                     x => x.Registrations,
-                    [
-                        RegistrationEntityFixtures
-                            .Default()
-                            .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
-                            .Create(),
-                    ]
+                    RegistrationEntityFixtures
+                        .Default()
+                        .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
+                        .CreateAsDictionary()
                 )
                 .Create(),
             TestContext.Current.CancellationToken
@@ -130,7 +128,10 @@ public class OrganisationServiceTests : MongoTestBase
                 .Default()
                 .With(
                     x => x.Registrations,
-                    [RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, registrationYear).Create()]
+                    RegistrationEntityFixtures
+                        .Default()
+                        .With(x => x.RegistrationYear, registrationYear)
+                        .CreateAsDictionary()
                 )
                 .Create(),
             TestContext.Current.CancellationToken
@@ -150,12 +151,10 @@ public class OrganisationServiceTests : MongoTestBase
                 .Default()
                 .With(
                     x => x.Registrations,
-                    [
-                        RegistrationEntityFixtures
-                            .Default()
-                            .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
-                            .Create(),
-                    ]
+                    RegistrationEntityFixtures
+                        .Default()
+                        .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
+                        .CreateAsDictionary()
                 )
                 .Create(),
             TestContext.Current.CancellationToken
@@ -180,14 +179,12 @@ public class OrganisationServiceTests : MongoTestBase
                 .Default()
                 .With(
                     x => x.Registrations,
-                    [
-                        RegistrationEntityFixtures
-                            .Default()
-                            .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
-                            .With(x => x.RegistrationYear, 2025)
-                            .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
-                            .Create(),
-                    ]
+                    RegistrationEntityFixtures
+                        .Default()
+                        .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
+                        .With(x => x.RegistrationYear, 2025)
+                        .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
+                        .CreateAsDictionary()
                 )
                 .Create(),
             TestContext.Current.CancellationToken

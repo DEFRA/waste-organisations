@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.Options;
 
 namespace Defra.WasteOrganisations.Api.Data.Entities;
 
@@ -16,5 +17,7 @@ public record Organisation
     public string? BusinessCountry { get; init; }
     public string? CompaniesHouseNumber { get; init; }
     public required Address Address { get; init; }
-    public Registration[] Registrations { get; init; } = [];
+
+    [BsonDictionaryOptions(DictionaryRepresentation.Document)]
+    public Dictionary<RegistrationKey, Registration> Registrations { get; init; } = [];
 }

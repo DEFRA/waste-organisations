@@ -17,7 +17,7 @@ public class OrganisationExtensionsTests
 
         organisation = organisation.Patch(request);
 
-        organisation.Registrations.Should().BeEquivalentTo([RegistrationEntityFixtures.Default().Create()]);
+        organisation.Registrations.Should().BeEquivalentTo(RegistrationEntityFixtures.Default().CreateAsDictionary());
     }
 
     [Fact]
@@ -31,12 +31,15 @@ public class OrganisationExtensionsTests
 
         organisation = organisation.Patch(request);
 
+        var unchangedRegistrations = RegistrationEntityFixtures.Default().CreateAsDictionary();
+        var newRegistrations = RegistrationEntityFixtures
+            .Default()
+            .With(x => x.RegistrationYear, 2026)
+            .CreateAsDictionary();
+
         organisation
             .Registrations.Should()
-            .BeEquivalentTo([
-                RegistrationEntityFixtures.Default().Create(),
-                RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2026).Create(),
-            ]);
+            .BeEquivalentTo(unchangedRegistrations.Concat(newRegistrations).ToDictionary());
     }
 
     [Fact]
@@ -53,15 +56,15 @@ public class OrganisationExtensionsTests
 
         organisation = organisation.Patch(request);
 
+        var unchangedRegistrations = RegistrationEntityFixtures.Default().CreateAsDictionary();
+        var newRegistrations = RegistrationEntityFixtures
+            .Default()
+            .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
+            .CreateAsDictionary();
+
         organisation
             .Registrations.Should()
-            .BeEquivalentTo([
-                RegistrationEntityFixtures.Default().Create(),
-                RegistrationEntityFixtures
-                    .Default()
-                    .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
-                    .Create(),
-            ]);
+            .BeEquivalentTo(unchangedRegistrations.Concat(newRegistrations).ToDictionary());
     }
 
     [Fact]
@@ -80,11 +83,11 @@ public class OrganisationExtensionsTests
 
         organisation
             .Registrations.Should()
-            .BeEquivalentTo([
+            .BeEquivalentTo(
                 RegistrationEntityFixtures
                     .Default()
                     .With(x => x.Status, RegistrationStatus.Cancelled.ToJsonValue())
-                    .Create(),
-            ]);
+                    .CreateAsDictionary()
+            );
     }
 }
