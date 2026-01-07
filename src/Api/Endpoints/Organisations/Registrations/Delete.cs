@@ -40,7 +40,7 @@ public static class Delete
         if (registration is null)
             return Results.NotFound();
 
-        var updated = organisation.Remove(registration);
+        var updated = organisation.RemoveRegistration(registration);
 
         await organisationService.Update(updated, cancellationToken);
 
