@@ -14,11 +14,7 @@ updates:
         applies-to: version-updates
         update-types:
           - 'patch'
-      # Group all minor updates into a single PR
-      minor-updates:
-        applies-to: version-updates
-        update-types:
-          - 'minor'
+      # Minor updates will be created individually (ungrouped)
       # Major updates will be created individually (ungrouped)
       # No specific configuration needed for major updates as they'll be handled separately
 
