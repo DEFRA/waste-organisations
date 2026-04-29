@@ -22,8 +22,8 @@
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
     <PackageReference Include="Elastic.CommonSchema.Serilog" Version="9.0.0" />
     <PackageReference Include="Elastic.Serilog.Enrichers.Web" Version="9.0.0" />
-    <PackageReference Include="MongoDB.Driver.Authentication.AWS" Version="3.7.1" />
-    <PackageReference Include="MongoDB.Driver" Version="3.7.1" />
+    <PackageReference Include="MongoDB.Driver.Authentication.AWS" Version="3.8.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.8.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.ReDoc" Version="10.1.7" />
     <PackageReference Include="Amazon.CloudWatch.EMF" Version="2.2.0" />
   </ItemGroup>
