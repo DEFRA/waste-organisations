@@ -18,7 +18,7 @@ public class OrganisationService(IDbContext dbContext, ILogger<OrganisationServi
 
     public async Task<Organisation> Create(Organisation organisation, CancellationToken cancellationToken)
     {
-        var utcNow = DateTime.UtcNow;
+        var utcNow = GetUtcNowNoMicroseconds();
         organisation = organisation with { Version = 1, Created = utcNow, Updated = utcNow };
 
         await dbContext.Organisations.InsertOneAsync(organisation, cancellationToken: cancellationToken);
@@ -35,7 +35,7 @@ public class OrganisationService(IDbContext dbContext, ILogger<OrganisationServi
             Builders<Organisation>.Filter.Eq(x => x.Version, organisation.Version)
         );
 
-        organisation = organisation with { Version = organisation.Version + 1, Updated = DateTime.UtcNow };
+        organisation = organisation with { Version = organisation.Version + 1, Updated = GetUtcNowNoMicroseconds() };
 
         var replaceOneResult = await dbContext.Organisations.ReplaceOneAsync(
             filter,
@@ -75,5 +75,13 @@ public class OrganisationService(IDbContext dbContext, ILogger<OrganisationServi
             );
 
         return await query.ToListAsync(cancellationToken);
+    }
+
+    private static DateTime GetUtcNowNoMicroseconds()
+    {
+        var now = DateTimeOffset.UtcNow;
+        now = new DateTimeOffset(now.Ticks - now.Ticks % TimeSpan.TicksPerMillisecond, TimeSpan.Zero);
+
+        return now.UtcDateTime;
     }
 }
