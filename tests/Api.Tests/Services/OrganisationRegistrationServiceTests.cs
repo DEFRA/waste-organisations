@@ -2,18 +2,18 @@ using AutoFixture;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
-using Defra.WasteOrganisations.Api.Mapping;
+using Defra.WasteOrganisations.Api.Services;
 using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.Time.Testing;
 
-namespace Defra.WasteOrganisations.Api.Tests.Mapping;
+namespace Defra.WasteOrganisations.Api.Tests.Services;
 
-public class OrganisationExtensionsTests
+public class OrganisationRegistrationServiceTests
 {
     private FakeTimeProvider TimeProvider { get; } = new();
     private OrganisationRegistrationService Subject { get; }
 
-    public OrganisationExtensionsTests()
+    public OrganisationRegistrationServiceTests()
     {
         Subject = new OrganisationRegistrationService(TimeProvider);
     }

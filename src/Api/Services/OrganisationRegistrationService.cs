@@ -1,11 +1,10 @@
 using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
-
-namespace Defra.WasteOrganisations.Api.Mapping;
-
 #pragma warning disable CS9113 // Parameter is unread.
+
+namespace Defra.WasteOrganisations.Api.Services;
+
 public class OrganisationRegistrationService(TimeProvider timeProvider)
-#pragma warning restore CS9113 // Parameter is unread.
 {
     public Data.Entities.Organisation Patch(
         Data.Entities.Organisation organisation,
