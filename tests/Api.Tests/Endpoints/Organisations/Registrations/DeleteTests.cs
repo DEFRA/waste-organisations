@@ -32,11 +32,7 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         var client = CreateClient();
 
         var response = await client.DeleteAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsDelete(
-                OrganisationData.Id,
-                type,
-                registrationYear
-            ),
+            Testing.Endpoints.Organisations.RegistrationsDelete(OrganisationData.Id, type, registrationYear),
             TestContext.Current.CancellationToken
         );
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -53,7 +49,7 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             .Returns(Task.FromResult<Organisation?>(null));
 
         var response = await client.DeleteAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsDelete(
+            Testing.Endpoints.Organisations.RegistrationsDelete(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2025"
@@ -73,7 +69,7 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             .Returns(OrganisationEntityFixtures.Default().With(x => x.Id, OrganisationData.Id).Create());
 
         var response = await client.DeleteAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsDelete(
+            Testing.Endpoints.Organisations.RegistrationsDelete(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2026"
@@ -108,7 +104,7 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             });
 
         var response = await client.DeleteAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.RegistrationsDelete(
+            Testing.Endpoints.Organisations.RegistrationsDelete(
                 OrganisationData.Id,
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2025"

@@ -36,7 +36,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns(request.ToEntity(OrganisationData.Id));
 
         var response = await client.PutAsJsonAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Put(OrganisationData.Id),
+            Testing.Endpoints.Organisations.Put(OrganisationData.Id),
             request,
             TestContext.Current.CancellationToken
         );
@@ -67,7 +67,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns(request.ToEntity(OrganisationData.Id));
 
         var response = await client.PutAsJsonAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Put(OrganisationData.Id),
+            Testing.Endpoints.Organisations.Put(OrganisationData.Id),
             request,
             TestContext.Current.CancellationToken
         );
@@ -95,7 +95,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns<Organisation>(args => (Organisation)args[0]);
 
         var response = await client.PutAsJsonAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Put(OrganisationData.Id),
+            Testing.Endpoints.Organisations.Put(OrganisationData.Id),
             request,
             TestContext.Current.CancellationToken
         );
@@ -111,7 +111,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
 
         var response = await client.PutAsJsonAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
             new { BusinessCountry = "Invalid" },
             TestContext.Current.CancellationToken
         );
@@ -126,7 +126,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
 
         var response = await client.PutAsJsonAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
             new { Address = new { }, Registration = new { } },
             TestContext.Current.CancellationToken
         );
@@ -141,7 +141,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
 
         var response = await client.PutAsJsonAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
             new { Address = new { }, Registration = new { Status = "Invalid" } },
             TestContext.Current.CancellationToken
         );
@@ -156,7 +156,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
 
         var response = await client.PutAsJsonAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
             new { Address = new { }, Registration = new { Type = "Invalid" } },
             TestContext.Current.CancellationToken
         );
@@ -173,7 +173,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
 
         var response = await client.PutAsJsonAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
+            Testing.Endpoints.Organisations.Put(Guid.NewGuid()),
             OrganisationRegistrationDtoFixtures
                 .Default()
                 .With(

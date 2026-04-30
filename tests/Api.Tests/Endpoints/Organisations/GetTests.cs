@@ -30,7 +30,7 @@ public class GetTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns(OrganisationEntityFixtures.Default().With(x => x.Id, id).Create());
 
         var response = await client.GetStringAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Get(id),
+            Testing.Endpoints.Organisations.Get(id),
             TestContext.Current.CancellationToken
         );
 
@@ -43,7 +43,7 @@ public class GetTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         var client = CreateClient();
 
         var response = await client.GetAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Get(Guid.Empty.ToString()),
+            Testing.Endpoints.Organisations.Get(Guid.Empty.ToString()),
             TestContext.Current.CancellationToken
         );
 
