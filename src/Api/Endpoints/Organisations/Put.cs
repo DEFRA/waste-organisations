@@ -29,6 +29,7 @@ public static class Put
         [FromRoute] Guid id,
         [FromBody] OrganisationRegistration organisation,
         [FromServices] IOrganisationService organisationService,
+        [FromServices] OrganisationRegistrationService organisationRegistrationService,
         CancellationToken cancellationToken
     )
     {
@@ -40,7 +41,7 @@ public static class Put
             return Results.Created($"/organisations/{id}", created.ToDto());
         }
 
-        var updated = existing.Patch(organisation);
+        var updated = organisationRegistrationService.Patch(existing, organisation);
 
         updated = await organisationService.Update(updated, cancellationToken);
 

@@ -4,18 +4,27 @@ using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
 using Defra.WasteOrganisations.Api.Mapping;
 using Defra.WasteOrganisations.Testing.Fixtures;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Defra.WasteOrganisations.Api.Tests.Mapping;
 
 public class OrganisationExtensionsTests
 {
+    private FakeTimeProvider TimeProvider { get; } = new();
+    private OrganisationRegistrationService Subject { get; }
+
+    public OrganisationExtensionsTests()
+    {
+        Subject = new OrganisationRegistrationService(TimeProvider);
+    }
+
     [Fact]
     public void Patch_WhenNoChange_ShouldBeTheSame()
     {
         var organisation = OrganisationEntityFixtures.Default().Create();
         var request = OrganisationRegistrationDtoFixtures.Default().Create();
 
-        organisation = organisation.Patch(request);
+        organisation = Subject.Patch(organisation, request);
 
         organisation.Registrations.Should().BeEquivalentTo([RegistrationEntityFixtures.Default().Create()]);
     }
@@ -29,7 +38,7 @@ public class OrganisationExtensionsTests
             .With(x => x.Registration, RegistrationDtoFixtures.Default().With(x => x.RegistrationYear, 2026).Create())
             .Create();
 
-        organisation = organisation.Patch(request);
+        organisation = Subject.Patch(organisation, request);
 
         organisation
             .Registrations.Should()
@@ -51,7 +60,7 @@ public class OrganisationExtensionsTests
             )
             .Create();
 
-        organisation = organisation.Patch(request);
+        organisation = Subject.Patch(organisation, request);
 
         organisation
             .Registrations.Should()
@@ -76,7 +85,7 @@ public class OrganisationExtensionsTests
             )
             .Create();
 
-        organisation = organisation.Patch(request);
+        organisation = Subject.Patch(organisation, request);
 
         organisation
             .Registrations.Should()

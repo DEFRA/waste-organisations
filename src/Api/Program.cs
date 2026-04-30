@@ -5,6 +5,7 @@ using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Endpoints;
 using Defra.WasteOrganisations.Api.Endpoints.Organisations;
 using Defra.WasteOrganisations.Api.Endpoints.Organisations.Registrations;
+using Defra.WasteOrganisations.Api.Mapping;
 using Defra.WasteOrganisations.Api.Services;
 using Defra.WasteOrganisations.Api.Utils;
 using Defra.WasteOrganisations.Api.Utils.Health;
@@ -49,6 +50,7 @@ try
     builder.Services.AddDbContext(builder.Configuration, integrationTest);
     builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
+    builder.Services.AddTransient<OrganisationRegistrationService>();
 
     var app = builder.Build();
 

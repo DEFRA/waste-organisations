@@ -29,6 +29,7 @@ public static class Delete
         [FromRoute] RegistrationTypeFromRoute type,
         [FromRoute] [Range(RegistrationYear.Minimum, RegistrationYear.Maximum)] int registrationYear,
         [FromServices] IOrganisationService organisationService,
+        [FromServices] OrganisationRegistrationService organisationRegistrationService,
         CancellationToken cancellationToken
     )
     {
@@ -36,11 +37,15 @@ public static class Delete
         if (organisation is null)
             return Results.NotFound();
 
-        var registration = organisation.FindRegistration(type.RegistrationType, registrationYear);
+        var registration = OrganisationRegistrationService.FindRegistration(
+            organisation,
+            type.RegistrationType,
+            registrationYear
+        );
         if (registration is null)
             return Results.NotFound();
 
-        var updated = organisation.RemoveRegistration(registration);
+        var updated = OrganisationRegistrationService.RemoveRegistration(organisation, registration);
 
         await organisationService.Update(updated, cancellationToken);
 
