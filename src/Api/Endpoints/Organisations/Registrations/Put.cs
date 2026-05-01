@@ -51,7 +51,7 @@ public static class Put
         var registration = updated.RegistrationsAsDictionary()[
             new Data.Entities.RegistrationKey(type.RegistrationType, registrationYear)
         ];
-        var result = registration.ToDto();
+        var result = registration.ToDto(organisation.Created);
 
         return isAdded
             ? Results.Created($"/organisations/{id}/registrations/{registration.Key}", result)

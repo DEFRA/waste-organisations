@@ -7,8 +7,14 @@ namespace Defra.WasteOrganisations.Api.Mapping;
 
 public static class OrganisationExtensions
 {
-    public static Data.Entities.Organisation ToEntity(this OrganisationRegistration organisationRegistration, Guid id)
+    public static Data.Entities.Organisation ToEntity(
+        this OrganisationRegistration organisationRegistration,
+        Guid id,
+        TimeProvider? timeProvider = null
+    )
     {
+        timeProvider ??= TimeProvider.System;
+
         return new Data.Entities.Organisation
         {
             Id = id,
@@ -25,7 +31,7 @@ public static class OrganisationExtensions
                 Country = organisationRegistration.Address.Country,
                 Postcode = organisationRegistration.Address.Postcode,
             },
-            Registrations = [organisationRegistration.Registration.ToEntity()],
+            Registrations = [organisationRegistration.Registration.ToEntity(timeProvider)],
         };
     }
 
@@ -51,7 +57,7 @@ public static class OrganisationExtensions
                 Country = organisation.Address.Country,
                 Postcode = organisation.Address.Postcode,
             },
-            Registrations = organisation.Registrations.Select(x => x.ToDto()).ToArray(),
+            Registrations = organisation.Registrations.Select(x => x.ToDto(organisation.Created)).ToArray(),
         };
     }
 }

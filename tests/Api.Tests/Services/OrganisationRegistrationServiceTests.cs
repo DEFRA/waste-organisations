@@ -110,4 +110,23 @@ public class OrganisationRegistrationServiceTests
                     .Create(),
             ]);
     }
+
+    [Fact]
+    public void Patch_WhenExistingRegistration_AndTimestampsAreNull_ShouldFallbackToOrganisation()
+    {
+        var organisation = OrganisationEntityFixtures.Default(nullRegistrationTimestamps: true).Create();
+        var request = OrganisationRegistrationDtoFixtures.Default().Create();
+
+        organisation = Subject.Patch(organisation, request);
+
+        organisation
+            .Registrations.Should()
+            .BeEquivalentTo([
+                RegistrationEntityFixtures
+                    .Default()
+                    .With(x => x.Created, organisation.Created)
+                    .With(x => x.Updated, UtcNow())
+                    .Create(),
+            ]);
+    }
 }

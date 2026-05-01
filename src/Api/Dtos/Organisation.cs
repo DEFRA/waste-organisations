@@ -23,5 +23,5 @@ public record Organisation
     public required Address Address { get; init; }
 
     [JsonPropertyName("registrations")]
-    public Registration[] Registrations { get; init; } = [];
+    public RegistrationResponse[] Registrations { get; init; } = [];
 }

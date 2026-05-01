@@ -470,7 +470,7 @@
           "registrations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Registration"
+              "$ref": "#/components/schemas/RegistrationResponse"
             }
           }
         }
@@ -599,6 +599,42 @@
         "properties": {
           "status": {
             "$ref": "#/components/schemas/RegistrationStatus"
+          }
+        }
+      },
+      "RegistrationResponse": {
+        "required": [
+          "status",
+          "type",
+          "registrationYear"
+        ],
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "string",
+            "description": "ISO 8601 extended format with offset",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "description": "ISO 8601 extended format with offset",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RegistrationStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RegistrationType"
+          },
+          "registrationYear": {
+            "maximum": 2050,
+            "minimum": 2023,
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

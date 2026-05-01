@@ -66,7 +66,7 @@ public class OrganisationRegistrationService(TimeProvider timeProvider)
 
         if (registrations.Remove(key, out var existingRegistration))
         {
-            newRegistration = newRegistration with { Created = existingRegistration.Created };
+            newRegistration = newRegistration with { Created = existingRegistration.Created ?? organisation.Created };
             isAdded = false;
         }
 

@@ -39,7 +39,7 @@ public static class RegistrationEntityFixtures
             .With(x => x.Status, () => EnumExtensions.RandomJsonValue<RegistrationStatus>());
     }
 
-    public static IPostprocessComposer<Registration> Default()
+    public static IPostprocessComposer<Registration> Default(bool nullTimestamps = false)
     {
         var created = new DateTime(2026, 4, 30, 13, 38, 0, DateTimeKind.Utc);
 
@@ -47,7 +47,7 @@ public static class RegistrationEntityFixtures
             .With(x => x.Type, RegistrationType.SmallProducer.ToJsonValue())
             .With(x => x.RegistrationYear, 2025)
             .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
-            .With(x => x.Created, created)
-            .With(x => x.Updated, created);
+            .With(x => x.Created, nullTimestamps ? null : created)
+            .With(x => x.Updated, nullTimestamps ? null : created);
     }
 }

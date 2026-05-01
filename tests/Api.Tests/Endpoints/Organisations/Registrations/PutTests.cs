@@ -120,7 +120,7 @@ public class PutTests : EndpointTestBase
             .Be($"/organisations/{OrganisationData.Id}/registrations/SMALL_PRODUCER-2026");
 
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        await VerifyJson(content);
+        await VerifyJson(content).DontScrubDateTimes();
     }
 
     [Fact]
@@ -172,6 +172,6 @@ public class PutTests : EndpointTestBase
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        await VerifyJson(content);
+        await VerifyJson(content).DontScrubDateTimes();
     }
 }

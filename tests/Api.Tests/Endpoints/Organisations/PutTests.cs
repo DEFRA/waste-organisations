@@ -6,14 +6,22 @@ using Defra.WasteOrganisations.Api.Mapping;
 using Defra.WasteOrganisations.Api.Services;
 using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
 namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations;
 
-public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
-    : EndpointTestBase(factory, outputHelper)
+public class PutTests : EndpointTestBase
 {
+    public PutTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
+        : base(factory, outputHelper)
+    {
+        TimeProvider = new FakeTimeProvider();
+        TimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 30, 13, 40, 0, TimeSpan.Zero));
+    }
+
+    private FakeTimeProvider TimeProvider { get; }
     private IOrganisationService MockOrganisationService { get; } = Substitute.For<IOrganisationService>();
 
     protected override void ConfigureTestServices(IServiceCollection services)
@@ -21,6 +29,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         base.ConfigureTestServices(services);
 
         services.AddTransient<IOrganisationService>(_ => MockOrganisationService);
+        services.AddTransient<TimeProvider>(_ => TimeProvider);
     }
 
     [Fact]
@@ -33,7 +42,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             .Returns(Task.FromResult<Organisation?>(null));
         MockOrganisationService
             .Create(Arg.Is<Organisation>(x => x.Id == OrganisationData.Id), Arg.Any<CancellationToken>())
-            .Returns(request.ToEntity(OrganisationData.Id));
+            .Returns<Organisation>(args => (Organisation)args[0]);
 
         var response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.Put(OrganisationData.Id),
@@ -42,7 +51,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         );
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        await VerifyJson(content).DontScrubGuids();
+        await VerifyJson(content).DontScrubGuids().DontScrubDateTimes();
         response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -91,7 +100,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
                     .Create()
             );
         MockOrganisationService
-            .Update(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
+            .Update(Arg.Is<Organisation>(x => x.Id == OrganisationData.Id), Arg.Any<CancellationToken>())
             .Returns<Organisation>(args => (Organisation)args[0]);
 
         var response = await client.PutAsJsonAsync(
@@ -101,7 +110,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         );
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        await VerifyJson(content).DontScrubGuids();
+        await VerifyJson(content).DontScrubGuids().DontScrubDateTimes();
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 

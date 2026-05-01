@@ -34,7 +34,7 @@ public class GetTests(ApiWebApplicationFactory factory, ITestOutputHelper output
             TestContext.Current.CancellationToken
         );
 
-        await VerifyJson(response).DontScrubGuids();
+        await VerifyJson(response).DontScrubGuids().DontScrubDateTimes();
     }
 
     [Fact]
