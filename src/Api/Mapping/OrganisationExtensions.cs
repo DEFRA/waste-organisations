@@ -57,7 +57,7 @@ public static class OrganisationExtensions
                 Country = organisation.Address.Country,
                 Postcode = organisation.Address.Postcode,
             },
-            Registrations = organisation.Registrations.Select(x => x.ToDto(organisation.Created)).ToArray(),
+            Registrations = organisation.Registrations.Select(x => x.ToDto(organisation)).ToArray(),
         };
     }
 }

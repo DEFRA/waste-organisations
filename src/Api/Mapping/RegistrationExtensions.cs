@@ -20,13 +20,16 @@ public static class RegistrationExtensions
         };
     }
 
-    public static RegistrationResponse ToDto(this Data.Entities.Registration registration, DateTime dateTimeFallback) =>
+    public static RegistrationResponse ToDto(
+        this Data.Entities.Registration registration,
+        Data.Entities.Organisation organisation
+    ) =>
         new()
         {
             Status = registration.Status.FromJsonValue<RegistrationStatus>(),
             Type = registration.Type.FromJsonValue<RegistrationType>(),
             RegistrationYear = registration.RegistrationYear,
-            Created = registration.Created ?? dateTimeFallback,
-            Updated = registration.Updated ?? dateTimeFallback,
+            Created = registration.Created ?? organisation.Created,
+            Updated = registration.Updated ?? organisation.Created,
         };
 }

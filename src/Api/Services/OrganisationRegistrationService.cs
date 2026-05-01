@@ -66,7 +66,24 @@ public class OrganisationRegistrationService(TimeProvider timeProvider)
 
         if (registrations.Remove(key, out var existingRegistration))
         {
-            newRegistration = newRegistration with { Created = existingRegistration.Created ?? organisation.Created };
+            if (newRegistration.Status == existingRegistration.Status)
+                newRegistration = newRegistration with
+                {
+                    // If the new registration is equal to the existing one,
+                    // then we assume no change, and we keep the original
+                    // registration timestamps
+                    Created = existingRegistration.Created,
+                    Updated = existingRegistration.Updated,
+                };
+            else
+                newRegistration = newRegistration with
+                {
+                    // If the new registration is different, which can only be
+                    // by Status at time of writing, we set the timestamps
+                    Created = existingRegistration.Created ?? organisation.Created,
+                    Updated = utcNow,
+                };
+
             isAdded = false;
         }
 

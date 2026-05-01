@@ -183,7 +183,6 @@ public class RegistrationTests : MongoTestBase
 
         organisation.Should().NotBeNull();
         organisation.Registrations[0].Created.Should().Be(mongoOrganisation.Created);
-        organisation.Registrations[0].Updated.Should().BeOnOrBefore(mongoOrganisation.Updated);
-        organisation.Registrations[0].Updated.Should().BeAfter(organisation.Registrations[0].Created);
+        organisation.Registrations[0].Updated.Should().Be(mongoOrganisation.Created);
     }
 }

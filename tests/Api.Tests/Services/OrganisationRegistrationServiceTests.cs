@@ -30,9 +30,7 @@ public class OrganisationRegistrationServiceTests
 
         organisation = Subject.Patch(organisation, request);
 
-        organisation
-            .Registrations.Should()
-            .BeEquivalentTo([RegistrationEntityFixtures.Default().With(x => x.Updated, UtcNow()).Create()]);
+        organisation.Registrations.Should().BeEquivalentTo([RegistrationEntityFixtures.Default().Create()]);
     }
 
     [Fact]
@@ -121,12 +119,6 @@ public class OrganisationRegistrationServiceTests
 
         organisation
             .Registrations.Should()
-            .BeEquivalentTo([
-                RegistrationEntityFixtures
-                    .Default()
-                    .With(x => x.Created, organisation.Created)
-                    .With(x => x.Updated, UtcNow())
-                    .Create(),
-            ]);
+            .BeEquivalentTo([RegistrationEntityFixtures.Default(nullTimestamps: true).Create()]);
     }
 }
