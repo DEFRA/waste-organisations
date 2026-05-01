@@ -39,7 +39,7 @@ public static class Put
         if (organisation is null)
             return Results.NotFound();
 
-        var (updated, isAdded) = OrganisationRegistrationService.Patch(
+        var (updated, isAdded) = organisationRegistrationService.Patch(
             organisation,
             type.RegistrationType,
             registrationYear,
@@ -48,11 +48,9 @@ public static class Put
 
         updated = await organisationService.Update(updated, cancellationToken);
 
-        var registration = OrganisationRegistrationService.GetRegistration(
-            updated,
-            type.RegistrationType,
-            registrationYear
-        );
+        var registration = updated.RegistrationsAsDictionary()[
+            new Data.Entities.RegistrationKey(type.RegistrationType, registrationYear)
+        ];
         var result = registration.ToDto();
 
         return isAdded

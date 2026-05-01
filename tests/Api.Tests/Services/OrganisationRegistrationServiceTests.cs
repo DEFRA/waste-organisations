@@ -10,11 +10,15 @@ namespace Defra.WasteOrganisations.Api.Tests.Services;
 
 public class OrganisationRegistrationServiceTests
 {
-    private FakeTimeProvider TimeProvider { get; } = new();
+    private FakeTimeProvider TimeProvider { get; }
+    private Func<DateTime> UtcNow => () => TimeProvider.GetUtcNow().UtcDateTime;
     private OrganisationRegistrationService Subject { get; }
 
     public OrganisationRegistrationServiceTests()
     {
+        TimeProvider = new FakeTimeProvider();
+        TimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 30, 13, 40, 0, TimeSpan.Zero));
+
         Subject = new OrganisationRegistrationService(TimeProvider);
     }
 
@@ -26,7 +30,9 @@ public class OrganisationRegistrationServiceTests
 
         organisation = Subject.Patch(organisation, request);
 
-        organisation.Registrations.Should().BeEquivalentTo([RegistrationEntityFixtures.Default().Create()]);
+        organisation
+            .Registrations.Should()
+            .BeEquivalentTo([RegistrationEntityFixtures.Default().With(x => x.Updated, UtcNow()).Create()]);
     }
 
     [Fact]
@@ -44,7 +50,12 @@ public class OrganisationRegistrationServiceTests
             .Registrations.Should()
             .BeEquivalentTo([
                 RegistrationEntityFixtures.Default().Create(),
-                RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2026).Create(),
+                RegistrationEntityFixtures
+                    .Default()
+                    .With(x => x.RegistrationYear, 2026)
+                    .With(x => x.Created, UtcNow())
+                    .With(x => x.Updated, UtcNow())
+                    .Create(),
             ]);
     }
 
@@ -69,6 +80,8 @@ public class OrganisationRegistrationServiceTests
                 RegistrationEntityFixtures
                     .Default()
                     .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
+                    .With(x => x.Created, UtcNow())
+                    .With(x => x.Updated, UtcNow())
                     .Create(),
             ]);
     }
@@ -93,6 +106,7 @@ public class OrganisationRegistrationServiceTests
                 RegistrationEntityFixtures
                     .Default()
                     .With(x => x.Status, RegistrationStatus.Cancelled.ToJsonValue())
+                    .With(x => x.Updated, UtcNow())
                     .Create(),
             ]);
     }

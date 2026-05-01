@@ -13,7 +13,11 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Services;
 public class OrganisationServiceTests : MongoTestBase
 {
     private OrganisationService Subject { get; } =
-        new(new MongoDbContext(GetMongoDatabase()), Substitute.For<ILogger<OrganisationService>>());
+        new(
+            new MongoDbContext(GetMongoDatabase()),
+            Substitute.For<ILogger<OrganisationService>>(),
+            TimeProvider.System
+        );
 
     [Fact]
     public async Task Get_WhenNoOrganisation_ShouldBeNull()

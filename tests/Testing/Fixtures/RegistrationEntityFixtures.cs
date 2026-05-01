@@ -41,9 +41,13 @@ public static class RegistrationEntityFixtures
 
     public static IPostprocessComposer<Registration> Default()
     {
+        var created = new DateTime(2026, 4, 30, 13, 38, 0, DateTimeKind.Utc);
+
         return Registration()
             .With(x => x.Type, RegistrationType.SmallProducer.ToJsonValue())
             .With(x => x.RegistrationYear, 2025)
-            .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue());
+            .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
+            .With(x => x.Created, created)
+            .With(x => x.Updated, created);
     }
 }

@@ -7,14 +7,23 @@ using Defra.WasteOrganisations.Api.Extensions;
 using Defra.WasteOrganisations.Api.Services;
 using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
 namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations.Registrations;
 
-public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
-    : EndpointTestBase(factory, outputHelper)
+public class PutTests : EndpointTestBase
 {
+    public PutTests(ApiWebApplicationFactory factory, ITestOutputHelper outputHelper)
+        : base(factory, outputHelper)
+    {
+        TimeProvider = new FakeTimeProvider();
+        TimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 30, 13, 40, 0, TimeSpan.Zero));
+    }
+
+    private FakeTimeProvider TimeProvider { get; }
+    private Func<DateTime> UtcNow => () => TimeProvider.GetUtcNow().UtcDateTime;
     private IOrganisationService MockOrganisationService { get; } = Substitute.For<IOrganisationService>();
 
     protected override void ConfigureTestServices(IServiceCollection services)
@@ -22,6 +31,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
         base.ConfigureTestServices(services);
 
         services.AddTransient<IOrganisationService>(_ => MockOrganisationService);
+        services.AddTransient<TimeProvider>(_ => TimeProvider);
     }
 
     [Theory]
@@ -99,6 +109,8 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
                     .With(x => x.Type, RegistrationType.SmallProducer.ToJsonValue())
                     .With(x => x.RegistrationYear, 2026)
                     .With(x => x.Status, RegistrationStatus.Registered.ToJsonValue())
+                    .With(x => x.Created, UtcNow())
+                    .With(x => x.Updated, UtcNow())
                     .Create()
             );
 
@@ -153,6 +165,7 @@ public class PutTests(ApiWebApplicationFactory factory, ITestOutputHelper output
                     .With(x => x.Type, RegistrationType.SmallProducer.ToJsonValue())
                     .With(x => x.RegistrationYear, 2025)
                     .With(x => x.Status, RegistrationStatus.Cancelled.ToJsonValue())
+                    .With(x => x.Updated, UtcNow())
                     .Create(),
             ]);
 
