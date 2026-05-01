@@ -24,7 +24,7 @@ public static class OrganisationEntityFixtures
             .With(x => x.BusinessCountry, () => EnumExtensions.RandomJsonValue<BusinessCountry>());
     }
 
-    public static IPostprocessComposer<Organisation> Default()
+    public static IPostprocessComposer<Organisation> Default(bool nullRegistrationTimestamps = false)
     {
         return Organisation()
             .With(x => x.Name, "Test Name Ltd")
@@ -32,6 +32,9 @@ public static class OrganisationEntityFixtures
             .With(x => x.BusinessCountry, BusinessCountry.England.ToJsonValue())
             .With(x => x.CompaniesHouseNumber, "12345678")
             .With(x => x.Address, AddressEntityFixtures.Default().Create())
-            .With(x => x.Registrations, () => [RegistrationEntityFixtures.Default().Create()]);
+            .With(
+                x => x.Registrations,
+                () => [RegistrationEntityFixtures.Default(nullRegistrationTimestamps).Create()]
+            );
     }
 }

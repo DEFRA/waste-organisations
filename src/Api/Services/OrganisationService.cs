@@ -9,7 +9,8 @@ using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 namespace Defra.WasteOrganisations.Api.Services;
 
 [ExcludeFromCodeCoverage(Justification = "See integration tests")]
-public class OrganisationService(IDbContext dbContext, ILogger<OrganisationService> logger) : IOrganisationService
+public class OrganisationService(IDbContext dbContext, ILogger<OrganisationService> logger, TimeProvider timeProvider)
+    : IOrganisationService
 {
     public async Task<Organisation?> Get(Guid id, CancellationToken cancellationToken) =>
         await dbContext
@@ -18,7 +19,7 @@ public class OrganisationService(IDbContext dbContext, ILogger<OrganisationServi
 
     public async Task<Organisation> Create(Organisation organisation, CancellationToken cancellationToken)
     {
-        var utcNow = DateTime.UtcNow;
+        var utcNow = timeProvider.GetUtcNowWithoutMicroseconds();
         organisation = organisation with { Version = 1, Created = utcNow, Updated = utcNow };
 
         await dbContext.Organisations.InsertOneAsync(organisation, cancellationToken: cancellationToken);
@@ -35,7 +36,11 @@ public class OrganisationService(IDbContext dbContext, ILogger<OrganisationServi
             Builders<Organisation>.Filter.Eq(x => x.Version, organisation.Version)
         );
 
-        organisation = organisation with { Version = organisation.Version + 1, Updated = DateTime.UtcNow };
+        organisation = organisation with
+        {
+            Version = organisation.Version + 1,
+            Updated = timeProvider.GetUtcNowWithoutMicroseconds(),
+        };
 
         var replaceOneResult = await dbContext.Organisations.ReplaceOneAsync(
             filter,

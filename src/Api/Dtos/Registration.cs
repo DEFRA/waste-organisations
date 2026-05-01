@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
@@ -14,4 +15,15 @@ public record Registration
     [JsonPropertyName("registrationYear")]
     [Range(Api.RegistrationYear.Minimum, Api.RegistrationYear.Maximum)]
     public required int RegistrationYear { get; init; }
+}
+
+public record RegistrationResponse : Registration
+{
+    [Description("ISO 8601 extended format with offset")]
+    [JsonPropertyName("created")]
+    public DateTimeOffset Created { get; init; }
+
+    [Description("ISO 8601 extended format with offset")]
+    [JsonPropertyName("updated")]
+    public DateTimeOffset Updated { get; init; }
 }

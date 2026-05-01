@@ -16,6 +16,8 @@
       },
       "registrations": [
         {
+          "created": "DateTimeOffset_1",
+          "updated": "DateTimeOffset_1",
           "status": "REGISTERED",
           "type": "SMALL_PRODUCER",
           "registrationYear": 2025

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Net.Http.Headers;
 
 namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Security;

@@ -8,7 +8,11 @@ public record Organisation
     [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public required Guid Id { get; init; }
     public int Version { get; init; } = 1;
+
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime Created { get; init; }
+
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime Updated { get; init; }
 
     public required string Name { get; init; }

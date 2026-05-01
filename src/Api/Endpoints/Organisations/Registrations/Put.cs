@@ -31,6 +31,7 @@ public static class Put
         [FromRoute] [Range(RegistrationYear.Minimum, RegistrationYear.Maximum)] int registrationYear,
         [FromBody] RegistrationRequest request,
         [FromServices] IOrganisationService organisationService,
+        [FromServices] OrganisationRegistrationService organisationRegistrationService,
         CancellationToken cancellationToken
     )
     {
@@ -38,12 +39,19 @@ public static class Put
         if (organisation is null)
             return Results.NotFound();
 
-        var (updated, isAdded) = organisation.Patch(type.RegistrationType, registrationYear, request);
+        var (updated, isAdded) = organisationRegistrationService.Patch(
+            organisation,
+            type.RegistrationType,
+            registrationYear,
+            request
+        );
 
         updated = await organisationService.Update(updated, cancellationToken);
 
-        var registration = updated.GetRegistration(type.RegistrationType, registrationYear);
-        var result = registration.ToDto();
+        var registration = updated.RegistrationsAsDictionary()[
+            new Data.Entities.RegistrationKey(type.RegistrationType, registrationYear)
+        ];
+        var result = registration.ToDto(organisation);
 
         return isAdded
             ? Results.Created($"/organisations/{id}/registrations/{registration.Key}", result)
