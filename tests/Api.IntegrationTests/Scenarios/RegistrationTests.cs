@@ -26,7 +26,7 @@ public class RegistrationTests : MongoTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        await Task.Delay(250, TestContext.Current.CancellationToken);
+        await Wait();
 
         response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.RegistrationsPut(id, RegistrationType.LargeProducer.ToJsonValue(), "2026"),
@@ -36,7 +36,7 @@ public class RegistrationTests : MongoTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        await Task.Delay(250, TestContext.Current.CancellationToken);
+        await Wait();
 
         response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.RegistrationsPut(id, RegistrationType.LargeProducer.ToJsonValue(), "2026"),
@@ -80,7 +80,7 @@ public class RegistrationTests : MongoTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        await Task.Delay(250, TestContext.Current.CancellationToken);
+        await Wait();
 
         response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.RegistrationsPut(id, RegistrationType.LargeProducer.ToJsonValue(), "2026"),
@@ -90,7 +90,7 @@ public class RegistrationTests : MongoTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        await Task.Delay(250, TestContext.Current.CancellationToken);
+        await Wait();
 
         response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.RegistrationsPut(id, RegistrationType.LargeProducer.ToJsonValue(), "2027"),
@@ -160,7 +160,7 @@ public class RegistrationTests : MongoTestBase
         organisation.Registrations[0].Created.Should().Be(mongoOrganisation.Created);
         organisation.Registrations[0].Updated.Should().Be(mongoOrganisation.Created);
 
-        await Task.Delay(250, TestContext.Current.CancellationToken);
+        await Wait();
 
         response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.Put(id),
@@ -185,4 +185,6 @@ public class RegistrationTests : MongoTestBase
         organisation.Registrations[0].Created.Should().Be(mongoOrganisation.Created);
         organisation.Registrations[0].Updated.Should().Be(mongoOrganisation.Created);
     }
+
+    private static async Task Wait() => await Task.Delay(50, TestContext.Current.CancellationToken);
 }
