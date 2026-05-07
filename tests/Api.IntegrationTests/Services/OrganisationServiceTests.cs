@@ -4,7 +4,6 @@ using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
 using Defra.WasteOrganisations.Api.Services;
-using Defra.WasteOrganisations.Testing.Extensions;
 using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -14,7 +13,11 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Services;
 public class OrganisationServiceTests : MongoTestBase
 {
     private OrganisationService Subject { get; } =
-        new(new MongoDbContext(GetMongoDatabase()), Substitute.For<ILogger<OrganisationService>>());
+        new(
+            new MongoDbContext(GetMongoDatabase()),
+            Substitute.For<ILogger<OrganisationService>>(),
+            TimeProvider.System
+        );
 
     [Fact]
     public async Task Get_WhenNoOrganisation_ShouldBeNull()
@@ -35,7 +38,7 @@ public class OrganisationServiceTests : MongoTestBase
         var retrieved = await Subject.Get(initial.Id, TestContext.Current.CancellationToken);
 
         retrieved.Should().NotBeNull();
-        retrieved.Should().BeEquivalentTo(initial, options => options.AllowMongoDateTimePrecision());
+        retrieved.Should().BeEquivalentTo(initial);
     }
 
     [Fact]
@@ -117,7 +120,7 @@ public class OrganisationServiceTests : MongoTestBase
         );
 
         results.Should().ContainSingle();
-        results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
+        results.Should().BeEquivalentTo([initial]);
     }
 
     [Theory]
@@ -139,7 +142,7 @@ public class OrganisationServiceTests : MongoTestBase
         var results = await Subject.Search([], [registrationYear], [], TestContext.Current.CancellationToken);
 
         results.Should().ContainSingle();
-        results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
+        results.Should().BeEquivalentTo([initial]);
     }
 
     [Fact]
@@ -169,7 +172,7 @@ public class OrganisationServiceTests : MongoTestBase
         );
 
         results.Should().ContainSingle();
-        results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
+        results.Should().BeEquivalentTo([initial]);
     }
 
     [Fact]
@@ -201,6 +204,6 @@ public class OrganisationServiceTests : MongoTestBase
         );
 
         results.Should().ContainSingle();
-        results.Should().BeEquivalentTo([initial], options => options.AllowMongoDateTimePrecision());
+        results.Should().BeEquivalentTo([initial]);
     }
 }

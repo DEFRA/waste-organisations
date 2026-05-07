@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Defra.WasteOrganisations.Api.Authentication;
 using Defra.WasteOrganisations.Api.Dtos;
-using Defra.WasteOrganisations.Api.Mapping;
 using Defra.WasteOrganisations.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -36,11 +35,19 @@ public static class Delete
         if (organisation is null)
             return Results.NotFound();
 
-        var registration = organisation.FindRegistration(type.RegistrationType, registrationYear);
+        var registrations = organisation.RegistrationsAsDictionary();
+
+        registrations.TryGetValue(
+            new Data.Entities.RegistrationKey(type.RegistrationType, registrationYear),
+            out var registration
+        );
+
         if (registration is null)
             return Results.NotFound();
 
-        var updated = organisation.RemoveRegistration(registration);
+        registrations.Remove(registration.Key);
+
+        var updated = organisation with { Registrations = registrations.Values.ToArray() };
 
         await organisationService.Update(updated, cancellationToken);
 

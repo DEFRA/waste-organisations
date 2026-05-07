@@ -29,18 +29,20 @@ public static class Put
         [FromRoute] Guid id,
         [FromBody] OrganisationRegistration organisation,
         [FromServices] IOrganisationService organisationService,
+        [FromServices] OrganisationRegistrationService organisationRegistrationService,
+        [FromServices] TimeProvider timeProvider,
         CancellationToken cancellationToken
     )
     {
         var existing = await organisationService.Get(id, cancellationToken);
         if (existing is null)
         {
-            var created = await organisationService.Create(organisation.ToEntity(id), cancellationToken);
+            var created = await organisationService.Create(organisation.ToEntity(id, timeProvider), cancellationToken);
 
             return Results.Created($"/organisations/{id}", created.ToDto());
         }
 
-        var updated = existing.Patch(organisation);
+        var updated = organisationRegistrationService.Patch(existing, organisation);
 
         updated = await organisationService.Update(updated, cancellationToken);
 

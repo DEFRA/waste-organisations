@@ -1,5 +1,5 @@
 using Defra.WasteOrganisations.Api.Data;
-using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Data.Entities;
 using MongoDB.Driver;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests;

@@ -49,6 +49,7 @@ try
     builder.Services.AddDbContext(builder.Configuration, integrationTest);
     builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
+    builder.Services.AddTransient<OrganisationRegistrationService>();
 
     var app = builder.Build();
 

@@ -7,8 +7,14 @@ namespace Defra.WasteOrganisations.Api.Mapping;
 
 public static class OrganisationExtensions
 {
-    public static Data.Entities.Organisation ToEntity(this OrganisationRegistration organisationRegistration, Guid id)
+    public static Data.Entities.Organisation ToEntity(
+        this OrganisationRegistration organisationRegistration,
+        Guid id,
+        TimeProvider? timeProvider = null
+    )
     {
+        timeProvider ??= TimeProvider.System;
+
         return new Data.Entities.Organisation
         {
             Id = id,
@@ -25,7 +31,7 @@ public static class OrganisationExtensions
                 Country = organisationRegistration.Address.Country,
                 Postcode = organisationRegistration.Address.Postcode,
             },
-            Registrations = [organisationRegistration.Registration.ToEntity()],
+            Registrations = [organisationRegistration.Registration.ToEntity(timeProvider)],
         };
     }
 
@@ -51,109 +57,7 @@ public static class OrganisationExtensions
                 Country = organisation.Address.Country,
                 Postcode = organisation.Address.Postcode,
             },
-            Registrations = organisation.Registrations.Select(x => x.ToDto()).ToArray(),
+            Registrations = organisation.Registrations.Select(x => x.ToDto(organisation)).ToArray(),
         };
-    }
-
-    public static Data.Entities.Organisation Patch(
-        this Data.Entities.Organisation organisation,
-        OrganisationRegistration organisationRegistration
-    )
-    {
-        var (registrations, _) = organisation.Patch(organisationRegistration.Registration);
-
-        return organisation with
-        {
-            Name = organisationRegistration.Name,
-            TradingName = organisationRegistration.TradingName,
-            BusinessCountry = organisationRegistration.BusinessCountry?.ToJsonValue(),
-            CompaniesHouseNumber = organisationRegistration.CompaniesHouseNumber,
-            Address = new Data.Entities.Address
-            {
-                AddressLine1 = organisationRegistration.Address.AddressLine1,
-                AddressLine2 = organisationRegistration.Address.AddressLine2,
-                Town = organisationRegistration.Address.Town,
-                County = organisationRegistration.Address.County,
-                Country = organisationRegistration.Address.Country,
-                Postcode = organisationRegistration.Address.Postcode,
-            },
-            Registrations = registrations,
-        };
-    }
-
-    public static (Data.Entities.Organisation Organisation, bool IsAdded) Patch(
-        this Data.Entities.Organisation organisation,
-        RegistrationType type,
-        int registrationYear,
-        RegistrationRequest registration
-    )
-    {
-        var (registrations, isAdded) = organisation.Patch(type, registrationYear, registration.Status);
-
-        return (organisation with { Registrations = registrations }, isAdded);
-    }
-
-    public static Data.Entities.Organisation RemoveRegistration(
-        this Data.Entities.Organisation organisation,
-        Data.Entities.Registration registration
-    )
-    {
-        var registrations = organisation.RegistrationsAsDictionary();
-
-        registrations.Remove(registration.Key);
-
-        return organisation with
-        {
-            Registrations = registrations.Values.ToArray(),
-        };
-    }
-
-    private static (Data.Entities.Registration[], bool) Patch(
-        this Data.Entities.Organisation organisation,
-        RegistrationType type,
-        int registrationYear,
-        RegistrationStatus status
-    )
-    {
-        var registrations = organisation.RegistrationsAsDictionary();
-        var key = new Data.Entities.RegistrationKey(type, registrationYear);
-
-        var isAdded = !registrations.Remove(key);
-
-        registrations.Add(
-            key,
-            new Data.Entities.Registration
-            {
-                Type = type.ToJsonValue(),
-                RegistrationYear = registrationYear,
-                Status = status.ToJsonValue(),
-            }
-        );
-
-        return (registrations.Values.ToArray(), isAdded);
-    }
-
-    private static (Data.Entities.Registration[], bool) Patch(
-        this Data.Entities.Organisation organisation,
-        Registration registration
-    ) => organisation.Patch(registration.Type, registration.RegistrationYear, registration.Status);
-
-    public static Data.Entities.Registration GetRegistration(
-        this Data.Entities.Organisation organisation,
-        RegistrationType type,
-        int registrationYear
-    ) => organisation.RegistrationsAsDictionary()[new Data.Entities.RegistrationKey(type, registrationYear)];
-
-    public static Data.Entities.Registration? FindRegistration(
-        this Data.Entities.Organisation organisation,
-        RegistrationType type,
-        int registrationYear
-    )
-    {
-        organisation
-            .RegistrationsAsDictionary()
-            .TryGetValue(new Data.Entities.RegistrationKey(type, registrationYear), out var result);
-
-        return result;
     }
 }

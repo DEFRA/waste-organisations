@@ -14,11 +14,15 @@
   },
   "registrations": [
     {
+      "created": "DateTimeOffset_1",
+      "updated": "DateTimeOffset_1",
       "status": "REGISTERED",
       "type": "LARGE_PRODUCER",
       "registrationYear": 2026
     },
     {
+      "created": "DateTimeOffset_2",
+      "updated": "DateTimeOffset_2",
       "status": "REGISTERED",
       "type": "LARGE_PRODUCER",
       "registrationYear": 2027

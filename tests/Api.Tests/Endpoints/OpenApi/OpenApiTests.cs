@@ -8,10 +8,7 @@ public class OpenApiTests(ApiWebApplicationFactory factory, ITestOutputHelper ou
     {
         var client = CreateClient();
 
-        var response = await client.GetStringAsync(
-            Defra.WasteOrganisations.Testing.Endpoints.OpenApi.V1,
-            TestContext.Current.CancellationToken
-        );
+        var response = await client.GetStringAsync(Testing.Endpoints.OpenApi.V1, TestContext.Current.CancellationToken);
 
         await VerifyJson(response);
     }

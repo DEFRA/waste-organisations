@@ -2,20 +2,33 @@ using AutoFixture;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
-using Defra.WasteOrganisations.Api.Mapping;
+using Defra.WasteOrganisations.Api.Services;
 using Defra.WasteOrganisations.Testing.Fixtures;
+using Microsoft.Extensions.Time.Testing;
 
-namespace Defra.WasteOrganisations.Api.Tests.Mapping;
+namespace Defra.WasteOrganisations.Api.Tests.Services;
 
-public class OrganisationExtensionsTests
+public class OrganisationRegistrationServiceTests
 {
+    private FakeTimeProvider TimeProvider { get; }
+    private Func<DateTime> UtcNow => () => TimeProvider.GetUtcNow().UtcDateTime;
+    private OrganisationRegistrationService Subject { get; }
+
+    public OrganisationRegistrationServiceTests()
+    {
+        TimeProvider = new FakeTimeProvider();
+        TimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 30, 13, 40, 0, TimeSpan.Zero));
+
+        Subject = new OrganisationRegistrationService(TimeProvider);
+    }
+
     [Fact]
     public void Patch_WhenNoChange_ShouldBeTheSame()
     {
         var organisation = OrganisationEntityFixtures.Default().Create();
         var request = OrganisationRegistrationDtoFixtures.Default().Create();
 
-        organisation = organisation.Patch(request);
+        organisation = Subject.Patch(organisation, request);
 
         organisation.Registrations.Should().BeEquivalentTo([RegistrationEntityFixtures.Default().Create()]);
     }
@@ -29,13 +42,18 @@ public class OrganisationExtensionsTests
             .With(x => x.Registration, RegistrationDtoFixtures.Default().With(x => x.RegistrationYear, 2026).Create())
             .Create();
 
-        organisation = organisation.Patch(request);
+        organisation = Subject.Patch(organisation, request);
 
         organisation
             .Registrations.Should()
             .BeEquivalentTo([
                 RegistrationEntityFixtures.Default().Create(),
-                RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2026).Create(),
+                RegistrationEntityFixtures
+                    .Default()
+                    .With(x => x.RegistrationYear, 2026)
+                    .With(x => x.Created, UtcNow())
+                    .With(x => x.Updated, UtcNow())
+                    .Create(),
             ]);
     }
 
@@ -51,7 +69,7 @@ public class OrganisationExtensionsTests
             )
             .Create();
 
-        organisation = organisation.Patch(request);
+        organisation = Subject.Patch(organisation, request);
 
         organisation
             .Registrations.Should()
@@ -60,6 +78,8 @@ public class OrganisationExtensionsTests
                 RegistrationEntityFixtures
                     .Default()
                     .With(x => x.Type, RegistrationType.LargeProducer.ToJsonValue())
+                    .With(x => x.Created, UtcNow())
+                    .With(x => x.Updated, UtcNow())
                     .Create(),
             ]);
     }
@@ -76,7 +96,7 @@ public class OrganisationExtensionsTests
             )
             .Create();
 
-        organisation = organisation.Patch(request);
+        organisation = Subject.Patch(organisation, request);
 
         organisation
             .Registrations.Should()
@@ -84,7 +104,21 @@ public class OrganisationExtensionsTests
                 RegistrationEntityFixtures
                     .Default()
                     .With(x => x.Status, RegistrationStatus.Cancelled.ToJsonValue())
+                    .With(x => x.Updated, UtcNow())
                     .Create(),
             ]);
+    }
+
+    [Fact]
+    public void Patch_WhenExistingRegistration_AndTimestampsAreNull_ShouldFallbackToOrganisation()
+    {
+        var organisation = OrganisationEntityFixtures.Default(nullRegistrationTimestamps: true).Create();
+        var request = OrganisationRegistrationDtoFixtures.Default().Create();
+
+        organisation = Subject.Patch(organisation, request);
+
+        organisation
+            .Registrations.Should()
+            .BeEquivalentTo([RegistrationEntityFixtures.Default(nullTimestamps: true).Create()]);
     }
 }
