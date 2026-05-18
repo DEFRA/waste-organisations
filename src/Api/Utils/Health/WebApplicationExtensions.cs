@@ -22,6 +22,12 @@ public static class WebApplicationExtensions
             .AllowAnonymous();
 
         app.MapHealthChecks(
+                "/health/authorized",
+                new HealthCheckOptions { Predicate = healthCheck => healthCheck.Tags.Contains(Ready) }
+            )
+            .RequireAuthorization();
+
+        app.MapHealthChecks(
                 "/health/all",
                 new HealthCheckOptions
                 {
