@@ -23,4 +23,20 @@ public static class OrganisationRegistrationDtoFixtures
             .With(x => x.Address, AddressDtoFixtures.Default().Create())
             .With(x => x.Registration, RegistrationDtoFixtures.Default().Create());
     }
+
+    public static IPostprocessComposer<OrganisationRegistration> LargeProducer()
+    {
+        return Default()
+            .With(x => x.Name, "Large Producer Ltd")
+            .With(x => x.TradingName, "Large Producer Trading")
+            .With(x => x.Registration, RegistrationDtoFixtures.LargeProducer().Create());
+    }
+
+    public static IPostprocessComposer<OrganisationRegistration> ComplianceScheme()
+    {
+        return Default()
+            .With(x => x.Name, "Compliance Scheme Ltd")
+            .With(x => x.TradingName, "Compliance Scheme Trading")
+            .With(x => x.Registration, RegistrationDtoFixtures.ComplianceScheme().Create());
+    }
 }
