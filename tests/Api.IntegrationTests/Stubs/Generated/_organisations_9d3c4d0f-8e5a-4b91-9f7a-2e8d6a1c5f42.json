@@ -1,0 +1,24 @@
+{
+  "id": "9d3c4d0f-8e5a-4b91-9f7a-2e8d6a1c5f42",
+  "name": "Large Producer Ltd",
+  "tradingName": "Large Producer Trading",
+  "businessCountry": "GB-ENG",
+  "companiesHouseNumber": "12345678",
+  "address": {
+    "addressLine1": "Test Name Ltd",
+    "addressLine2": "123 Street",
+    "town": "Town",
+    "county": "County",
+    "postcode": "UK1",
+    "country": "UK"
+  },
+  "registrations": [
+    {
+      "created": "2026-06-04T08:14:03.444+00:00",
+      "updated": "2026-06-04T08:14:03.444+00:00",
+      "status": "REGISTERED",
+      "type": "LARGE_PRODUCER",
+      "registrationYear": 2025
+    }
+  ]
+}

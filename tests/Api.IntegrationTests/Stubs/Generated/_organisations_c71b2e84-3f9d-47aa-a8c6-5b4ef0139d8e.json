@@ -1,0 +1,24 @@
+{
+  "id": "c71b2e84-3f9d-47aa-a8c6-5b4ef0139d8e",
+  "name": "Compliance Scheme Ltd",
+  "tradingName": "Compliance Scheme Trading",
+  "businessCountry": "GB-ENG",
+  "companiesHouseNumber": "12345678",
+  "address": {
+    "addressLine1": "Test Name Ltd",
+    "addressLine2": "123 Street",
+    "town": "Town",
+    "county": "County",
+    "postcode": "UK1",
+    "country": "UK"
+  },
+  "registrations": [
+    {
+      "created": "2026-06-04T08:14:03.46+00:00",
+      "updated": "2026-06-04T08:14:03.46+00:00",
+      "status": "REGISTERED",
+      "type": "COMPLIANCE_SCHEME",
+      "registrationYear": 2025
+    }
+  ]
+}

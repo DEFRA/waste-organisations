@@ -20,4 +20,14 @@ public static class RegistrationDtoFixtures
             .With(x => x.RegistrationYear, 2025)
             .With(x => x.Status, RegistrationStatus.Registered);
     }
+
+    public static IPostprocessComposer<Registration> LargeProducer()
+    {
+        return Default().With(x => x.Type, RegistrationType.LargeProducer);
+    }
+
+    public static IPostprocessComposer<Registration> ComplianceScheme()
+    {
+        return Default().With(x => x.Type, RegistrationType.ComplianceScheme);
+    }
 }
