@@ -12,6 +12,7 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Stubs;
 public class OrganisationStubs : MongoTestBase
 {
     private static string Destination => Path.Combine("..", "..", "..", "Stubs", "Generated");
+    private static readonly int[] s_years = [2026, 2027, 2028, 2029, 2030];
 
     [Fact]
     public async Task GenerateStubs()
@@ -39,6 +40,23 @@ public class OrganisationStubs : MongoTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
+        foreach (var year in s_years)
+        {
+            response = await client.PutAsJsonAsync(
+                Testing.Endpoints.Organisations.Put(id),
+                OrganisationRegistrationDtoFixtures
+                    .LargeProducer()
+                    .With(
+                        x => x.Registration,
+                        RegistrationDtoFixtures.LargeProducer().With(x => x.RegistrationYear, year).Create()
+                    )
+                    .Create(),
+                TestContext.Current.CancellationToken
+            );
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
         await WriteResponse(response, $"_organisations_{id}.json");
     }
 
@@ -53,6 +71,23 @@ public class OrganisationStubs : MongoTestBase
         );
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        foreach (var year in s_years)
+        {
+            response = await client.PutAsJsonAsync(
+                Testing.Endpoints.Organisations.Put(id),
+                OrganisationRegistrationDtoFixtures
+                    .LargeProducer()
+                    .With(
+                        x => x.Registration,
+                        RegistrationDtoFixtures.ComplianceScheme().With(x => x.RegistrationYear, year).Create()
+                    )
+                    .Create(),
+                TestContext.Current.CancellationToken
+            );
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
 
         await WriteResponse(response, $"_organisations_{id}.json");
     }

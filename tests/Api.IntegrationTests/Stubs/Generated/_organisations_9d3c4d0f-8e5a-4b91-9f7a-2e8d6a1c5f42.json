@@ -14,11 +14,46 @@
   },
   "registrations": [
     {
-      "created": "2026-06-15T11:09:55.719+00:00",
-      "updated": "2026-06-15T11:09:55.719+00:00",
+      "created": "2026-06-15T15:05:07.053+00:00",
+      "updated": "2026-06-15T15:05:07.053+00:00",
       "status": "REGISTERED",
       "type": "LARGE_PRODUCER",
       "registrationYear": 2025
+    },
+    {
+      "created": "2026-06-15T15:05:07.099+00:00",
+      "updated": "2026-06-15T15:05:07.099+00:00",
+      "status": "REGISTERED",
+      "type": "LARGE_PRODUCER",
+      "registrationYear": 2026
+    },
+    {
+      "created": "2026-06-15T15:05:07.115+00:00",
+      "updated": "2026-06-15T15:05:07.115+00:00",
+      "status": "REGISTERED",
+      "type": "LARGE_PRODUCER",
+      "registrationYear": 2027
+    },
+    {
+      "created": "2026-06-15T15:05:07.122+00:00",
+      "updated": "2026-06-15T15:05:07.122+00:00",
+      "status": "REGISTERED",
+      "type": "LARGE_PRODUCER",
+      "registrationYear": 2028
+    },
+    {
+      "created": "2026-06-15T15:05:07.126+00:00",
+      "updated": "2026-06-15T15:05:07.126+00:00",
+      "status": "REGISTERED",
+      "type": "LARGE_PRODUCER",
+      "registrationYear": 2029
+    },
+    {
+      "created": "2026-06-15T15:05:07.13+00:00",
+      "updated": "2026-06-15T15:05:07.13+00:00",
+      "status": "REGISTERED",
+      "type": "LARGE_PRODUCER",
+      "registrationYear": 2030
     }
   ]
 }

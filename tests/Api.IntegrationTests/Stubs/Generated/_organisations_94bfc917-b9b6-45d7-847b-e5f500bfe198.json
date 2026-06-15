@@ -1,7 +1,7 @@
 {
   "id": "94bfc917-b9b6-45d7-847b-e5f500bfe198",
-  "name": "Compliance Scheme Ltd",
-  "tradingName": "Compliance Scheme Trading",
+  "name": "Large Producer Ltd",
+  "tradingName": "Large Producer Trading",
   "businessCountry": "GB-ENG",
   "companiesHouseNumber": "12345678",
   "address": {
@@ -14,11 +14,46 @@
   },
   "registrations": [
     {
-      "created": "2026-06-15T11:09:55.777+00:00",
-      "updated": "2026-06-15T11:09:55.777+00:00",
+      "created": "2026-06-15T15:05:07.19+00:00",
+      "updated": "2026-06-15T15:05:07.19+00:00",
       "status": "REGISTERED",
       "type": "COMPLIANCE_SCHEME",
       "registrationYear": 2025
+    },
+    {
+      "created": "2026-06-15T15:05:07.204+00:00",
+      "updated": "2026-06-15T15:05:07.204+00:00",
+      "status": "REGISTERED",
+      "type": "COMPLIANCE_SCHEME",
+      "registrationYear": 2026
+    },
+    {
+      "created": "2026-06-15T15:05:07.209+00:00",
+      "updated": "2026-06-15T15:05:07.209+00:00",
+      "status": "REGISTERED",
+      "type": "COMPLIANCE_SCHEME",
+      "registrationYear": 2027
+    },
+    {
+      "created": "2026-06-15T15:05:07.213+00:00",
+      "updated": "2026-06-15T15:05:07.213+00:00",
+      "status": "REGISTERED",
+      "type": "COMPLIANCE_SCHEME",
+      "registrationYear": 2028
+    },
+    {
+      "created": "2026-06-15T15:05:07.216+00:00",
+      "updated": "2026-06-15T15:05:07.216+00:00",
+      "status": "REGISTERED",
+      "type": "COMPLIANCE_SCHEME",
+      "registrationYear": 2029
+    },
+    {
+      "created": "2026-06-15T15:05:07.22+00:00",
+      "updated": "2026-06-15T15:05:07.22+00:00",
+      "status": "REGISTERED",
+      "type": "COMPLIANCE_SCHEME",
+      "registrationYear": 2030
     }
   ]
 }
