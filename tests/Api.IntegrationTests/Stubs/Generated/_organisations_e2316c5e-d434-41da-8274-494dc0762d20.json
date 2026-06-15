@@ -1,7 +1,7 @@
 {
-  "id": "c71b2e84-3f9d-47aa-a8c6-5b4ef0139d8e",
-  "name": "Compliance Scheme Ltd",
-  "tradingName": "Compliance Scheme Trading",
+  "id": "e2316c5e-d434-41da-8274-494dc0762d20",
+  "name": "Large Producer Ltd",
+  "tradingName": "Large Producer Trading",
   "businessCountry": "GB-ENG",
   "companiesHouseNumber": "12345678",
   "address": {
@@ -14,10 +14,10 @@
   },
   "registrations": [
     {
-      "created": "2026-06-15T11:09:55.76+00:00",
-      "updated": "2026-06-15T11:09:55.76+00:00",
+      "created": "2026-06-15T11:09:55.772+00:00",
+      "updated": "2026-06-15T11:09:55.772+00:00",
       "status": "REGISTERED",
-      "type": "COMPLIANCE_SCHEME",
+      "type": "LARGE_PRODUCER",
       "registrationYear": 2025
     }
   ]
