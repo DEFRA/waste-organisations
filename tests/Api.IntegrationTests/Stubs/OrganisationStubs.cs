@@ -19,14 +19,17 @@ public class OrganisationStubs : MongoTestBase
         Directory.CreateDirectory(Destination);
         Directory.GetFiles(Destination).ForEach(File.Delete);
 
-        await LargeProducer();
-        await ComplianceScheme();
+        await LargeProducer(new Guid("9d3c4d0f-8e5a-4b91-9f7a-2e8d6a1c5f42"));
+        await ComplianceScheme(new Guid("c71b2e84-3f9d-47aa-a8c6-5b4ef0139d8e"));
+
+        // Organisations used in epr-local-environment
+        await LargeProducer(new Guid("e2316c5e-d434-41da-8274-494dc0762d20"));
+        await ComplianceScheme(new Guid("94bfc917-b9b6-45d7-847b-e5f500bfe198"));
     }
 
-    private static async Task LargeProducer()
+    private static async Task LargeProducer(Guid id)
     {
         var client = CreateClient();
-        var id = new Guid("9d3c4d0f-8e5a-4b91-9f7a-2e8d6a1c5f42");
 
         var response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.Put(id),
@@ -39,10 +42,9 @@ public class OrganisationStubs : MongoTestBase
         await WriteResponse(response, $"_organisations_{id}.json");
     }
 
-    private static async Task ComplianceScheme()
+    private static async Task ComplianceScheme(Guid id)
     {
         var client = CreateClient();
-        var id = new Guid("c71b2e84-3f9d-47aa-a8c6-5b4ef0139d8e");
 
         var response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.Put(id),
