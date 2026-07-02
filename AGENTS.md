@@ -32,3 +32,45 @@ Before finishing a Dependabot change:
 - Parse `.github/dependabot.yml` to catch YAML errors.
 - Review the diff and make sure unrelated scheduling or PR limit changes have not slipped in.
 - If changing Dependabot syntax rather than package patterns, check the current GitHub Dependabot options documentation.
+
+## Local Build And Test Checks
+
+In the sandbox environment, avoid plain `dotnet build` because it can hang or take significantly longer due to workload notification/build-server delays.
+
+NuGet restore will not run successfully in the sandbox without elevated network access. When a restore is required, request escalation instead of repeatedly retrying it in the sandbox.
+
+After dependencies are restored, prefer this build command:
+
+```bash
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet build waste-organisations.slnx --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal
+```
+
+If a build is unexpectedly slow, stop it, run `dotnet build-server shutdown`, and retry the sandbox build command above.
+
+Run Api.Tests with:
+
+```bash
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test tests/Api.Tests/Api.Tests.csproj --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal
+```
+
+In the sandbox environment, Api.Tests may need escalation because VSTest binds a local socket for test host communication.
+
+For integration tests, run the local environment first:
+
+```bash
+docker compose up --build -d
+```
+
+Then run Api.IntegrationTests with:
+
+```bash
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal
+```
+
+Stop the local environment afterwards:
+
+```bash
+docker compose down -v --remove-orphans
+```
+
+In the sandbox environment, Api.IntegrationTests need escalation because VSTest binds a local socket and the tests access Docker Compose services.

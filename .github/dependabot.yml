@@ -32,6 +32,7 @@ updates:
         applies-to: version-updates
         patterns:
           - 'Microsoft.AspNetCore.OpenApi'
+          - 'Microsoft.OpenApi'
           - 'Swashbuckle.AspNetCore.ReDoc'
         update-types:
           - 'minor'
