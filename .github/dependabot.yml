@@ -9,14 +9,65 @@ updates:
       time: '10:30'
       timezone: 'Europe/London'
     groups:
-      # Group all patch updates into a single PR
-      patch-updates:
+      # Test-only/test-support packages can move together without mixing with runtime changes.
+      nuget-test-support:
         applies-to: version-updates
+        patterns:
+          - 'AutoFixture'
+          - 'AwesomeAssertions'
+          - 'coverlet.*'
+          - 'MartinCostello.Logging.XUnit*'
+          - 'Microsoft.AspNetCore.Mvc.Testing'
+          - 'Microsoft.Extensions.TimeProvider.Testing'
+          - 'Microsoft.NET.Test.Sdk'
+          - 'NSubstitute'
+          - 'System.IdentityModel.Tokens.Jwt'
+          - 'Verify.*'
+          - 'xunit*'
         update-types:
+          - 'minor'
           - 'patch'
-      # Minor updates will be created individually (ungrouped)
-      # Major updates will be created individually (ungrouped)
-      # No specific configuration needed for major updates as they'll be handled separately
+      # API documentation packages are related, but kept away from runtime dependency updates.
+      nuget-api-documentation:
+        applies-to: version-updates
+        patterns:
+          - 'Microsoft.AspNetCore.OpenApi'
+          - 'Microsoft.OpenApi'
+          - 'Swashbuckle.AspNetCore.ReDoc'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Runtime ASP.NET packages should usually be reviewed together.
+      nuget-aspnetcore-runtime:
+        applies-to: version-updates
+        patterns:
+          - 'Microsoft.AspNetCore.*'
+        exclude-patterns:
+          - 'Microsoft.AspNetCore.Mvc.Testing'
+          - 'Microsoft.AspNetCore.OpenApi'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # MongoDB-related packages can be tested as one dependency family.
+      nuget-data-access:
+        applies-to: version-updates
+        patterns:
+          - 'AspNetCore.HealthChecks.MongoDb'
+          - 'MongoDB.Driver*'
+          - 'Snappier'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Logging, tracing, and metrics packages are grouped separately from functional changes.
+      nuget-observability:
+        applies-to: version-updates
+        patterns:
+          - 'Amazon.CloudWatch.EMF'
+          - 'Elastic.*'
+          - 'Serilog.*'
+        update-types:
+          - 'minor'
+          - 'patch'
 
   - package-ecosystem: github-actions
     directory: /
@@ -24,3 +75,8 @@ updates:
       interval: weekly
       time: '10:30'
       timezone: 'Europe/London'
+    groups:
+      # Group all GitHub Actions updates into a single PR.
+      github-actions:
+        patterns:
+          - '*'
