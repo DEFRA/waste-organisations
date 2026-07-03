@@ -8,6 +8,11 @@ updates:
       interval: daily
       time: '10:30'
       timezone: 'Europe/London'
+    ignore:
+      # Microsoft.OpenApi 3.x has breaking API changes; keep routine updates on 2.x.
+      - dependency-name: 'Microsoft.OpenApi'
+        update-types:
+          - 'version-update:semver-major'
     groups:
       # Test-only/test-support packages can move together without mixing with runtime changes.
       nuget-test-support:
@@ -24,6 +29,15 @@ updates:
           - 'System.IdentityModel.Tokens.Jwt'
           - 'Verify.*'
           - 'xunit*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Build-time code analysis and formatting tooling should stay separate from runtime dependency updates.
+      nuget-code-analysis:
+        applies-to: version-updates
+        patterns:
+          - 'SonarAnalyzer.*'
+          - 'csharpier'
         update-types:
           - 'minor'
           - 'patch'

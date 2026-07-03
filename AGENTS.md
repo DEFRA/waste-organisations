@@ -17,6 +17,12 @@ When changing the NuGet update configuration:
 - If a package matches a broad pattern but belongs elsewhere, use `exclude-patterns` on the broad group and add the package to the more specific group.
 - Let unmatched packages remain as individual PRs unless there is a clear dependency family for them.
 
+When refreshing Dependabot NuGet groups from the current dependencies, check package and tool references in:
+
+- Project files such as `src/**/*.csproj` and `tests/**/*.csproj`.
+- Shared MSBuild props such as `Directory.Build.props`.
+- .NET tool manifests such as `.config/dotnet-tools.json`.
+
 When adding or moving a NuGet package reference, check whether `.github/dependabot.yml` should also be updated:
 
 - Test framework, assertion, mocking, coverage, fixture, test SDK, and test host packages usually belong in `nuget-test-support`.
@@ -24,6 +30,7 @@ When adding or moving a NuGet package reference, check whether `.github/dependab
 - Swagger/OpenAPI documentation packages usually belong in `nuget-api-documentation`.
 - MongoDB, compression, and persistence-adjacent packages usually belong in `nuget-data-access`.
 - Logging, metrics, tracing, and telemetry packages usually belong in `nuget-observability`.
+- Code analysis and formatting tools usually belong in `nuget-code-analysis`.
 
 GitHub Actions updates can stay grouped together weekly unless the user asks for finer separation.
 
