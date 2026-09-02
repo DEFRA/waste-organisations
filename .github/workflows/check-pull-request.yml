@@ -25,11 +25,13 @@ jobs:
             10.0
       - name: Run unit tests
         run: |
-          dotnet test --filter "Category!=IntegrationTests"
+          dotnet build tests/Api.Tests/Api.Tests.csproj
+          dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build
       - name: Run integration tests
         run: |
           docker compose up -d
-          dotnet test --filter "Category=IntegrationTests"
+          dotnet build tests/Api.IntegrationTests/Api.IntegrationTests.csproj
+          dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build
       - name: Docker Compose Logs
         if: always()
         run: |

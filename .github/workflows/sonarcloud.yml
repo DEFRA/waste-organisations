@@ -23,11 +23,11 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Set up .NET 8.0
+      - name: Set up .NET 10.0
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            8.0
+            10.0
       - name: Cache SonarCloud packages
         uses: actions/cache@v6
         with:
@@ -41,23 +41,11 @@ jobs:
           path: ./.sonar/scanner
           key: ${{ runner.os }}-sonar-scanner
           restore-keys: ${{ runner.os }}-sonar-scanner
-      - name: Cache dotNet code coverage
-        id: cache-sonar-coverage
-        uses: actions/cache@v6
-        with:
-          path: ./.sonar/coverage
-          key: ${{ runner.os }}-sonar-coverage
-          restore-keys: ${{ runner.os }}-sonar-coverage
       - name: Install SonarCloud scanner
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: |
           mkdir -p ./.sonar/scanner
           dotnet tool update dotnet-sonarscanner --tool-path ./.sonar/scanner
-      - name: Install dotNet code coverage
-        if: steps.cache-sonar-coverage.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p ./.sonar/coverage
-          dotnet tool update dotnet-coverage --tool-path ./.sonar/coverage
       - name: Build and analyze
         if: github.actor != 'dependabot[bot]'
         env:
@@ -68,5 +56,5 @@ jobs:
         run: |
           ./.sonar/scanner/dotnet-sonarscanner begin /k:"DEFRA_waste-organisations" /o:"defra" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage*.xml
           dotnet build --no-incremental
-          ./.sonar/coverage/dotnet-coverage collect "dotnet test tests/Api.Tests" -f xml -o "coverage.Api.Tests.xml"
+          dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build --coverage --coverage-output-format xml --coverage-output "coverage.Api.Tests.xml"
           ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"

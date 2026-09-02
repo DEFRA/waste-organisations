@@ -16,6 +16,7 @@ WORKDIR /src
 COPY .config/dotnet-tools.json .config/dotnet-tools.json
 COPY .csharpierrc .csharpierrc
 COPY .editorconfig .editorconfig
+COPY global.json global.json
 
 RUN dotnet tool restore
 
@@ -35,7 +36,8 @@ COPY tests/Api.IntegrationTests tests/Api.IntegrationTests
 
 RUN dotnet csharpier check .
 
-RUN dotnet test --no-restore --warnaserror --filter "Category!=IntegrationTests"
+RUN dotnet build --no-restore --warnaserror && \
+    dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build
 
 FROM build AS publish
 
