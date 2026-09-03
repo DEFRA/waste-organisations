@@ -57,10 +57,11 @@ If a build is unexpectedly slow, stop it, run `dotnet build-server shutdown`, an
 Run Api.Tests with:
 
 ```bash
-DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test tests/Api.Tests/Api.Tests.csproj --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet build tests/Api.Tests/Api.Tests.csproj --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build -v:minimal
 ```
 
-In the sandbox environment, Api.Tests may need escalation because VSTest binds a local socket for test host communication.
+In the sandbox environment, Api.Tests may need escalation because the test application can bind local sockets.
 
 For integration tests, run the local environment first:
 
@@ -71,7 +72,8 @@ docker compose up --build -d
 Then run Api.IntegrationTests with:
 
 ```bash
-DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet build tests/Api.IntegrationTests/Api.IntegrationTests.csproj --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build -v:minimal
 ```
 
 Stop the local environment afterwards:
@@ -80,4 +82,4 @@ Stop the local environment afterwards:
 docker compose down -v --remove-orphans
 ```
 
-In the sandbox environment, Api.IntegrationTests need escalation because VSTest binds a local socket and the tests access Docker Compose services.
+In the sandbox environment, Api.IntegrationTests need escalation because the test application accesses Docker Compose services.
