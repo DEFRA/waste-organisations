@@ -56,5 +56,5 @@ jobs:
         run: |
           ./.sonar/scanner/dotnet-sonarscanner begin /k:"DEFRA_waste-organisations" /o:"defra" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage*.xml
           dotnet build --no-incremental
-          dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build --coverage --coverage-output-format xml --coverage-output "coverage.Api.Tests.xml"
+          dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build -- --coverage --coverage-output-format xml --coverage-output "$GITHUB_WORKSPACE/coverage.Api.Tests.xml"
           ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
