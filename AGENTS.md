@@ -134,8 +134,9 @@ flag, default, credential, endpoint or dependency used by this journey:
 This service is a runtime dependency of the shared Docker stack. The current
 action uses its published image; it does not resolve a matching source branch
 for Waste Organisations. To validate an unpublished change, build/select that
-image explicitly using `WASTE_ORGANISATIONS_IMAGE`; do not assume a same-named
-branch is automatically included. Organisation fixtures are seeded through
-the API by the journey repository's `ci/seed-waste-organisations.mjs`.
+image explicitly using `WASTE_ORGANISATIONS_IMAGE`. For an unpublished local
+image, start Compose with `--pull never`, because the service otherwise uses
+`pull_policy: always`. Do not assume a same-named branch is automatically
+included. Organisation fixtures are seeded through the API by the journey repository's `ci/seed-waste-organisations.mjs`.
 Review API contracts, organisation registration data, ACL credentials and
 container environment there whenever this service changes.
