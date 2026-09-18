@@ -4,9 +4,8 @@ on:
   workflow_call:
 
 permissions:
-  id-token: write
   contents: read
-  pull-requests: write
+  pull-requests: read
 
 env:
   SONAR_SCANNER_VERSION: 11.3.0

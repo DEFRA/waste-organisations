@@ -6,13 +6,7 @@ on:
       - main
 
 permissions:
-  id-token: write
-  contents: write
-  pull-requests: write
-
-env:
-  AWS_REGION: eu-west-2
-  AWS_ACCOUNT_ID: "094954420758"
+  contents: read
 
 jobs:
   build:
@@ -22,6 +16,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Test
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
@@ -40,12 +36,29 @@ jobs:
         if: always()
         run: |
           docker compose logs
+
+  publish:
+    name: Publish image
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Create the release tag.
+      id-token: write # Authenticate to AWS using OIDC.
+    env:
+      AWS_REGION: eu-west-2
+      AWS_ACCOUNT_ID: "094954420758"
+    steps:
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Build and Publish
         uses: DEFRA/cdp-build-action/build@dfb527d1bca7591fbbfd32ac007557745e888cf2 # main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
   sonarcloud-scan:
     name: CDP SonarCloud Scan
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/sonarcloud.yml
-    needs: build
+    needs: publish
     secrets: inherit
