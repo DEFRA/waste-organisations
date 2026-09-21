@@ -63,6 +63,23 @@ updates:
         update-types:
           - 'minor'
           - 'patch'
+      nuget-aws-sdk:
+        applies-to: version-updates
+        patterns:
+          - 'AWSSDK.*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      nuget-microsoft-extensions:
+        applies-to: version-updates
+        patterns:
+          - 'Microsoft.Extensions.*'
+        exclude-patterns:
+          - 'Microsoft.Extensions.TimeProvider.Testing'
+          - 'Microsoft.Extensions.ApiDescription.Server'
+        update-types:
+          - 'minor'
+          - 'patch'
       # MongoDB-related packages can be tested as one dependency family.
       nuget-data-access:
         applies-to: version-updates
@@ -95,3 +112,22 @@ updates:
       github-actions:
         patterns:
           - '*'
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      time: '10:30'
+      timezone: 'Europe/London'
+
+  - package-ecosystem: docker-compose
+    directory: /
+    ignore:
+      # Keep Mongo on its existing major version while allowing minor and patch updates.
+      - dependency-name: 'mongo'
+        update-types:
+          - 'version-update:semver-major'
+    schedule:
+      interval: weekly
+      time: '10:30'
+      timezone: 'Europe/London'

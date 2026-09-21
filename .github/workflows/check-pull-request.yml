@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Test
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: |
             10.0
@@ -37,16 +37,19 @@ jobs:
         run: |
           docker compose logs
       - name: Check Dockerfile Builds
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: ./Dockerfile
           push: false
           tags: waste-organisations:latest
       - name: Check with Trivy
-        run: docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.69.3 image waste-organisations:latest --ignore-unfixed
+        run: docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.69.3@sha256:bcc376de8d77cfe086a917230e818dc9f8528e3c852f7b1aff648949b6258d1c image waste-organisations:latest --ignore-unfixed
   sonarcloud-scan:
     name: CDP SonarCloud Scan
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/sonarcloud.yml
     needs: pr-validator
     secrets: inherit

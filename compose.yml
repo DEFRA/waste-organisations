@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: mongo:7.0.24
+    image: mongo:7.0.24@sha256:4c65244b50910461b9641a76131f84a2dcfd4da487f928298cea626b3842842c
     ports:
       - 27017:27017
     volumes:
