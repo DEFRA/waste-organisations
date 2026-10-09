@@ -23,7 +23,7 @@ Exactly what the story's acceptance criteria list, and nothing more: the five en
 | `PUT /organisations/{id}/registrations/{type}-{registrationYear}` | `id`: UUID; `type`: the five registration types; `registrationYear` | 200, 201, 400, 500 |
 | `DELETE /organisations/{id}/registrations/{type}-{registrationYear}` | `id`: UUID; `type`: the five registration types; `registrationYear` | 204, 404, 500 |
 
-The story writes the two registration paths as `/organisations/{id}/{type}--{registrationYear}`. This spec uses the paths the API actually serves (see open question 2).
+The story writes the two registration paths as `/organisations/{id}/{type}--{registrationYear}`. This spec and the tests use the real paths the API serves (confirmed on 9 October 2026).
 
 ## Proposed solution
 
@@ -113,7 +113,7 @@ How they work:
 - [x] The eight new tests are added to the four files listed, and no existing test's assertions are changed.
 - [x] The unit suite passes using the commands in `AGENTS.md`, and `dotnet csharpier check .` passes.
 - [x] No file under `src/` is changed.
-- [ ] The team has confirmed that the tests belong in this repository (the one item under "To confirm with the team") before the branch is merged.
+- [x] It is confirmed that the tests belong in this repository's unit-test project (confirmed on 9 October 2026).
 
 ## Decisions
 
@@ -121,39 +121,26 @@ How they work:
 |---|---|---|
 | Form of the deliverable | Automated tests | Answered by the team |
 | Who does the work | All engineers are working on the story | Answered by the team |
-| Where the tests live | This repository's existing unit-test project, run by the pull request pipeline | Our proposal; see "To confirm with the team" |
+| Where the tests live | This repository's existing unit-test project, run by the pull request pipeline | Confirmed on 9 October 2026 |
 | 500 rows | Covered by simulating a data-layer failure in-process, because a caller cannot cause a 500 on demand | Our proposal |
 | Number of scenarios | One per endpoint and listed code, plus one per listed parameter value | Our proposal |
 | Rows that existing tests already assert | Traced to the existing test; no duplicate test is written | Our proposal |
-| Registration paths | The paths the API serves are tested, not the ones written in the story | Fact; see suggestion 1 |
-| Likely bugs found during analysis | Not tested and not fixed in this story; see suggestion 3 | Our proposal |
+| Registration paths | The real paths the API serves are used, not the ones written in the story | Confirmed on 9 October 2026 |
+| 401 and 403 responses | Left out for now: no tests in this story | Decided on 9 October 2026 |
+| Likely bugs found during analysis | Not tested and not fixed in this story; see the suggestion below | Our proposal |
 
-## To confirm with the team
+## Suggestion for the story owner
 
-One item needs an answer before the branch is merged, because a different answer changes the whole approach. The tests can be written locally in the meantime.
+This does not block the work.
 
-- **Where the tests live.** We propose this repository's existing unit tests, for three reasons:
-  - They run on every pull request, so a change that breaks v1 fails before it merges.
-  - They can cover the 500 rows. A suite run against the deployed dev API cannot.
-  - 20 of the 28 rows are already asserted here, so only 8 tests are new.
+**Raise one follow-up ticket for the likely bugs.** The analysis found the behaviours below, which look unintended. One ticket to triage them keeps them out of this story without losing them.
 
-  The story links to the deployed dev API, so someone may have expected a separate suite run against it. If so, this spec needs redoing.
-
-Because several engineers are on the story, agree who takes which rows before starting. All eight new tests go into four files.
-
-## Suggestions for the story owner
-
-None of these blocks the work.
-
-1. **Correct the registration paths in the story.** It shows `/organisations/{id}/{type}--{registrationYear}`. The API serves `/organisations/{id}/registrations/{type}-{registrationYear}`.
-2. **Raise a follow-up story for authorisation.** The story's table omits 401 and 403 because the API documentation does. Today only search has tests for them; the other four endpoints have none, so a change that removed the scope check from a write endpoint would not fail any test. The other responses the table omits (400 on `DELETE` registration, 404 on `PUT` registration) are already tested.
-3. **Raise one follow-up ticket for the likely bugs.** The analysis found the behaviours below, which look unintended. One ticket to triage them keeps them out of this story without losing them.
-   - `PUT /organisations/{id}` with `"address": null` returns 500 instead of 400.
-   - `PUT /organisations/{id}` accepts a null or empty `name`.
-   - Enum fields accept numbers: `"type": 1` is stored as `LARGE_PRODUCER`, and `PUT …/registrations/1-2025` creates `LARGE_PRODUCER-2025`.
-   - Basic credentials that are not valid base64 return 500 instead of 401.
-   - A concurrent-update conflict returns 500, so a client cannot tell it from a fault.
-   - `/health` runs no dependency checks, so it reports healthy when MongoDB is unreachable.
+- `PUT /organisations/{id}` with `"address": null` returns 500 instead of 400.
+- `PUT /organisations/{id}` accepts a null or empty `name`.
+- Enum fields accept numbers: `"type": 1` is stored as `LARGE_PRODUCER`, and `PUT …/registrations/1-2025` creates `LARGE_PRODUCER-2025`.
+- Basic credentials that are not valid base64 return 500 instead of 401.
+- A concurrent-update conflict returns 500, so a client cannot tell it from a fault.
+- `/health` runs no dependency checks, so it reports healthy when MongoDB is unreachable.
 
 ## Out of scope
 
