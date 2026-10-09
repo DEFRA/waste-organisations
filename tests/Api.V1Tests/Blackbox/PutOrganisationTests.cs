@@ -233,10 +233,7 @@ public class PutOrganisationTests : BlackboxTestBase
     [InlineData(RegistrationType.Reprocessor, RegistrationStatus.Cancelled)]
     [InlineData(RegistrationType.Exporter, RegistrationStatus.Registered)]
     [InlineData(RegistrationType.Exporter, RegistrationStatus.Cancelled)]
-    public async Task WhenEveryTypeAndStatus_ShouldReturnCreated(
-        RegistrationType type,
-        RegistrationStatus status
-    )
+    public async Task WhenEveryTypeAndStatus_ShouldReturnCreated(RegistrationType type, RegistrationStatus status)
     {
         var client = CreateApiKeyClient();
 
@@ -425,10 +422,7 @@ public class PutOrganisationTests : BlackboxTestBase
     [InlineData(BusinessCountry.NorthernIreland, "GB-NIR")]
     [InlineData(BusinessCountry.Scotland, "GB-SCT")]
     [InlineData(BusinessCountry.Wales, "GB-WLS")]
-    public async Task WhenBusinessCountryValid_ShouldEchoWireValue(
-        BusinessCountry businessCountry,
-        string wireValue
-    )
+    public async Task WhenBusinessCountryValid_ShouldEchoWireValue(BusinessCountry businessCountry, string wireValue)
     {
         var client = CreateApiKeyClient();
 

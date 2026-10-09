@@ -13,8 +13,7 @@ public abstract class BlackboxTestBase
     private const string DeveloperSecret = "developer-pwd";
     private const string OAuthClientId = "IntegrationTest";
 
-    protected static Uri BaseUrl =>
-        new(Environment.GetEnvironmentVariable("V1_TESTS_BASE_URL") ?? DefaultBaseUrl);
+    protected static Uri BaseUrl => new(Environment.GetEnvironmentVariable("V1_TESTS_BASE_URL") ?? DefaultBaseUrl);
 
     protected static HttpClient CreateClient() => new() { BaseAddress = BaseUrl };
 
@@ -34,9 +33,7 @@ public abstract class BlackboxTestBase
 
     protected static AuthenticationHeaderValue DeveloperApiKeyHeader()
     {
-        var credentials = Convert.ToBase64String(
-            Encoding.UTF8.GetBytes($"{DeveloperClientId}:{DeveloperSecret}")
-        );
+        var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{DeveloperClientId}:{DeveloperSecret}"));
 
         return new AuthenticationHeaderValue(BasicAuthenticationHandler.SchemeName, credentials);
     }

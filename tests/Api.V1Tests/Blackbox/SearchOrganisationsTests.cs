@@ -35,9 +35,7 @@ public class SearchOrganisationsTests : BlackboxTestBase
     {
         var client = CreateApiKeyClient();
         var otherType =
-            type == RegistrationType.SmallProducer
-                ? RegistrationType.LargeProducer
-                : RegistrationType.SmallProducer;
+            type == RegistrationType.SmallProducer ? RegistrationType.LargeProducer : RegistrationType.SmallProducer;
 
         var matching = await CreateOrganisation(client, type: type);
         var excluded = await CreateOrganisation(client, type: otherType);
@@ -108,9 +106,7 @@ public class SearchOrganisationsTests : BlackboxTestBase
     {
         var client = CreateApiKeyClient();
         var otherStatus =
-            status == RegistrationStatus.Registered
-                ? RegistrationStatus.Cancelled
-                : RegistrationStatus.Registered;
+            status == RegistrationStatus.Registered ? RegistrationStatus.Cancelled : RegistrationStatus.Registered;
 
         var matching = await CreateOrganisation(client, status: status);
         var excluded = await CreateOrganisation(client, status: otherStatus);
@@ -207,9 +203,7 @@ public class SearchOrganisationsTests : BlackboxTestBase
         var client = CreateApiKeyClient();
 
         var response = await client.GetAsync(
-            Testing.Endpoints.Organisations.Search(
-                EndpointQuery.New.Where(EndpointFilter.RegistrationYears("2022"))
-            ),
+            Testing.Endpoints.Organisations.Search(EndpointQuery.New.Where(EndpointFilter.RegistrationYears("2022"))),
             TestContext.Current.CancellationToken
         );
 
@@ -227,9 +221,7 @@ public class SearchOrganisationsTests : BlackboxTestBase
         var client = CreateApiKeyClient();
 
         var response = await client.GetAsync(
-            Testing.Endpoints.Organisations.Search(
-                EndpointQuery.New.Where(EndpointFilter.Statuses("PENDING"))
-            ),
+            Testing.Endpoints.Organisations.Search(EndpointQuery.New.Where(EndpointFilter.Statuses("PENDING"))),
             TestContext.Current.CancellationToken
         );
 

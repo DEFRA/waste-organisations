@@ -26,12 +26,7 @@ public class DeleteRegistrationTests : BlackboxTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
-    private static async Task AddRegistration(
-        HttpClient client,
-        Guid id,
-        string type,
-        string registrationYear
-    )
+    private static async Task AddRegistration(HttpClient client, Guid id, string type, string registrationYear)
     {
         var response = await client.PutAsJsonAsync(
             Testing.Endpoints.Organisations.RegistrationsPut(id, type, registrationYear),
@@ -66,10 +61,7 @@ public class DeleteRegistrationTests : BlackboxTestBase
         );
 
         organisation.Should().NotBeNull();
-        organisation
-            .Registrations.Select(x => x.Type)
-            .Should()
-            .BeEquivalentTo([RegistrationType.SmallProducer]);
+        organisation.Registrations.Select(x => x.Type).Should().BeEquivalentTo([RegistrationType.SmallProducer]);
     }
 
     // DEL-02
@@ -100,11 +92,7 @@ public class DeleteRegistrationTests : BlackboxTestBase
         var client = CreateApiKeyClient();
 
         var response = await client.DeleteAsync(
-            Testing.Endpoints.Organisations.RegistrationsDelete(
-                NewOrganisationId(),
-                SmallProducerWire,
-                "2025"
-            ),
+            Testing.Endpoints.Organisations.RegistrationsDelete(NewOrganisationId(), SmallProducerWire, "2025"),
             TestContext.Current.CancellationToken
         );
 

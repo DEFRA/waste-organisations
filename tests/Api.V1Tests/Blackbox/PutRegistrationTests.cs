@@ -34,19 +34,13 @@ public class PutRegistrationTests : BlackboxTestBase
         await CreateOrganisation(client, id);
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(
-                id,
-                RegistrationType.LargeProducer.ToJsonValue(),
-                "2026"
-            ),
+            Testing.Endpoints.Organisations.RegistrationsPut(id, RegistrationType.LargeProducer.ToJsonValue(), "2026"),
             new RegistrationRequest { Status = RegistrationStatus.Registered },
             TestContext.Current.CancellationToken
         );
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        response
-            .Headers.Location.Should()
-            .Be($"/organisations/{id}/registrations/LARGE_PRODUCER-2026");
+        response.Headers.Location.Should().Be($"/organisations/{id}/registrations/LARGE_PRODUCER-2026");
 
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
@@ -122,11 +116,7 @@ public class PutRegistrationTests : BlackboxTestBase
         await CreateOrganisation(client, id);
 
         await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(
-                id,
-                RegistrationType.LargeProducer.ToJsonValue(),
-                "2026"
-            ),
+            Testing.Endpoints.Organisations.RegistrationsPut(id, RegistrationType.LargeProducer.ToJsonValue(), "2026"),
             new RegistrationRequest { Status = RegistrationStatus.Registered },
             TestContext.Current.CancellationToken
         );
@@ -188,11 +178,7 @@ public class PutRegistrationTests : BlackboxTestBase
         var client = CreateApiKeyClient();
 
         var response = await client.PutAsJsonAsync(
-            Testing.Endpoints.Organisations.RegistrationsPut(
-                NewOrganisationId(),
-                SmallProducerWire,
-                registrationYear
-            ),
+            Testing.Endpoints.Organisations.RegistrationsPut(NewOrganisationId(), SmallProducerWire, registrationYear),
             new RegistrationRequest { Status = RegistrationStatus.Registered },
             TestContext.Current.CancellationToken
         );
@@ -288,10 +274,7 @@ public class PutRegistrationTests : BlackboxTestBase
     [InlineData(RegistrationType.Reprocessor, RegistrationStatus.Cancelled)]
     [InlineData(RegistrationType.Exporter, RegistrationStatus.Registered)]
     [InlineData(RegistrationType.Exporter, RegistrationStatus.Cancelled)]
-    public async Task WhenEveryTypeAndStatus_ShouldReturnCreated(
-        RegistrationType type,
-        RegistrationStatus status
-    )
+    public async Task WhenEveryTypeAndStatus_ShouldReturnCreated(RegistrationType type, RegistrationStatus status)
     {
         var client = CreateApiKeyClient();
         var id = NewOrganisationId();

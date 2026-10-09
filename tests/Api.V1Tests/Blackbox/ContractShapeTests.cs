@@ -55,9 +55,7 @@ public class ContractShapeTests : BlackboxTestBase
 
         var registration = root.GetProperty("registrations").EnumerateArray().First();
 
-        PropertyNames(registration)
-            .Should()
-            .BeEquivalentTo("status", "type", "registrationYear", "created", "updated");
+        PropertyNames(registration).Should().BeEquivalentTo("status", "type", "registrationYear", "created", "updated");
 
         root.GetProperty("businessCountry").ValueKind.Should().Be(JsonValueKind.String);
         registration.GetProperty("status").ValueKind.Should().Be(JsonValueKind.String);
@@ -81,11 +79,7 @@ public class ContractShapeTests : BlackboxTestBase
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var document = JsonDocument.Parse(body);
 
-        PropertyNames(document.RootElement)
-            .Should()
-            .ContainSingle()
-            .Which.Should()
-            .Be("organisations");
+        PropertyNames(document.RootElement).Should().ContainSingle().Which.Should().Be("organisations");
     }
 
     // SHAPE-03
@@ -95,9 +89,7 @@ public class ContractShapeTests : BlackboxTestBase
         var client = CreateApiKeyClient();
 
         var response = await client.GetAsync(
-            Testing.Endpoints.Organisations.Search(
-                EndpointQuery.New.Where(EndpointFilter.Statuses("PENDING"))
-            ),
+            Testing.Endpoints.Organisations.Search(EndpointQuery.New.Where(EndpointFilter.Statuses("PENDING"))),
             TestContext.Current.CancellationToken
         );
 
