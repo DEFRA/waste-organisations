@@ -136,4 +136,46 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         organisation.Should().NotBeNull();
         organisation.Registrations.Should().BeEquivalentTo([remaining]);
     }
+
+    [Theory]
+    [InlineData(RegistrationType.SmallProducer)]
+    [InlineData(RegistrationType.LargeProducer)]
+    [InlineData(RegistrationType.ComplianceScheme)]
+    [InlineData(RegistrationType.Reprocessor)]
+    [InlineData(RegistrationType.Exporter)]
+    public async Task WhenRegistrationType_ShouldBeDeleted(RegistrationType type)
+    {
+        var client = CreateClient();
+        var remaining = RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2026).Create();
+        MockOrganisationService
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(
+                OrganisationEntityFixtures
+                    .Default()
+                    .With(x => x.Id, OrganisationData.Id)
+                    .With(
+                        x => x.Registrations,
+                        [RegistrationEntityFixtures.Default().With(x => x.Type, type.ToJsonValue()).Create(), remaining]
+                    )
+                    .Create()
+            );
+        Organisation? organisation = null;
+        MockOrganisationService
+            .Update(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
+            .Returns<Organisation>(args =>
+            {
+                organisation = (Organisation)args[0];
+                return organisation;
+            });
+
+        var response = await client.DeleteAsync(
+            Testing.Endpoints.Organisations.RegistrationsDelete(OrganisationData.Id, type.ToJsonValue(), "2025"),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        organisation.Should().NotBeNull();
+        organisation.Registrations.Should().BeEquivalentTo([remaining]);
+    }
 }
