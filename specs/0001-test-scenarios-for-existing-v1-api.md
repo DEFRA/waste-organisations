@@ -113,7 +113,7 @@ How they work:
 - [ ] The eight new tests are added to the four files listed, and no existing test's assertions are changed.
 - [ ] The unit suite passes using the commands in `AGENTS.md`, and `dotnet csharpier check .` passes.
 - [ ] No file under `src/` is changed.
-- [ ] The team has confirmed that the tests belong in this repository (the one item under "To confirm with the team") before work starts.
+- [ ] The team has confirmed that the tests belong in this repository (the one item under "To confirm with the team") before the branch is merged.
 
 ## Decisions
 
@@ -130,7 +130,7 @@ How they work:
 
 ## To confirm with the team
 
-One item needs an answer before work starts, because a different answer changes the whole approach.
+One item needs an answer before the branch is merged, because a different answer changes the whole approach. The tests can be written locally in the meantime.
 
 - **Where the tests live.** We propose this repository's existing unit tests, for three reasons:
   - They run on every pull request, so a change that breaks v1 fails before it merges.
