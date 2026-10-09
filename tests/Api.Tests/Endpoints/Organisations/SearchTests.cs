@@ -149,6 +149,38 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
             );
     }
 
+    [Theory]
+    [InlineData(RegistrationStatus.Registered)]
+    [InlineData(RegistrationStatus.Cancelled)]
+    public async Task WhenStatus_ShouldBeOk(RegistrationStatus status)
+    {
+        var client = CreateClient();
+        RegistrationStatus[] statuses = [status];
+        var requestUri = Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(
+            EndpointQuery.New.Where(EndpointFilter.Statuses(statuses))
+        );
+        MockOrganisationService
+            .Search(
+                Arg.Any<List<RegistrationType>>(),
+                Arg.Any<List<int>>(),
+                Arg.Is<List<RegistrationStatus>>(x => x.SequenceEqual(statuses)),
+                Arg.Any<CancellationToken>()
+            )
+            .Returns([]);
+
+        var response = await client.GetAsync(requestUri, TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await MockOrganisationService
+            .Received(1)
+            .Search(
+                Arg.Any<List<RegistrationType>>(),
+                Arg.Any<List<int>>(),
+                Arg.Is<List<RegistrationStatus>>(x => x.SequenceEqual(statuses)),
+                Arg.Any<CancellationToken>()
+            );
+    }
+
     [Fact]
     public async Task WhenInvalidRegistrations_ShouldBeBadRequest()
     {
