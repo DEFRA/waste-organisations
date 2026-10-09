@@ -7,6 +7,7 @@ using Defra.WasteOrganisations.Api.Services;
 using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
 namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations.Registrations;
@@ -61,6 +62,24 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
     }
 
     [Fact]
+    public async Task WhenOrganisationServiceThrows_ShouldBeInternalServerError()
+    {
+        var client = CreateClient();
+        MockOrganisationService.Get(OrganisationData.Id, Arg.Any<CancellationToken>()).Throws(new Exception("BOOM!"));
+
+        var response = await client.DeleteAsync(
+            Testing.Endpoints.Organisations.RegistrationsDelete(
+                OrganisationData.Id,
+                RegistrationType.SmallProducer.ToJsonValue(),
+                "2025"
+            ),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+    }
+
+    [Fact]
     public async Task WhenOrganisationFound_AndRegistrationNotFound_ShouldBeNotFound()
     {
         var client = CreateClient();
@@ -109,6 +128,48 @@ public class DeleteTests(ApiWebApplicationFactory factory, ITestOutputHelper out
                 RegistrationType.SmallProducer.ToJsonValue(),
                 "2025"
             ),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        organisation.Should().NotBeNull();
+        organisation.Registrations.Should().BeEquivalentTo([remaining]);
+    }
+
+    [Theory]
+    [InlineData(RegistrationType.SmallProducer)]
+    [InlineData(RegistrationType.LargeProducer)]
+    [InlineData(RegistrationType.ComplianceScheme)]
+    [InlineData(RegistrationType.Reprocessor)]
+    [InlineData(RegistrationType.Exporter)]
+    public async Task WhenRegistrationType_ShouldBeDeleted(RegistrationType type)
+    {
+        var client = CreateClient();
+        var remaining = RegistrationEntityFixtures.Default().With(x => x.RegistrationYear, 2026).Create();
+        MockOrganisationService
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(
+                OrganisationEntityFixtures
+                    .Default()
+                    .With(x => x.Id, OrganisationData.Id)
+                    .With(
+                        x => x.Registrations,
+                        [RegistrationEntityFixtures.Default().With(x => x.Type, type.ToJsonValue()).Create(), remaining]
+                    )
+                    .Create()
+            );
+        Organisation? organisation = null;
+        MockOrganisationService
+            .Update(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
+            .Returns<Organisation>(args =>
+            {
+                organisation = (Organisation)args[0];
+                return organisation;
+            });
+
+        var response = await client.DeleteAsync(
+            Testing.Endpoints.Organisations.RegistrationsDelete(OrganisationData.Id, type.ToJsonValue(), "2025"),
             TestContext.Current.CancellationToken
         );
 

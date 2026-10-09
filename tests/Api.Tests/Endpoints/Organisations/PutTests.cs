@@ -8,6 +8,7 @@ using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
 namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations;
@@ -112,6 +113,22 @@ public class PutTests : EndpointTestBase
 
         await VerifyJson(content).DontScrubGuids().DontScrubDateTimes();
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task WhenOrganisationServiceThrows_ShouldBeInternalServerError()
+    {
+        var client = CreateClient();
+        var request = OrganisationRegistrationDtoFixtures.Default().Create();
+        MockOrganisationService.Get(OrganisationData.Id, Arg.Any<CancellationToken>()).Throws(new Exception("BOOM!"));
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(OrganisationData.Id),
+            request,
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
     }
 
     [Fact]

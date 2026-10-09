@@ -9,6 +9,7 @@ using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Organisation = Defra.WasteOrganisations.Api.Data.Entities.Organisation;
 
 namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations.Registrations;
@@ -74,6 +75,25 @@ public class PutTests : EndpointTestBase
     }
 
     [Fact]
+    public async Task WhenOrganisationServiceThrows_ShouldBeInternalServerError()
+    {
+        var client = CreateClient();
+        MockOrganisationService.Get(OrganisationData.Id, Arg.Any<CancellationToken>()).Throws(new Exception("BOOM!"));
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.RegistrationsPut(
+                OrganisationData.Id,
+                RegistrationType.SmallProducer.ToJsonValue(),
+                "2025"
+            ),
+            new RegistrationRequest { Status = RegistrationStatus.Registered },
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+    }
+
+    [Fact]
     public async Task WhenOrganisationFound_AndRegistrationDoesNotExist_ShouldBeCreated()
     {
         var client = CreateClient();
@@ -121,6 +141,38 @@ public class PutTests : EndpointTestBase
 
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         await VerifyJson(content).DontScrubDateTimes();
+    }
+
+    [Theory]
+    [InlineData(RegistrationType.SmallProducer)]
+    [InlineData(RegistrationType.LargeProducer)]
+    [InlineData(RegistrationType.ComplianceScheme)]
+    [InlineData(RegistrationType.Reprocessor)]
+    [InlineData(RegistrationType.Exporter)]
+    public async Task WhenRegistrationType_ShouldBeCreated(RegistrationType type)
+    {
+        var client = CreateClient();
+        MockOrganisationService
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(OrganisationEntityFixtures.Default().Create());
+        Organisation? organisation = null;
+        MockOrganisationService
+            .Update(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
+            .Returns<Organisation>(args =>
+            {
+                organisation = (Organisation)args[0];
+                return organisation;
+            });
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.RegistrationsPut(OrganisationData.Id, type.ToJsonValue(), "2026"),
+            new RegistrationRequest { Status = RegistrationStatus.Registered },
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        organisation.Should().NotBeNull();
+        organisation.Registrations.Should().Contain(x => x.Type == type.ToJsonValue() && x.RegistrationYear == 2026);
     }
 
     [Fact]
