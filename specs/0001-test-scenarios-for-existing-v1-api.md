@@ -109,10 +109,10 @@ How they work:
 
 ## Acceptance criteria
 
-- [ ] Every row in the traceability tables names a test that exists and passes.
-- [ ] The eight new tests are added to the four files listed, and no existing test's assertions are changed.
-- [ ] The unit suite passes using the commands in `AGENTS.md`, and `dotnet csharpier check .` passes.
-- [ ] No file under `src/` is changed.
+- [x] Every row in the traceability tables names a test that exists and passes.
+- [x] The eight new tests are added to the four files listed, and no existing test's assertions are changed.
+- [x] The unit suite passes using the commands in `AGENTS.md`, and `dotnet csharpier check .` passes.
+- [x] No file under `src/` is changed.
 - [ ] The team has confirmed that the tests belong in this repository (the one item under "To confirm with the team") before the branch is merged.
 
 ## Decisions
