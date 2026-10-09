@@ -114,6 +114,41 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
     }
 
+    [Theory]
+    [InlineData(RegistrationType.SmallProducer)]
+    [InlineData(RegistrationType.LargeProducer)]
+    [InlineData(RegistrationType.ComplianceScheme)]
+    [InlineData(RegistrationType.Reprocessor)]
+    [InlineData(RegistrationType.Exporter)]
+    public async Task WhenRegistrationType_ShouldBeOk(RegistrationType type)
+    {
+        var client = CreateClient();
+        RegistrationType[] types = [type];
+        var requestUri = Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(
+            EndpointQuery.New.Where(EndpointFilter.Registrations(types))
+        );
+        MockOrganisationService
+            .Search(
+                Arg.Is<List<RegistrationType>>(x => x.SequenceEqual(types)),
+                Arg.Any<List<int>>(),
+                Arg.Any<List<RegistrationStatus>>(),
+                Arg.Any<CancellationToken>()
+            )
+            .Returns([]);
+
+        var response = await client.GetAsync(requestUri, TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await MockOrganisationService
+            .Received(1)
+            .Search(
+                Arg.Is<List<RegistrationType>>(x => x.SequenceEqual(types)),
+                Arg.Any<List<int>>(),
+                Arg.Any<List<RegistrationStatus>>(),
+                Arg.Any<CancellationToken>()
+            );
+    }
+
     [Fact]
     public async Task WhenInvalidRegistrations_ShouldBeBadRequest()
     {
