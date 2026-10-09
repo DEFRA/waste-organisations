@@ -168,7 +168,7 @@ None of these blocks the work.
 
 ## Notes
 
-- Work on a branch named `REGEN-145-v1-baseline-tests`, off `main`.
+- Work on the branch `REGEN-145-test-scenarios-for-existing-v1-api`, off `main`.
 
 ### Verification commands
 
