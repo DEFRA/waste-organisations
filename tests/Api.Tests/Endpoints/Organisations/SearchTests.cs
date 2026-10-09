@@ -9,6 +9,7 @@ using Defra.WasteOrganisations.Testing;
 using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace Defra.WasteOrganisations.Api.Tests.Endpoints.Organisations;
 
@@ -90,6 +91,27 @@ public class SearchTests(ApiWebApplicationFactory factory, ITestOutputHelper out
         );
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task WhenOrganisationServiceThrows_ShouldBeInternalServerError()
+    {
+        var client = CreateClient();
+        MockOrganisationService
+            .Search(
+                Arg.Any<List<RegistrationType>>(),
+                Arg.Any<List<int>>(),
+                Arg.Any<List<RegistrationStatus>>(),
+                Arg.Any<CancellationToken>()
+            )
+            .Throws(new Exception("BOOM!"));
+
+        var response = await client.GetAsync(
+            Defra.WasteOrganisations.Testing.Endpoints.Organisations.Search(),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
     }
 
     [Fact]
