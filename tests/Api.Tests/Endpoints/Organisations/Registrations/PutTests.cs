@@ -143,6 +143,38 @@ public class PutTests : EndpointTestBase
         await VerifyJson(content).DontScrubDateTimes();
     }
 
+    [Theory]
+    [InlineData(RegistrationType.SmallProducer)]
+    [InlineData(RegistrationType.LargeProducer)]
+    [InlineData(RegistrationType.ComplianceScheme)]
+    [InlineData(RegistrationType.Reprocessor)]
+    [InlineData(RegistrationType.Exporter)]
+    public async Task WhenRegistrationType_ShouldBeCreated(RegistrationType type)
+    {
+        var client = CreateClient();
+        MockOrganisationService
+            .Get(OrganisationData.Id, Arg.Any<CancellationToken>())
+            .Returns(OrganisationEntityFixtures.Default().Create());
+        Organisation? organisation = null;
+        MockOrganisationService
+            .Update(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
+            .Returns<Organisation>(args =>
+            {
+                organisation = (Organisation)args[0];
+                return organisation;
+            });
+
+        var response = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.RegistrationsPut(OrganisationData.Id, type.ToJsonValue(), "2026"),
+            new RegistrationRequest { Status = RegistrationStatus.Registered },
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        organisation.Should().NotBeNull();
+        organisation.Registrations.Should().Contain(x => x.Type == type.ToJsonValue() && x.RegistrationYear == 2026);
+    }
+
     [Fact]
     public async Task WhenOrganisationFound_AndRegistrationExists_ShouldBeUpdated()
     {
