@@ -1,0 +1,24 @@
+{
+  "id": "Guid_1",
+  "name": "Pinned Shape Ltd",
+  "tradingName": null,
+  "businessCountry": null,
+  "companiesHouseNumber": null,
+  "address": {
+    "addressLine1": null,
+    "addressLine2": null,
+    "town": null,
+    "county": null,
+    "postcode": null,
+    "country": null
+  },
+  "registrations": [
+    {
+      "created": "DateTimeOffset_1",
+      "updated": "DateTimeOffset_1",
+      "status": "REGISTERED",
+      "type": "SMALL_PRODUCER",
+      "registrationYear": 2025
+    }
+  ]
+}
