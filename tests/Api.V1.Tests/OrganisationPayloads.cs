@@ -6,17 +6,21 @@ namespace Defra.WasteOrganisations.Api.V1.Tests;
 /// </summary>
 public static class OrganisationPayloads
 {
-    /// <summary>Every field set, with one registration.</summary>
+    /// <summary>
+    /// Every field set, with one registration. Pass <c>null</c> as <paramref name="businessCountry"/>
+    /// to send an explicit JSON <c>null</c>.
+    /// </summary>
     public static string Full(
         string type = "SMALL_PRODUCER",
         int registrationYear = 2025,
-        string status = "REGISTERED"
+        string status = "REGISTERED",
+        string? businessCountry = "GB-ENG"
     ) =>
         $$"""
             {
               "name": "V1 Test Organisation Ltd",
               "tradingName": "V1 Trading Name",
-              "businessCountry": "GB-ENG",
+              "businessCountry": {{JsonString(businessCountry)}},
               "companiesHouseNumber": "12345678",
               "address": {
                 "addressLine1": "1 Test Street",
@@ -51,4 +55,6 @@ public static class OrganisationPayloads
               }
             }
             """;
+
+    private static string JsonString(string? value) => value is null ? "null" : $"\"{value}\"";
 }
