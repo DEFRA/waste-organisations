@@ -150,6 +150,85 @@ public class LegacyDataTests : V1TestBase
         ShouldAllFallBackToOrganisationCreated(stored, "EXPORTER-2025");
     }
 
+    // Older documents were written without the optional fields at all, rather than with them set
+    // to null. The API must serve such a document the same way as one with the fields set to null.
+    [Fact]
+    [Trait("Scenario", "LEG-06")]
+    public async Task GetOrganisation_WhenOptionalFieldsMissingFromDocument_ReturnsThemAsExplicitNull()
+    {
+        var id = Guid.NewGuid();
+        var document = LegacyOrganisation(id);
+        document.Remove("tradingName");
+        document.Remove("businessCountry");
+        document.Remove("companiesHouseNumber");
+        document["address"] = new BsonDocument();
+        await using var legacyData = new LegacyData();
+        await legacyData.Insert(document);
+
+        var organisation = (await GetOrganisation(id)).AsObject();
+
+        organisation["id"]!.GetValue<Guid>().Should().Be(id);
+        organisation["name"]!.GetValue<string>().Should().Be("V1 Legacy Organisation Ltd");
+        foreach (var field in new[] { "tradingName", "businessCountry", "companiesHouseNumber" })
+            ShouldBeExplicitNull(organisation, field);
+        var address = organisation["address"]!.AsObject();
+        foreach (var field in new[] { "addressLine1", "addressLine2", "town", "county", "postcode", "country" })
+            ShouldBeExplicitNull(address, field);
+        ShouldAllFallBackToOrganisationCreated(organisation, "SMALL_PRODUCER-2024", "EXPORTER-2025");
+    }
+
+    // An organisation without registrations is still served by get, as an empty list, but search
+    // only returns organisations with at least one registration matching the filters.
+    [Theory]
+    [Trait("Scenario", "LEG-07")]
+    [InlineData("missing")]
+    [InlineData("empty")]
+    public async Task Organisation_WhenRegistrationsMissingOrEmpty_GetReturnsEmptyListAndSearchNeverReturnsIt(
+        string registrationsCase
+    )
+    {
+        var id = Guid.NewGuid();
+        var document = LegacyOrganisation(id);
+        if (registrationsCase == "missing")
+            document.Remove("registrations");
+        else
+            document["registrations"] = new BsonArray();
+        await using var legacyData = new LegacyData();
+        await legacyData.Insert(document);
+
+        var organisation = await GetOrganisation(id);
+
+        organisation["id"]!.GetValue<Guid>().Should().Be(id);
+        organisation["registrations"]!.AsArray().Should().BeEmpty();
+        using var client = CreateClient(TestClient.Developer);
+        foreach (
+            var query in new[]
+            {
+                "/organisations",
+                "/organisations?registrations=SMALL_PRODUCER,EXPORTER",
+                "/organisations?registrationYears=2024,2025",
+                "/organisations?statuses=REGISTERED,CANCELLED",
+            }
+        )
+        {
+            using var response = await client.GetAsync(query, TestContext.Current.CancellationToken);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = JsonNode.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!;
+            body["organisations"]!
+                .AsArray()
+                .Select(o => o!["id"]!.GetValue<Guid>())
+                .Should()
+                .NotContain(id, $"\"{query}\" must not return it");
+        }
+    }
+
+    private static void ShouldBeExplicitNull(JsonObject parent, string field)
+    {
+        parent.ContainsKey(field).Should().BeTrue($"{field} must be present");
+        parent[field].Should().BeNull(field);
+    }
+
     /// <summary>A legacy organisation with two registrations, neither with timestamps.</summary>
     private static BsonDocument LegacyOrganisation(Guid id) =>
         LegacyData.Organisation(
