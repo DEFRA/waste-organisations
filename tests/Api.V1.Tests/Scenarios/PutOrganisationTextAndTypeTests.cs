@@ -140,6 +140,105 @@ public class PutOrganisationTextAndTypeTests : V1TestBase
         registration.GetProperty("registrationYear").GetInt32().Should().Be(2025);
     }
 
+    // Characterisation: documents current behaviour, not a requirement
+    // No text field has a length limit. 100,000 characters keeps the request quick; a
+    // 1,000,000-character name was also observed to be accepted.
+    [Fact]
+    [Trait("Scenario", "ORG-PUT-21")]
+    public async Task PutOrganisation_WhenNameIsVeryLong_StoresAndReturnsItInFull()
+    {
+        var id = Guid.NewGuid();
+        var name = new string('A', 100_000);
+        var payload = $$"""
+            {
+              "name": "{{name}}",
+              "address": {},
+              "registration": { "status": "REGISTERED", "type": "SMALL_PRODUCER", "registrationYear": 2025 }
+            }
+            """;
+
+        var (response, body) = await PutOrganisation(id, payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        Property(body, "name").GetString().Should().Be(name);
+        Property(await GetOrganisation(id), "name").GetString().Should().Be(name);
+    }
+
+    // Characterisation: documents current behaviour, not a requirement
+    // Text is neither trimmed nor checked for content, so whitespace-only values are stored as sent.
+    [Fact]
+    [Trait("Scenario", "ORG-PUT-21")]
+    public async Task PutOrganisation_WhenTextIsWhitespaceOnly_StoresAndReturnsItUnchanged()
+    {
+        var id = Guid.NewGuid();
+        const string payload = """
+            {
+              "name": " \t\n ",
+              "tradingName": "   ",
+              "companiesHouseNumber": " ",
+              "address": {
+                "addressLine1": "  ",
+                "addressLine2": " ",
+                "town": "\t",
+                "county": " ",
+                "postcode": " ",
+                "country": "\n"
+              },
+              "registration": { "status": "REGISTERED", "type": "SMALL_PRODUCER", "registrationYear": 2025 }
+            }
+            """;
+
+        var (response, body) = await PutOrganisation(id, payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var stored = await GetOrganisation(id);
+        foreach (var returned in new[] { body, stored })
+        {
+            Property(returned, "name").GetString().Should().Be(" \t\n ");
+            Property(returned, "tradingName").GetString().Should().Be("   ");
+            Property(returned, "companiesHouseNumber").GetString().Should().Be(" ");
+            Property(returned, "address", "addressLine1").GetString().Should().Be("  ");
+            Property(returned, "address", "addressLine2").GetString().Should().Be(" ");
+            Property(returned, "address", "town").GetString().Should().Be("\t");
+            Property(returned, "address", "county").GetString().Should().Be(" ");
+            Property(returned, "address", "postcode").GetString().Should().Be(" ");
+            Property(returned, "address", "country").GetString().Should().Be("\n");
+        }
+    }
+
+    // Characterisation: documents current behaviour, not a requirement
+    // Neither field is checked against the Companies House or UK postcode format.
+    [Theory]
+    [Trait("Scenario", "ORG-PUT-21")]
+    [InlineData("not a number!? 12-34", "nope 123 !!")]
+    [InlineData("123", "sw1a1aa")]
+    [InlineData("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", "SW1A 1AA EXTRA TEXT")]
+    public async Task PutOrganisation_WhenCompaniesHouseNumberOrPostcodeInAnyFormat_StoresAndReturnsThemUnchanged(
+        string companiesHouseNumber,
+        string postcode
+    )
+    {
+        var id = Guid.NewGuid();
+        var payload = $$"""
+            {
+              "name": "V1 Free Format Ltd",
+              "companiesHouseNumber": "{{companiesHouseNumber}}",
+              "address": { "postcode": "{{postcode}}" },
+              "registration": { "status": "REGISTERED", "type": "SMALL_PRODUCER", "registrationYear": 2025 }
+            }
+            """;
+
+        var (response, body) = await PutOrganisation(id, payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var stored = await GetOrganisation(id);
+        foreach (var returned in new[] { body, stored })
+        {
+            Property(returned, "companiesHouseNumber").GetString().Should().Be(companiesHouseNumber);
+            Property(returned, "address", "postcode").GetString().Should().Be(postcode);
+        }
+    }
+
     private static async Task<(HttpResponseMessage Response, string Body)> PutOrganisation(Guid id, string payload)
     {
         using var client = CreateClient(TestClient.Developer);

@@ -135,7 +135,7 @@ The existing integration scenarios are covered by ORG-PUT-01 and 03, ORG-SEARCH-
 | ORG-PUT-18 | **Added.** `"address": null` | 500 *(observed)*. Characterisation, likely bug |
 | ORG-PUT-19 | **Added.** `"name": null` or `""` | 201, stored as sent *(observed)*. Characterisation, likely bug |
 | ORG-PUT-20 | **Added.** Enum sent as a number; year sent as a string | `"type": 1` is stored as `LARGE_PRODUCER`; `"registrationYear": "2025"` is accepted *(observed)*. Characterisation, likely bug |
-| ORG-PUT-21 | **Added.** Free-text fields with no validation: a very long `name`, whitespace-only values, a `companiesHouseNumber` or `postcode` in any format | Not yet observed. The code validates only the registration fields and `businessCountry`, so these should be accepted and returned as sent. Observe each case against the stack, then pin it. Characterisation |
+| ORG-PUT-21 | **Added.** Free-text fields with no validation: a very long `name`, whitespace-only values, a `companiesHouseNumber` or `postcode` in any format | 201; stored and returned as sent, with no trimming *(observed)*. A `name` of 1,000,000 characters is accepted; whitespace-only values in every text field are kept; `companiesHouseNumber` and `postcode` accept any text. Characterisation |
 
 ### `PUT /organisations/{id}/registrations/{type}-{registrationYear}`
 
