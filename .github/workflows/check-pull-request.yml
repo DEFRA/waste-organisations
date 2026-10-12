@@ -32,6 +32,10 @@ jobs:
           docker compose up -d
           dotnet build tests/Api.IntegrationTests/Api.IntegrationTests.csproj
           dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build
+      - name: Run v1 tests
+        run: |
+          dotnet build tests/Api.V1.Tests/Api.V1.Tests.csproj
+          dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll --no-build
       - name: Docker Compose Logs
         if: always()
         run: |
