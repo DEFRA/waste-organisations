@@ -197,7 +197,7 @@ Production holds registrations stored without `created` and `updated`. The API c
 | X-ROUTE-01 | **Added.** Unsupported method on an existing path: `POST /organisations`, `DELETE /organisations/{id}`, `GET` on a registration | 405 with an `Allow` header *(observed)* |
 | X-ROUTE-02 | **Added.** `GET /organisations/{id}/registrations` | 404; no endpoint lists registrations *(observed)* |
 | X-CONTRACT-01 | `GET /openapi/v1.json` | 200 without credentials; the document matches a snapshot |
-| X-HDR-01 | HSTS header | `Strict-Transport-Security: max-age=31536000; includeSubDomains` on responses |
+| X-HDR-01 | HSTS header | `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response the API builds itself, whatever the status or credentials *(observed)*. Responses written by the exception handler carry no HSTS header: a 400 for a body that cannot be bound (malformed JSON, a required field missing) and the 500 from X-AUTH-03 *(observed)*. That case is characterisation, likely bug |
 | X-OPS-01 | `GET /health` | 200, body `Healthy`, no credentials needed |
 | X-OPS-02 | `GET /redoc/index.html` | 200, HTML, no credentials needed *(observed)* |
 | X-OPS-03 | **Added.** `GET /health/all`, `GET /health/authorized` | `/health/all`: 200, JSON, no credentials needed. `/health/authorized`: 401 without credentials, 200 for a valid API-key client, 401 for a valid OAuth client *(observed)*. The endpoint uses the default policy, which authenticates with the Basic scheme only. The OAuth case is characterisation, likely bug |
