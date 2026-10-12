@@ -1,0 +1,24 @@
+﻿{
+  "id": "Guid_1",
+  "name": "V1 Test Organisation Ltd",
+  "tradingName": "V1 Trading Name",
+  "businessCountry": "GB-ENG",
+  "companiesHouseNumber": "12345678",
+  "address": {
+    "addressLine1": "1 Test Street",
+    "addressLine2": "Test Estate",
+    "town": "Test Town",
+    "county": "Test County",
+    "postcode": "TE1 1ST",
+    "country": "United Kingdom"
+  },
+  "registrations": [
+    {
+      "created": "DateTimeOffset_1",
+      "updated": "DateTimeOffset_1",
+      "status": "REGISTERED",
+      "type": "SMALL_PRODUCER",
+      "registrationYear": 2025
+    }
+  ]
+}
