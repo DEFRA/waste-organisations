@@ -76,6 +76,15 @@ public sealed class LegacyData : IAsyncDisposable
         _insertedIds.Add(id);
     }
 
+    /// <summary>
+    /// Reads the stored document back, for checks on fields the API does not return, such as the
+    /// organisation's own <c>updated</c>.
+    /// </summary>
+    public static async Task<BsonDocument?> Find(Guid id) =>
+        await Collection
+            .Value.Find(Builders<BsonDocument>.Filter.Eq("_id", Id(id)))
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+
     /// <summary>The id in its stored form: a standard-representation (subtype 4) GUID.</summary>
     public static BsonBinaryData Id(Guid id) => new(id, GuidRepresentation.Standard);
 
