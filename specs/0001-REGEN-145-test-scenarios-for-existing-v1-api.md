@@ -244,7 +244,7 @@ Slice 1 comes first. Slices 2 to 6 can then be taken by different engineers, bec
 | Topic | Decision |
 |---|---|
 | How to organise the v1 tests | A separate test project in this repository |
-| How tied to the code | Fully black-box: no production types, no direct database access |
+| How tied to the code | Fully black-box: no production types; MongoDB only through the `LEG-*` helper |
 | How to make them difficult to change | `CODEOWNERS` with required owner review |
 | Where MongoDB is touched | Only the `LEG-*` tests, through one helper using raw `BsonDocument`s, because legacy production data cannot be created through the API |
 | Where they run | Against Docker Compose, locally and in the pull request check (`check-pull-request.yml`) only, not in the publish workflows. No deployed environment |
