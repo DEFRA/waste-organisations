@@ -47,7 +47,7 @@ This story delivers the project, its protection, its pipeline step, and tests fo
 
 ### Making the tests difficult to change
 
-- Add `.github/CODEOWNERS` with a rule for `/tests/Api.V1.Tests/` and one for the `CODEOWNERS` file itself, so that the rule cannot be removed quietly. Both rules name Darren (`@FluentSynergyDW`) as the code owner.
+- Add `.github/CODEOWNERS` with three rules. `*` names the Waste Manage Account team (`@DEFRA/waste-manage-account`) as owner of the repository. A rule for `/tests/Api.V1.Tests/` and one for the `CODEOWNERS` file itself name Darren (`@FluentSynergyDW`) as the only approver of v1 changes, so that the rule cannot be removed quietly. GitHub uses the last matching rule, so the two v1 rules go after `*` and the team cannot approve a v1 change as a code owner.
 - Turn on "Require review from Code Owners" for `main`. A change to a v1 test or its snapshots then cannot merge without an owner's approval.
 
 A git submodule was also considered. It is harder still to change, but it adds work to every clone, every workflow and the Docker build, and it breaks "runs locally with no extra effort". Rule 1 keeps that option open: the project could be moved to its own repository later without being rewritten.
@@ -235,7 +235,7 @@ Slice 1 comes first. Slices 2 to 6 can then be taken by different engineers, bec
 - [ ] Every characterisation test carries the standard comment, and each one marked "likely bug" is listed in its pull request description.
 - [ ] The whole suite runs locally with nothing more than `docker compose up --build -d` and the two commands in Notes, and passes twice in a row without the stack being reset in between.
 - [ ] The v1 tests run after the integration tests in `check-pull-request.yml`, and a failing v1 test fails the pipeline.
-- [ ] `.github/CODEOWNERS` covers `/tests/Api.V1.Tests/` and itself, "Require review from Code Owners" is on for `main`, and a trial pull request that touches a v1 test cannot merge without an owner's approval.
+- [ ] `.github/CODEOWNERS` names the team for the repository and Darren for `/tests/Api.V1.Tests/` and for itself, "Require review from Code Owners" is on for `main`, and a trial pull request that touches a v1 test cannot merge without Darren's approval.
 - [ ] No file under `src/` is changed, and nothing in `tests/Api.Tests`, `tests/Api.IntegrationTests` or `tests/Testing` is changed.
 - [ ] `AGENTS.md` and `README.md` describe how to run the v1 tests, and `AGENTS.md` carries the rule against editing them.
 
@@ -255,7 +255,8 @@ Slice 1 comes first. Slices 2 to 6 can then be taken by different engineers, bec
 ## Dependencies
 
 - A repository admin, to turn on "Require review from Code Owners" for `main`.
-- Darren (`@FluentSynergyDW`) nominated as code owner. Darren needs write access to the repository, or GitHub ignores the CODEOWNERS entries that name them.
+- The team `@DEFRA/waste-manage-account` as repository owner, and Darren (`@FluentSynergyDW`) as the only approver of v1 changes. Both need write access to the repository, or GitHub ignores the CODEOWNERS entries that name them.
+- With "Require review from Code Owners" on, the `*` rule makes every pull request to `main` need the team's approval, not only v1 changes. Confirm that the team wants this before the setting is turned on.
 
 ## Risks
 
