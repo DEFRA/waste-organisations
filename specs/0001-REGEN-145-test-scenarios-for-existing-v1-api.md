@@ -98,7 +98,7 @@ The existing integration scenarios are covered by ORG-PUT-01 and 03, ORG-SEARCH-
 | ORG-SEARCH-12 | Invalid `registrationYears`: not a number, 2022, 2051 | 400, `Invalid registration year(s) - <invalid values>` |
 | ORG-SEARCH-13 | Invalid `statuses` | 400, `Invalid registration status(s) - <invalid values>` |
 | ORG-SEARCH-14 | Several parameters invalid | 400, one error per parameter *(observed)* |
-| ORG-SEARCH-15 | Input edge cases | *(observed)* Lower-case value: 400. Empty value or trailing comma: 400. Space after a comma, duplicate values, repeated parameter, unknown parameter: 200. Numeric value such as `registrations=1`: 200. Characterisation |
+| ORG-SEARCH-15 | Input edge cases | *(observed)* Lower-case value: 400. Empty value or trailing comma: 400. Space after a comma, duplicate values, repeated parameter (values combined), unknown parameter (ignored): 200. Numeric value such as `registrations=1`: 200, read as the enum position (`1` = `LARGE_PRODUCER`, `statuses=1` = `CANCELLED`); a number with no member such as `registrations=99`: 200, matching nothing. Characterisation |
 | ORG-SEARCH-16 | Response shape and wire values | Snapshot of one organisation in the result |
 | ORG-SEARCH-17 | No credentials, write-only client, read-only client | 401, 403, 200 |
 
