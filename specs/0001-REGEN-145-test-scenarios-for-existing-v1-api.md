@@ -200,7 +200,7 @@ Production holds registrations stored without `created` and `updated`. The API c
 | X-HDR-01 | HSTS header | `Strict-Transport-Security: max-age=31536000; includeSubDomains` on responses |
 | X-OPS-01 | `GET /health` | 200, body `Healthy`, no credentials needed |
 | X-OPS-02 | `GET /redoc/index.html` | 200, HTML, no credentials needed *(observed)* |
-| X-OPS-03 | **Added.** `GET /health/all`, `GET /health/authorized` | `/health/all`: 200, JSON, no credentials needed. `/health/authorized`: 401 without credentials, 200 for any valid client *(observed)* |
+| X-OPS-03 | **Added.** `GET /health/all`, `GET /health/authorized` | `/health/all`: 200, JSON, no credentials needed. `/health/authorized`: 401 without credentials, 200 for a valid API-key client, 401 for a valid OAuth client *(observed)*. The endpoint uses the default policy, which authenticates with the Basic scheme only. The OAuth case is characterisation, likely bug |
 | X-DATA-01 | Lifecycle: create an organisation, add all five types, search by each filter, change a status, delete a registration, search again | Results are consistent at every step |
 
 ### Not possible in this project
