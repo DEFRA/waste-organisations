@@ -56,6 +56,25 @@ public sealed record TestClient(string Name, Func<AuthenticationHeaderValue> Aut
     public static TestClient IntegrationTest { get; } =
         new(nameof(IntegrationTest), () => Credentials.Bearer("IntegrationTest"));
 
+    // The limited-scope clients below are configured in compose.yml rather than in the API's
+    // settings, so the API's own configuration is untouched by this suite.
+
+    /// <summary>API key client with read scope only, from <c>compose.yml</c>.</summary>
+    public static TestClient ReadOnlyApiKey { get; } =
+        new(nameof(ReadOnlyApiKey), () => Credentials.Basic("ReadOnlyApiKey", "read-only-pwd"));
+
+    /// <summary>API key client with write scope only, from <c>compose.yml</c>.</summary>
+    public static TestClient WriteOnlyApiKey { get; } =
+        new(nameof(WriteOnlyApiKey), () => Credentials.Basic("WriteOnlyApiKey", "write-only-pwd"));
+
+    /// <summary>OAuth client with read scope only, from <c>compose.yml</c>.</summary>
+    public static TestClient ReadOnlyOAuth { get; } =
+        new(nameof(ReadOnlyOAuth), () => Credentials.Bearer("ReadOnlyOAuth"));
+
+    /// <summary>OAuth client with write scope only, from <c>compose.yml</c>.</summary>
+    public static TestClient WriteOnlyOAuth { get; } =
+        new(nameof(WriteOnlyOAuth), () => Credentials.Bearer("WriteOnlyOAuth"));
+
     /// <summary>
     /// Looks a client up by name, so theories can take the name as serialisable inline data
     /// and each case shows up on its own in test output.
@@ -65,6 +84,10 @@ public sealed record TestClient(string Name, Func<AuthenticationHeaderValue> Aut
         {
             nameof(Developer) => Developer,
             nameof(IntegrationTest) => IntegrationTest,
+            nameof(ReadOnlyApiKey) => ReadOnlyApiKey,
+            nameof(WriteOnlyApiKey) => WriteOnlyApiKey,
+            nameof(ReadOnlyOAuth) => ReadOnlyOAuth,
+            nameof(WriteOnlyOAuth) => WriteOnlyOAuth,
             _ => throw new ArgumentOutOfRangeException(nameof(name), name, "No such test client"),
         };
 }
