@@ -23,6 +23,14 @@ public abstract class V1TestBase
     /// <summary>Creates a client with no credentials; tests add the ones they need.</summary>
     protected static HttpClient CreateClient() => new() { BaseAddress = BaseAddress };
 
+    /// <summary>Creates a client that sends the given client's credentials with every request.</summary>
+    protected static HttpClient CreateClient(TestClient testClient)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = testClient.Authorization();
+        return client;
+    }
+
     /// <summary>Pause between two requests whose timestamps are compared.</summary>
     protected static Task Wait() => Task.Delay(WaitDuration, TestContext.Current.CancellationToken);
 }
