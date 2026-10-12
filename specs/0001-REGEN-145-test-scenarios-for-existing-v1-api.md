@@ -40,21 +40,21 @@ This story delivers the project, its protection, its pipeline steps, and tests f
 
 1. **No reference to production code.** No project reference to `src/Api` or `tests/Testing`. If the tests used the API's own types, a v2 change to those types would change what the tests send and expect without anyone editing a v1 test.
 2. **Requests are raw JSON.** Response bodies are checked with Verify snapshots; status codes and headers with explicit assertions.
-3. **HTTP only.** The tests do not connect to MongoDB. They set up data through the API.
+3. **HTTP, with one exception.** Tests set up data through the API. Only the legacy-data scenarios (`LEG-*`) also write to MongoDB, through one small helper that inserts and removes documents built as raw `BsonDocument`s. The helper never uses the API's entity types and touches only documents with ids the test created.
 4. **Each test owns its data.** A test creates organisations with new ids and asserts only on those. It never relies on an empty database or on another test.
 5. **Characterisation is marked.** A test that pins behaviour which looks unintended carries the comment `// Characterisation: documents current behaviour, not a requirement`.
 6. **Scenario ids.** Each test carries `[Trait("Scenario", "<ID>")]` using the ids under "Scenarios".
 
 ### Making the tests difficult to change
 
-- Add `.github/CODEOWNERS` with a rule for `/tests/Api.V1.Tests/` and one for the `CODEOWNERS` file itself, so that the rule cannot be removed quietly.
+- Add `.github/CODEOWNERS` with a rule for `/tests/Api.V1.Tests/` and one for the `CODEOWNERS` file itself, so that the rule cannot be removed quietly. Both rules name Darren (`@FluentSynergyDW`) as the code owner.
 - Turn on "Require review from Code Owners" for `main`. A change to a v1 test or its snapshots then cannot merge without an owner's approval.
 
 A git submodule was also considered. It is harder still to change, but it adds work to every clone, every workflow and the Docker build, and it breaks "runs locally with no extra effort". Rule 1 keeps that option open: the project could be moved to its own repository later without being rewritten.
 
 ### Pipeline
 
-Add a "Run v1 tests" step straight after "Run integration tests" in the three workflows that run tests: `check-pull-request.yml`, `publish.yml` and `publish-hotfix.yml`. The Compose stack is already up at that point.
+Add a "Run v1 tests" step straight after "Run integration tests" in `check-pull-request.yml`. The Compose stack is already up at that point.
 
 ```bash
 dotnet build tests/Api.V1.Tests/Api.V1.Tests.csproj
@@ -77,7 +77,7 @@ dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll
 
 The ids follow the scenario list already attached to the story. Rows marked **Added** are not in that list.
 
-The existing integration scenarios are covered by ORG-PUT-01 and 03, ORG-SEARCH-02 and 03, REG-PUT-01 and 02, and REG-DEL-01. `BackwardsCompatibleWithProductionData` is not copied, because it edits MongoDB directly.
+The existing integration scenarios are covered by ORG-PUT-01 and 03, ORG-SEARCH-02 and 03, REG-PUT-01 and 02, and REG-DEL-01. `BackwardsCompatibleWithProductionData` is covered by the legacy-data scenarios (`LEG-*`), which write their documents directly to MongoDB.
 
 ### `GET /organisations` (search)
 
@@ -170,6 +170,21 @@ Body: `{ "status": "REGISTERED" }` or `{ "status": "CANCELLED" }`.
 | REG-DEL-10 | No credentials, read-only client, write-only client | 401, 403, 204 *(observed)* |
 | REG-DEL-12 | **Added.** Each of the five types | 204 |
 
+### Legacy data (written directly to MongoDB)
+
+Production holds registrations stored without `created` and `updated`. The API cannot create that state, so each test inserts its own document into MongoDB with the helper (rule 3), then checks the behaviour through the API. Insert the document as `BsonDocument`, using the stored shape: database `waste-organisations`, collection `Organisation`, camelCase field names, enums as strings, and the id as a standard-representation GUID.
+
+| ID | Scenario | Expected today |
+|---|---|---|
+| LEG-01 | Get an organisation whose registrations have no `created` or `updated` | 200; each such registration's `created` and `updated` both equal the organisation's `created` |
+| LEG-02 | Search returns such an organisation | The same fallback values |
+| LEG-03 | Organisation `PUT` with the same registration and status | 200; the registration's timestamps still equal the organisation's `created`; the organisation's `updated` advances |
+| LEG-04 | Registration `PUT` with the same status | 200; the registration's timestamps unchanged, so still the fallback |
+| LEG-05 | Registration `PUT` with a changed status | 200; `created` equals the organisation's `created`, `updated` is the time of the request |
+| LEG-06 | Document with optional fields missing altogether: `tradingName`, `businessCountry`, `companiesHouseNumber`, address parts | Get returns each as explicit `null` |
+| LEG-07 | Document with `registrations` missing, or empty | 200 with `registrations: []`; never returned by search |
+| LEG-08 | Document with a value the API would not accept: an unknown registration type or status, or an unknown `businessCountry` | Not yet observed. Observe each case against the stack, then pin it. Characterisation |
+
 ### Cross-cutting
 
 | ID | Scenario | Expected today |
@@ -189,20 +204,19 @@ Body: `{ "status": "REGISTERED" }` or `{ "status": "CANCELLED" }`.
 
 ### Not possible in this project
 
-These cannot be tested from outside the API, so they stay where they are or stay untested.
+These cannot be observed by a caller of the API, so they stay where they are or stay untested.
 
 | Scenario | Why | Covered elsewhere today |
 |---|---|---|
 | 500 when the data layer fails, on each endpoint | A caller cannot make the data layer fail | Only `GET /organisations/{id}`, by a unit test |
 | Search with an empty database | Tests do not control the whole database | Unit test |
-| Registrations stored without timestamps (older production data) | Needs a direct change in MongoDB | Integration test |
-| Stored `version` and `updated` of an organisation | Not exposed by the API | Integration test of the service |
-| MongoDB index created at start-up | Needs direct access to MongoDB | Not covered |
+| Stored `version` and `updated` of an organisation | Not exposed by the API. The helper could read them, but they are not client-visible behaviour | Integration test of the service |
+| MongoDB index created at start-up | Not client-visible behaviour | Not covered |
 | Trace-header propagation | The API makes no outgoing HTTP calls, so nothing is observable | Not covered |
 
 ## Work breakdown
 
-Slice 1 comes first. Slices 2 to 5 can then be taken by different engineers, because each adds its own test classes.
+Slice 1 comes first. Slices 2 to 6 can then be taken by different engineers, because each adds its own test classes.
 
 | Slice | Work | Scenarios |
 |---|---|---|
@@ -211,14 +225,15 @@ Slice 1 comes first. Slices 2 to 5 can then be taken by different engineers, bec
 | 3 | Registration PUT and DELETE | REG-PUT-*, REG-DEL-* |
 | 4 | Search | ORG-SEARCH-* |
 | 5 | Cross-cutting | X-* |
+| 6 | MongoDB helper, `MongoDB.Driver` package reference and legacy data | LEG-* |
 
 ## Acceptance criteria
 
-- [ ] `tests/Api.V1.Tests` is in the solution and builds in the Docker image build. It has no project reference to `src/Api` or `tests/Testing` and does not connect to MongoDB.
+- [ ] `tests/Api.V1.Tests` is in the solution and builds in the Docker image build. It has no project reference to `src/Api` or `tests/Testing`, and connects to MongoDB only in the `LEG-*` tests.
 - [ ] Every scenario in the tables above has a passing test carrying its `Scenario` trait, or is listed in a pull request as not testable, with the reason.
 - [ ] Every characterisation test carries the standard comment, and each one marked "likely bug" is listed in its pull request description.
 - [ ] The whole suite runs locally with nothing more than `docker compose up --build -d` and the two commands in Notes, and passes twice in a row without the stack being reset in between.
-- [ ] The v1 tests run after the integration tests in `check-pull-request.yml`, `publish.yml` and `publish-hotfix.yml`, and a failing v1 test fails the pipeline.
+- [ ] The v1 tests run after the integration tests in `check-pull-request.yml`, and a failing v1 test fails the pipeline.
 - [ ] `.github/CODEOWNERS` covers `/tests/Api.V1.Tests/` and itself, "Require review from Code Owners" is on for `main`, and a trial pull request that touches a v1 test cannot merge without an owner's approval.
 - [ ] No file under `src/` is changed, and nothing in `tests/Api.Tests`, `tests/Api.IntegrationTests` or `tests/Testing` is changed.
 - [ ] `AGENTS.md` and `README.md` describe how to run the v1 tests, and `AGENTS.md` carries the rule against editing them.
@@ -230,15 +245,16 @@ Slice 1 comes first. Slices 2 to 5 can then be taken by different engineers, bec
 | How to organise the v1 tests | A separate test project in this repository |
 | How tied to the code | Fully black-box: no production types, no direct database access |
 | How to make them difficult to change | `CODEOWNERS` with required owner review |
+| Where MongoDB is touched | Only the `LEG-*` tests, through one helper using raw `BsonDocument`s, because legacy production data cannot be created through the API |
 | Where they run | Against Docker Compose, locally and in the pipeline. No deployed environment |
-| What this story covers | All v1 behaviour that can be observed from outside the API: the 74 scenarios in this spec, delivered in slices |
+| What this story covers | All v1 behaviour that can be observed from outside the API: the 82 scenarios in this spec, delivered in slices |
 | 401 and 403 | In scope, using limited-scope test clients added to `compose.yml` |
 | Behaviour that looks like a bug | Pinned as marked characterisation tests, so that a later fix is a deliberate, owner-approved change |
 
 ## Dependencies
 
 - A repository admin, to turn on "Require review from Code Owners" for `main`.
-- A decision on who the code owners are.
+- Darren (`@FluentSynergyDW`) nominated as code owner. Darren needs write access to the repository, or GitHub ignores the CODEOWNERS entries that name them.
 
 ## Risks
 
@@ -246,6 +262,8 @@ Slice 1 comes first. Slices 2 to 5 can then be taken by different engineers, bec
 |---|---|---|
 | A test depends on timing and fails now and then | Medium | Assert the order of timestamps, not their values. The two concurrency scenarios assert an outcome that holds whether or not a conflict occurs |
 | Tests interfere through the shared database | Low | Rule 4, checked by running the suite twice without resetting the stack |
+| A legacy document written by hand differs from what production holds | Medium | Build it from the stored shape in the `LEG-*` section, and check one against a real production document if one can be shared |
+| The helper couples the tests to the storage shape, so a v2 storage change breaks them | Low | That is intended: the stored shape is what production data looks like, and a break forces a deliberate decision |
 | The branch setting is not turned on, so the protection only notifies | Medium | It is an acceptance criterion with a trial pull request |
 | A pinned bug is mistaken for a requirement | Medium | The standard comment on each characterisation test, and the list in each pull request |
 | An expected result in this spec is wrong | Low | Each is confirmed against the Compose stack when its test is written; correct the spec, do not bend the test |
@@ -257,7 +275,7 @@ Slice 1 comes first. Slices 2 to 5 can then be taken by different engineers, bec
 - Any production code change.
 - Changing or removing existing tests.
 - Running the v1 tests against a CDP environment.
-- The six items under "Not possible in this project", including 500 responses caused by a data-layer failure.
+- The five items under "Not possible in this project", including 500 responses caused by a data-layer failure.
 - Tests for v2.
 - Creating or updating Jira tickets and Confluence pages.
 
@@ -275,5 +293,6 @@ DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test --test-modules tests/Api
 - The API accepts a Bearer token signed with any key and reads the client from its `client_id` claim. The project needs its own small helper to build one. `tests/Testing/Jwt.cs` shows how, but must not be referenced.
 - In the project's Verify settings, call `UseStrictJson()` and `DontIgnoreEmptyCollections()`, and scrub `traceId`. Without the second, a snapshot drops `"registrations": []`.
 - For new snapshots, run with `DiffEngine_Disabled=true`, read each `.received.json` against this spec, then accept it as `.verified.json`.
-- The packages the project needs are already used in this repository, so `.github/dependabot.yml` should not need a change. Check it against the rules in `AGENTS.md`.
+- The project needs `MongoDB.Driver` for the helper. Use the version `src/Api` uses, and note that the `nuget-data-access` group in `.github/dependabot.yml` already matches `MongoDB.Driver*`. The other packages are already used in this repository. Check `.github/dependabot.yml` against the rules in `AGENTS.md`.
+- The helper connects to `mongodb://127.0.0.1:27017`, the port `compose.yml` publishes, and makes the URI configurable. `Api.IntegrationTests` does the same in `MongoTestBase`, which shows the connection but must not be referenced.
 - `dotnet csharpier check .` and a warnings-as-errors build run in the Docker image build, so the new code must pass both.
