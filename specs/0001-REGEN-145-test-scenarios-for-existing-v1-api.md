@@ -135,6 +135,7 @@ The existing integration scenarios are covered by ORG-PUT-01 and 03, ORG-SEARCH-
 | ORG-PUT-18 | **Added.** `"address": null` | 500 *(observed)*. Characterisation, likely bug |
 | ORG-PUT-19 | **Added.** `"name": null` or `""` | 201, stored as sent *(observed)*. Characterisation, likely bug |
 | ORG-PUT-20 | **Added.** Enum sent as a number; year sent as a string | `"type": 1` is stored as `LARGE_PRODUCER`; `"registrationYear": "2025"` is accepted *(observed)*. Characterisation, likely bug |
+| ORG-PUT-21 | **Added.** Free-text fields with no validation: a very long `name`, whitespace-only values, a `companiesHouseNumber` or `postcode` in any format | Not yet observed. The code validates only the registration fields and `businessCountry`, so these should be accepted and returned as sent. Observe each case against the stack, then pin it. Characterisation |
 
 ### `PUT /organisations/{id}/registrations/{type}-{registrationYear}`
 
@@ -247,7 +248,7 @@ Slice 1 comes first. Slices 2 to 6 can then be taken by different engineers, bec
 | How to make them difficult to change | `CODEOWNERS` with required owner review |
 | Where MongoDB is touched | Only the `LEG-*` tests, through one helper using raw `BsonDocument`s, because legacy production data cannot be created through the API |
 | Where they run | Against Docker Compose, locally and in the pipeline. No deployed environment |
-| What this story covers | All v1 behaviour that can be observed from outside the API: the 82 scenarios in this spec, delivered in slices |
+| What this story covers | All v1 behaviour that can be observed from outside the API: the 83 scenarios in this spec, delivered in slices |
 | 401 and 403 | In scope, using limited-scope test clients added to `compose.yml` |
 | Behaviour that looks like a bug | Pinned as marked characterisation tests, so that a later fix is a deliberate, owner-approved change |
 
@@ -260,7 +261,7 @@ Slice 1 comes first. Slices 2 to 6 can then be taken by different engineers, bec
 
 | Risk | Level | Mitigation |
 |---|---|---|
-| A test depends on timing and fails now and then | Medium | Assert the order of timestamps, not their values. The two concurrency scenarios assert an outcome that holds whether or not a conflict occurs |
+| A test depends on timing and fails now and then | Low | The API truncates timestamps to the millisecond, so a test that expects `updated` to advance waits 100 ms before the second request, as `Api.IntegrationTests` does with 50 ms. Assert the order of timestamps, not their values. The two concurrency scenarios assert an outcome that holds whether or not a conflict occurs |
 | Tests interfere through the shared database | Low | Rule 4, checked by running the suite twice without resetting the stack |
 | A legacy document written by hand differs from what production holds | Medium | Build it from the stored shape in the `LEG-*` section, and check one against a real production document if one can be shared |
 | The helper couples the tests to the storage shape, so a v2 storage change breaks them | Low | That is intended: the stored shape is what production data looks like, and a break forces a deliberate decision |
@@ -290,7 +291,9 @@ DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test --test-modules tests/Api
 ```
 
 - The Compose stack runs the API in the `Development` environment. Its clients are in `src/Api/appsettings.Development.json`: `Developer` (API key) and `IntegrationTest` (OAuth), both with read and write scope. The limited-scope clients for the 401 and 403 scenarios are the ones this story adds to `compose.yml`.
-- The API accepts a Bearer token signed with any key and reads the client from its `client_id` claim. The project needs its own small helper to build one. `tests/Testing/Jwt.cs` shows how, but must not be referenced.
+- The API accepts a Bearer token signed with any key and reads the client from its `client_id` claim. The project needs its own small helper to build one. `tests/Testing/Jwt.cs` shows how, but must not be referenced. That file only makes a valid token that expires in 30 minutes; the helper must also build an expired token and tokens with an unknown or missing `client_id`, for X-AUTH-01.
+- Tests cannot use `FakeTimeProvider`, because the API runs in Docker with the system clock. Where a scenario compares timestamps before and after a change (ORG-PUT-04 and 05, REG-PUT-02 and 03, LEG-03 to 05), call one shared `Wait()` helper of 100 ms between the two requests.
+- Use fixed request payloads, not generated data, so that snapshots are stable. Scrub ids and timestamps in the Verify settings as well as `traceId`; Verify scrubs GUIDs and dates by default, so check that the snapshots show placeholders.
 - In the project's Verify settings, call `UseStrictJson()` and `DontIgnoreEmptyCollections()`, and scrub `traceId`. Without the second, a snapshot drops `"registrations": []`.
 - For new snapshots, run with `DiffEngine_Disabled=true`, read each `.received.json` against this spec, then accept it as `.verified.json`.
 - The project needs `MongoDB.Driver` for the helper. Use the version `src/Api` uses, and note that the `nuget-data-access` group in `.github/dependabot.yml` already matches `MongoDB.Driver*`. The other packages are already used in this repository. Check `.github/dependabot.yml` against the rules in `AGENTS.md`.
