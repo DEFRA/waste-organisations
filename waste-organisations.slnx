@@ -10,6 +10,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Api.IntegrationTests/Api.IntegrationTests.csproj" />
     <Project Path="tests/Api.Tests/Api.Tests.csproj" />
+    <Project Path="tests/Api.V1.Tests/Api.V1.Tests.csproj" />
     <Project Path="tests/Testing/Testing.csproj" />
   </Folder>
 </Solution>
