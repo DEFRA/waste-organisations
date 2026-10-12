@@ -4,7 +4,7 @@
 |---|---|
 | Type | Task: a new test project and repository configuration. No change to what the API does |
 | Priority | P1 (High): it blocks REGEN-140 |
-| Risk | Low |
+| Risk | Low to medium (see Risks) |
 | Source | Jira story REGEN-145, and the 3-amigos summary and discussion notes added to it on 12 October 2026 |
 
 ## Problem
@@ -26,7 +26,7 @@ We need a set of v1 tests that is set in stone: either not changed, or changed o
 
 Add a separate, black-box test project for v1, make it difficult to change, and run it wherever the normal tests run.
 
-This story delivers the project, its protection, its pipeline steps, and the scenarios the integration tests already cover. Further scenarios are follow-up work (see "Follow-up work").
+This story delivers the project, its protection, its pipeline steps, and tests for all of the API's current behaviour that can be observed from outside. The scenarios in the existing integration tests are the starting point; the full list is under "Scenarios".
 
 ### The project
 
@@ -42,19 +42,8 @@ This story delivers the project, its protection, its pipeline steps, and the sce
 2. **Requests are raw JSON.** Response bodies are checked with Verify snapshots; status codes and headers with explicit assertions.
 3. **HTTP only.** The tests do not connect to MongoDB. They set up data through the API.
 4. **Each test owns its data.** A test creates organisations with new ids and asserts only on those. It never relies on an empty database or on another test.
-
-### Scenarios in this story
-
-These are the scenarios in `tests/Api.IntegrationTests/Scenarios`, copied and rewritten to follow the rules above.
-
-| ID | Scenario | Expected today | Copied from |
-|---|---|---|---|
-| V1-01 | Create an organisation, PUT it again with a second registration (`LARGE_PRODUCER`), then get it | 201, then 200; get returns both registrations in the order they were added | `OrganisationTests.OrganisationCreatedAndUpdated` |
-| V1-02 | Create several organisations with different registrations; search with no filter, then with `registrations=LARGE_PRODUCER` | 200 both times. Unfiltered: every organisation the test created is returned. Filtered: of those, exactly the ones with a `LARGE_PRODUCER` registration | `OrganisationTests.OrganisationSearch` |
-| V1-03 | Create an organisation, add registration `LARGE_PRODUCER-2026` as `REGISTERED`, change it to `CANCELLED`, then get it | 201, 201, 200. First registration: `created` equals `updated`. Second: `created` is later than the first, and `updated` is later than its own `created` | `RegistrationTests.RegistrationCreatedAndUpdated` |
-| V1-04 | Create an organisation, add two registrations, delete the original one, then get it | The delete returns 204; get returns only the two added registrations | `RegistrationTests.RegistrationDeleted` |
-
-The fifth integration scenario, `BackwardsCompatibleWithProductionData`, is not copied. It edits MongoDB directly, which rule 3 rules out. It stays in the integration tests.
+5. **Characterisation is marked.** A test that pins behaviour which looks unintended carries the comment `// Characterisation: documents current behaviour, not a requirement`.
+6. **Scenario ids.** Each test carries `[Trait("Scenario", "<ID>")]` using the ids under "Scenarios".
 
 ### Making the tests difficult to change
 
@@ -78,14 +67,157 @@ dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll
 |---|---|
 | `waste-organisations.slnx` | Add the project |
 | `Dockerfile` | Add the project's two `COPY` lines next to the other test projects. Without them the image build cannot restore the solution |
+| `compose.yml` | Add test clients with limited scopes as `Acl__Clients__…` environment variables on the `api` service: one read-only and one write-only, for API key and for OAuth. Today the stack only has clients with both scopes, so 403 cannot be tested |
 | `AGENTS.md` | Add the build and test commands, and a rule: never edit or delete a v1 test or snapshot to make a build pass; stop and ask |
 | `README.md` | Add the project to the Tests section |
+
+## Scenarios
+
+**Expected today** is marked *(observed)* where the result was seen by calling the API in-process on 8 October 2026 at commit `826750c`. Every expected result is confirmed against the Compose stack when its test is written. If the API behaves differently, correct this spec; do not bend the test.
+
+The ids follow the scenario list already attached to the story. Rows marked **Added** are not in that list.
+
+The existing integration scenarios are covered by ORG-PUT-01 and 03, ORG-SEARCH-02 and 03, REG-PUT-01 and 02, and REG-DEL-01. `BackwardsCompatibleWithProductionData` is not copied, because it edits MongoDB directly.
+
+### `GET /organisations` (search)
+
+"Returned" always means "among the organisations this test created".
+
+| ID | Scenario | Expected today |
+|---|---|---|
+| ORG-SEARCH-02 | Several organisations, no filters | 200; all are returned, each with all its registrations |
+| ORG-SEARCH-03 | `registrations` = each of the five types in turn | Only organisations with a registration of that type |
+| ORG-SEARCH-04 | Several values in one parameter | An organisation matching any listed value is returned |
+| ORG-SEARCH-05 | `registrationYears`, including 2023 and 2050 | An organisation with a registration in any listed year is returned |
+| ORG-SEARCH-06 | `statuses` = `REGISTERED`, `CANCELLED`, both | An organisation with a registration in any listed status is returned |
+| ORG-SEARCH-07 | Filters are each satisfied, but by different registrations of one organisation | Not returned |
+| ORG-SEARCH-08 | Organisation matched through one registration | It is returned with all its registrations, not only the matching one |
+| ORG-SEARCH-09 | Filters that none of the test's organisations match | 200; none of them is returned |
+| ORG-SEARCH-10 | Organisation whose last registration was deleted | Never returned by search; still returned by get |
+| ORG-SEARCH-11 | Invalid `registrations` | 400, `Invalid registration type(s) - <invalid values>` |
+| ORG-SEARCH-12 | Invalid `registrationYears`: not a number, 2022, 2051 | 400, `Invalid registration year(s) - <invalid values>` |
+| ORG-SEARCH-13 | Invalid `statuses` | 400, `Invalid registration status(s) - <invalid values>` |
+| ORG-SEARCH-14 | Several parameters invalid | 400, one error per parameter *(observed)* |
+| ORG-SEARCH-15 | Input edge cases | *(observed)* Lower-case value: 400. Empty value or trailing comma: 400. Space after a comma, duplicate values, repeated parameter, unknown parameter: 200. Numeric value such as `registrations=1`: 200. Characterisation |
+| ORG-SEARCH-16 | Response shape and wire values | Snapshot of one organisation in the result |
+| ORG-SEARCH-17 | No credentials, write-only client, read-only client | 401, 403, 200 |
+
+### `GET /organisations/{id}`
+
+| ID | Scenario | Expected today |
+|---|---|---|
+| ORG-GET-01 | Existing organisation | 200, full payload (snapshot) |
+| ORG-GET-02 | Unknown id; empty GUID | 404, empty body |
+| ORG-GET-03 | Id is not a GUID | 404, empty body, even without credentials *(observed)* |
+| ORG-GET-05 | Optional fields were never set | Returned as explicit `null`, not left out *(observed)* |
+| ORG-GET-06 | No credentials, write-only client, read-only client | 401, 403, 200 *(observed)* |
+| ORG-GET-08 | **Added.** Id is an upper-case GUID, or has no hyphens | 200, the same organisation *(observed)* |
+
+### `PUT /organisations/{id}`
+
+| ID | Scenario | Expected today |
+|---|---|---|
+| ORG-PUT-01 | New id, valid body | 201, `Location: /organisations/{id}`, one registration, `created` = `updated` |
+| ORG-PUT-02 | Existing id, changed fields | 200; fields replaced; optional fields left out become `null` *(observed)* |
+| ORG-PUT-03 | Existing id, registration with a new type or year | 200; registration added, the others kept |
+| ORG-PUT-04 | Same request twice | 201 then 200; registration timestamps unchanged |
+| ORG-PUT-05 | Same registration, new status | 200; `updated` advances, `created` kept |
+| ORG-PUT-06 | Year 2023, 2050 | 201 |
+| ORG-PUT-07 | Year 2022, 2051 | 400; the year must be between 2023 and 2050 |
+| ORG-PUT-08 | Invalid `businessCountry`, type or status | 400 |
+| ORG-PUT-09 | Each `businessCountry` (`GB-ENG`, `GB-NIR`, `GB-SCT`, `GB-WLS`) and `null` | Accepted and returned unchanged |
+| ORG-PUT-10 | Each required field missing in turn: `name`, `address`, `registration`, and `status`, `type`, `registrationYear` inside it | 400 naming the field *(observed)* |
+| ORG-PUT-11 | Body edge cases | *(observed)* Malformed JSON: 400. Empty body: 400. Content type not JSON: 415, empty body. Unknown properties, and property names in another case: accepted. A `registrations` array in place of `registration`: 400. Characterisation |
+| ORG-PUT-12 | Id is not a GUID | 404 *(observed)* |
+| ORG-PUT-14 | Several updates to one organisation sent at the same time | Each returns 200 or 500; every registration whose request returned 200 is stored, and no other |
+| ORG-PUT-15 | No credentials, read-only client, write-only client | 401, 403, 201 *(observed)* |
+| ORG-PUT-17 | Unicode and special characters in text fields | Stored and returned unchanged |
+| ORG-PUT-18 | **Added.** `"address": null` | 500 *(observed)*. Characterisation, likely bug |
+| ORG-PUT-19 | **Added.** `"name": null` or `""` | 201, stored as sent *(observed)*. Characterisation, likely bug |
+| ORG-PUT-20 | **Added.** Enum sent as a number; year sent as a string | `"type": 1` is stored as `LARGE_PRODUCER`; `"registrationYear": "2025"` is accepted *(observed)*. Characterisation, likely bug |
+
+### `PUT /organisations/{id}/registrations/{type}-{registrationYear}`
+
+Body: `{ "status": "REGISTERED" }` or `{ "status": "CANCELLED" }`.
+
+| ID | Scenario | Expected today |
+|---|---|---|
+| REG-PUT-01 | Organisation exists, registration does not | 201, `Location: /organisations/{id}/registrations/{type}-{registrationYear}`, `created` = `updated` |
+| REG-PUT-02 | Registration exists, status changed | 200; `updated` advances, `created` kept |
+| REG-PUT-03 | Registration exists, same status | 200; timestamps unchanged *(observed)* |
+| REG-PUT-04 | Unknown organisation | 404, empty body |
+| REG-PUT-05 | Each of the five types; years 2023 and 2050 | 201 *(observed)* |
+| REG-PUT-06 | Invalid type; year 2022, 2051 | 400 |
+| REG-PUT-07 | Input edge cases | *(observed)* Year not a number: 404. Lower-case type: 400. Body `{}`, invalid status, lower-case status, empty body: 400. `type` or `registrationYear` in the body: ignored. Characterisation |
+| REG-PUT-08 | Other registrations and the organisation's own fields | Untouched |
+| REG-PUT-09 | Id is not a GUID | 404 *(observed)* |
+| REG-PUT-10 | No credentials, read-only client, write-only client | 401, 403, 201 *(observed)* |
+| REG-PUT-11 | Several registrations added to one organisation at the same time | Each returns 201 or 500; exactly the registrations whose request returned 201 are stored |
+| REG-PUT-13 | **Added.** Type or status sent as a number | `…/registrations/1-2025` creates `LARGE_PRODUCER-2025`; `"status": 1` is stored as `CANCELLED` *(observed)*. Characterisation, likely bug |
+
+### `DELETE /organisations/{id}/registrations/{type}-{registrationYear}`
+
+| ID | Scenario | Expected today |
+|---|---|---|
+| REG-DEL-01 | Organisation and registration exist | 204, empty body; only that registration is removed |
+| REG-DEL-02 | Unknown organisation | 404 |
+| REG-DEL-03 | Registration not found | 404 |
+| REG-DEL-04 | Delete twice | 204 then 404 |
+| REG-DEL-05 | Delete the last registration | 204; get returns the organisation with `registrations: []`; search never returns it |
+| REG-DEL-06 | Invalid type; year 2022, 2051 | 400 |
+| REG-DEL-07 | Year not a number; id not a GUID | 404 *(observed)* |
+| REG-DEL-08 | Re-create the deleted registration | 201, with a new `created` |
+| REG-DEL-10 | No credentials, read-only client, write-only client | 401, 403, 204 *(observed)* |
+| REG-DEL-12 | **Added.** Each of the five types | 204 |
+
+### Cross-cutting
+
+| ID | Scenario | Expected today |
+|---|---|---|
+| X-AUTH-01 | All five endpoints, API key and OAuth: no credentials, wrong secret, unknown client, wrong scope, right scope | *(observed)* No credentials, wrong secret, unknown client: 401. Wrong scope: 403. Right scope: success. Bearer token with an unknown or missing `client_id`: 403. Bearer value that is not a token, or an expired token: 401 |
+| X-AUTH-02 | **Added.** No credentials and an invalid body | 401, not 400 *(observed)* |
+| X-AUTH-03 | **Added.** Basic value that is not valid base64 | 500 *(observed)*. Characterisation, likely bug |
+| X-BODY-01 | **Added.** Error body format | 401, 403 and 404 have an empty body; 400 returns `application/problem+json` with `type`, `title`, `status` and `traceId` *(observed)* |
+| X-ROUTE-01 | **Added.** Unsupported method on an existing path: `POST /organisations`, `DELETE /organisations/{id}`, `GET` on a registration | 405 with an `Allow` header *(observed)* |
+| X-ROUTE-02 | **Added.** `GET /organisations/{id}/registrations` | 404; no endpoint lists registrations *(observed)* |
+| X-CONTRACT-01 | `GET /openapi/v1.json` | 200 without credentials; the document matches a snapshot |
+| X-HDR-01 | HSTS header | `Strict-Transport-Security: max-age=31536000; includeSubDomains` on responses |
+| X-OPS-01 | `GET /health` | 200, body `Healthy`, no credentials needed |
+| X-OPS-02 | `GET /redoc/index.html` | 200, HTML, no credentials needed *(observed)* |
+| X-OPS-03 | **Added.** `GET /health/all`, `GET /health/authorized` | `/health/all`: 200, JSON, no credentials needed. `/health/authorized`: 401 without credentials, 200 for any valid client *(observed)* |
+| X-DATA-01 | Lifecycle: create an organisation, add all five types, search by each filter, change a status, delete a registration, search again | Results are consistent at every step |
+
+### Not possible in this project
+
+These cannot be tested from outside the API, so they stay where they are or stay untested.
+
+| Scenario | Why | Covered elsewhere today |
+|---|---|---|
+| 500 when the data layer fails, on each endpoint | A caller cannot make the data layer fail | Only `GET /organisations/{id}`, by a unit test |
+| Search with an empty database | Tests do not control the whole database | Unit test |
+| Registrations stored without timestamps (older production data) | Needs a direct change in MongoDB | Integration test |
+| Stored `version` and `updated` of an organisation | Not exposed by the API | Integration test of the service |
+| MongoDB index created at start-up | Needs direct access to MongoDB | Not covered |
+| Trace-header propagation | The API makes no outgoing HTTP calls, so nothing is observable | Not covered |
+
+## Work breakdown
+
+Slice 1 comes first. Slices 2 to 5 can then be taken by different engineers, because each adds its own test classes.
+
+| Slice | Work | Scenarios |
+|---|---|---|
+| 1 | Project skeleton with one test, the supporting changes, the pipeline steps and `CODEOWNERS` | X-OPS-01 |
+| 2 | Get and organisation PUT | ORG-GET-*, ORG-PUT-* |
+| 3 | Registration PUT and DELETE | REG-PUT-*, REG-DEL-* |
+| 4 | Search | ORG-SEARCH-* |
+| 5 | Cross-cutting | X-* |
 
 ## Acceptance criteria
 
 - [ ] `tests/Api.V1.Tests` is in the solution and builds in the Docker image build. It has no project reference to `src/Api` or `tests/Testing` and does not connect to MongoDB.
-- [ ] Scenarios V1-01 to V1-04 pass against the Compose stack, and pass a second time without the stack being reset in between.
-- [ ] The v1 tests run locally with nothing more than `docker compose up --build -d` and the two commands in Notes.
+- [ ] Every scenario in the tables above has a passing test carrying its `Scenario` trait, or is listed in a pull request as not testable, with the reason.
+- [ ] Every characterisation test carries the standard comment, and each one marked "likely bug" is listed in its pull request description.
+- [ ] The whole suite runs locally with nothing more than `docker compose up --build -d` and the two commands in Notes, and passes twice in a row without the stack being reset in between.
 - [ ] The v1 tests run after the integration tests in `check-pull-request.yml`, `publish.yml` and `publish-hotfix.yml`, and a failing v1 test fails the pipeline.
 - [ ] `.github/CODEOWNERS` covers `/tests/Api.V1.Tests/` and itself, "Require review from Code Owners" is on for `main`, and a trial pull request that touches a v1 test cannot merge without an owner's approval.
 - [ ] No file under `src/` is changed, and nothing in `tests/Api.Tests`, `tests/Api.IntegrationTests` or `tests/Testing` is changed.
@@ -99,7 +231,9 @@ dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll
 | How tied to the code | Fully black-box: no production types, no direct database access |
 | How to make them difficult to change | `CODEOWNERS` with required owner review |
 | Where they run | Against Docker Compose, locally and in the pipeline. No deployed environment |
-| When this story is done | The project, protection, pipeline steps and the copied scenarios. Further scenarios are follow-up work |
+| What this story covers | All v1 behaviour that can be observed from outside the API: the 74 scenarios in this spec, delivered in slices |
+| 401 and 403 | In scope, using limited-scope test clients added to `compose.yml` |
+| Behaviour that looks like a bug | Pinned as marked characterisation tests, so that a later fix is a deliberate, owner-approved change |
 
 ## Dependencies
 
@@ -110,26 +244,20 @@ dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll
 
 | Risk | Level | Mitigation |
 |---|---|---|
-| A test depends on timing and fails now and then | Low | V1-03 asserts the order of timestamps, not their values, and waits briefly between writes, as the integration test does |
+| A test depends on timing and fails now and then | Medium | Assert the order of timestamps, not their values. The two concurrency scenarios assert an outcome that holds whether or not a conflict occurs |
 | Tests interfere through the shared database | Low | Rule 4, checked by running the suite twice without resetting the stack |
 | The branch setting is not turned on, so the protection only notifies | Medium | It is an acceptance criterion with a trial pull request |
-
-## Follow-up work
-
-Not part of this story. Each is a separate work item that adds test classes to the project. Expected results for most of these have already been observed and can be turned into a spec.
-
-1. **Remaining behaviour of the five endpoints:** validation errors (400), not found (404), every listed parameter value, boundary years, idempotent updates, deleting the last registration.
-2. **Authentication and authorisation:** 401 and 403 on every endpoint. This needs limited-scope test clients added to `compose.yml`, because the stack only has clients with both scopes.
-3. **Input edge cases:** malformed JSON, wrong content type, empty and lower-case values, ids that are not GUIDs.
-4. **Health, documentation and routing:** `/health` endpoints, `/redoc`, a snapshot of the OpenAPI document, and 405 for unsupported methods.
-5. **Likely bugs:** behaviour that looks unintended, such as `"address": null` returning 500. Whether to pin these as characterisation tests or raise tickets is undecided.
+| A pinned bug is mistaken for a requirement | Medium | The standard comment on each characterisation test, and the list in each pull request |
+| An expected result in this spec is wrong | Low | Each is confirmed against the Compose stack when its test is written; correct the spec, do not bend the test |
+| The pipeline gets slower | Low | The stack is already running for the integration tests; only the test run is added |
+| SonarQube reports the duplicated test code | Low | Check the first pull request's analysis; exclude the project from duplication checks if needed |
 
 ## Out of scope
 
 - Any production code change.
 - Changing or removing existing tests.
 - Running the v1 tests against a CDP environment.
-- 500 responses caused by a data-layer failure. A black-box test cannot produce them.
+- The six items under "Not possible in this project", including 500 responses caused by a data-layer failure.
 - Tests for v2.
 - Creating or updating Jira tickets and Confluence pages.
 
@@ -143,9 +271,8 @@ DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet build tests/Api.V1.Tests/Api.
 DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll --no-build -v:minimal
 ```
 
-- The Compose stack runs the API in the `Development` environment. Its clients are in `src/Api/appsettings.Development.json`: `Developer` (API key) and `IntegrationTest` (OAuth), both with read and write scope. The copied scenarios use the OAuth client, as the integration tests do.
+- The Compose stack runs the API in the `Development` environment. Its clients are in `src/Api/appsettings.Development.json`: `Developer` (API key) and `IntegrationTest` (OAuth), both with read and write scope. The limited-scope clients for the 401 and 403 scenarios are the ones this story adds to `compose.yml`.
 - The API accepts a Bearer token signed with any key and reads the client from its `client_id` claim. The project needs its own small helper to build one. `tests/Testing/Jwt.cs` shows how, but must not be referenced.
-- Give each test a `[Trait("Scenario", "<ID>")]` with its id from the table.
 - In the project's Verify settings, call `UseStrictJson()` and `DontIgnoreEmptyCollections()`, and scrub `traceId`. Without the second, a snapshot drops `"registrations": []`.
 - For new snapshots, run with `DiffEngine_Disabled=true`, read each `.received.json` against this spec, then accept it as `.verified.json`.
 - The packages the project needs are already used in this repository, so `.github/dependabot.yml` should not need a change. Check it against the rules in `AGENTS.md`.
