@@ -223,6 +223,168 @@ public class LegacyDataTests : V1TestBase
         }
     }
 
+    // A stored value outside the API's enums fails the mapping to the response, so the document
+    // cannot be read at all, and every search whose filters match it fails with it.
+    // Characterisation: documents current behaviour, not a requirement
+    [Theory]
+    [Trait("Scenario", "LEG-08")]
+    [InlineData("type", "NOT_A_TYPE")]
+    [InlineData("status", "SUSPENDED")]
+    [InlineData("businessCountry", "GB-XXX")]
+    public async Task Read_WhenStoredValueUnacceptable_GetAndMatchingSearchReturnInternalServerError(
+        string field,
+        string value
+    )
+    {
+        var id = Guid.NewGuid();
+        await using var legacyData = new LegacyData();
+        await legacyData.Insert(UnacceptableOrganisation(id, field, value));
+        using var client = CreateClient(TestClient.Developer);
+
+        using var get = await client.GetAsync($"/organisations/{id}", TestContext.Current.CancellationToken);
+        using var matchingSearch = await client.GetAsync(
+            "/organisations?registrations=SMALL_PRODUCER&registrationYears=2024",
+            TestContext.Current.CancellationToken
+        );
+        using var otherSearch = await client.GetAsync(
+            "/organisations?registrationYears=2025",
+            TestContext.Current.CancellationToken
+        );
+
+        get.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        matchingSearch.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        otherSearch.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = JsonNode.Parse(await otherSearch.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!;
+        body["organisations"]!.AsArray().Select(o => o!["id"]!.GetValue<Guid>()).Should().NotContain(id);
+    }
+
+    // The registration endpoint maps only the registration it changes, so it still works on
+    // such a document and leaves the unacceptable value where it is.
+    // Characterisation: documents current behaviour, not a requirement
+    [Theory]
+    [Trait("Scenario", "LEG-08")]
+    [InlineData("type", "NOT_A_TYPE")]
+    [InlineData("status", "SUSPENDED")]
+    [InlineData("businessCountry", "GB-XXX")]
+    public async Task PutRegistration_OnAnotherRegistrationWhenStoredValueUnacceptable_ReturnsOkAndKeepsValue(
+        string field,
+        string value
+    )
+    {
+        var id = Guid.NewGuid();
+        await using var legacyData = new LegacyData();
+        await legacyData.Insert(UnacceptableOrganisation(id, field, value));
+
+        var (response, registration) = await PutRegistration(id, "SMALL_PRODUCER-2024", "CANCELLED");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        registration["status"]!.GetValue<string>().Should().Be("CANCELLED");
+        ShouldStillHold((await LegacyData.Find(id))!, field, value);
+    }
+
+    // The organisation is written before the response is mapped from the merged document, which
+    // still holds the unacceptable registration: the client gets 500 although the write happened.
+    // Characterisation: documents current behaviour, not a requirement
+    [Theory]
+    [Trait("Scenario", "LEG-08")]
+    [InlineData("type", "NOT_A_TYPE")]
+    [InlineData("status", "SUSPENDED")]
+    public async Task PutOrganisation_WhenStoredRegistrationValueUnacceptable_ReturnsInternalServerErrorButStoresRequest(
+        string field,
+        string value
+    )
+    {
+        var id = Guid.NewGuid();
+        await using var legacyData = new LegacyData();
+        await legacyData.Insert(UnacceptableOrganisation(id, field, value));
+        using var client = CreateClient(TestClient.Developer);
+
+        using var response = await client.PutAsync(
+            $"/organisations/{id}",
+            Json(OrganisationPayloads.Full(type: "SMALL_PRODUCER", registrationYear: 2024, status: "CANCELLED")),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        var stored = (await LegacyData.Find(id))!;
+        stored["name"].AsString.Should().Be("V1 Test Organisation Ltd");
+        stored["registrations"]
+            .AsBsonArray.Should()
+            .ContainSingle(r => r["type"] == "SMALL_PRODUCER" && r["registrationYear"] == 2024)
+            .Which["status"]
+            .AsString.Should()
+            .Be("CANCELLED");
+        ShouldStillHold(stored, field, value);
+    }
+
+    // The organisation PUT replaces `businessCountry`, so it overwrites the unacceptable value.
+    // Characterisation: documents current behaviour, not a requirement
+    [Fact]
+    [Trait("Scenario", "LEG-08")]
+    public async Task PutOrganisation_WhenStoredBusinessCountryUnacceptable_ReturnsOkAndReplacesIt()
+    {
+        var id = Guid.NewGuid();
+        await using var legacyData = new LegacyData();
+        await legacyData.Insert(UnacceptableOrganisation(id, "businessCountry", "GB-XXX"));
+        using var client = CreateClient(TestClient.Developer);
+
+        using var response = await client.PutAsync(
+            $"/organisations/{id}",
+            Json(OrganisationPayloads.Full(type: "SMALL_PRODUCER", registrationYear: 2024, businessCountry: "GB-WLS")),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await GetOrganisation(id))["businessCountry"]!.GetValue<string>().Should().Be("GB-WLS");
+    }
+
+    // A valid status sent to the registration holding the unknown one replaces it, after which
+    // the document can be read again.
+    // Characterisation: documents current behaviour, not a requirement
+    [Fact]
+    [Trait("Scenario", "LEG-08")]
+    public async Task PutRegistration_WhenStoredStatusUnacceptable_ReplacesItAndGetReturnsOk()
+    {
+        var id = Guid.NewGuid();
+        await using var legacyData = new LegacyData();
+        await legacyData.Insert(UnacceptableOrganisation(id, "status", "SUSPENDED"));
+
+        var (response, registration) = await PutRegistration(id, "EXPORTER-2024", "REGISTERED");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        registration["status"]!.GetValue<string>().Should().Be("REGISTERED");
+        var organisation = await GetOrganisation(id);
+        Registration(organisation, "EXPORTER-2024")["status"]!.GetValue<string>().Should().Be("REGISTERED");
+    }
+
+    /// <summary>
+    /// An organisation with two 2024 registrations, SMALL_PRODUCER and EXPORTER, both REGISTERED,
+    /// then <paramref name="field"/> set to <paramref name="value"/>: on the organisation for
+    /// <c>businessCountry</c>, otherwise on the EXPORTER registration.
+    /// </summary>
+    private static BsonDocument UnacceptableOrganisation(Guid id, string field, string value)
+    {
+        var document = LegacyData.Organisation(
+            id,
+            OrganisationCreated,
+            LegacyData.RegistrationWithoutTimestamps("SMALL_PRODUCER", 2024, "REGISTERED"),
+            LegacyData.RegistrationWithoutTimestamps("EXPORTER", 2024, "REGISTERED")
+        );
+        if (field == "businessCountry")
+            document[field] = value;
+        else
+            document["registrations"].AsBsonArray[1].AsBsonDocument[field] = value;
+        return document;
+    }
+
+    private static void ShouldStillHold(BsonDocument stored, string field, string value)
+    {
+        if (field == "businessCountry")
+            stored[field].AsString.Should().Be(value);
+        else
+            stored["registrations"].AsBsonArray.Should().Contain(r => r[field] == value, $"{field} {value} is kept");
+    }
+
     private static void ShouldBeExplicitNull(JsonObject parent, string field)
     {
         parent.ContainsKey(field).Should().BeTrue($"{field} must be present");

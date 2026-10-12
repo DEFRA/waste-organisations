@@ -184,7 +184,7 @@ Production holds registrations stored without `created` and `updated`. The API c
 | LEG-05 | Registration `PUT` with a changed status | 200; `created` equals the organisation's `created`, `updated` is the time of the request |
 | LEG-06 | Document with optional fields missing altogether: `tradingName`, `businessCountry`, `companiesHouseNumber`, address parts | Get returns each as explicit `null` |
 | LEG-07 | Document with `registrations` missing, or empty | 200 with `registrations: []`; never returned by search |
-| LEG-08 | Document with a value the API would not accept: an unknown registration type or status, or an unknown `businessCountry` | Not yet observed. Observe each case against the stack, then pin it. Characterisation |
+| LEG-08 | Document with a value the API would not accept: an unknown registration type or status, or an unknown `businessCountry` | *(observed)* Get: 500. Search: 500 whenever the document matches the filters, so one such document fails every search that would return it; a search it does not match: 200. Registration `PUT` on another registration of the document: 200, the unknown value kept. Organisation `PUT`: with an unknown type or status stored, 500, yet the request is stored and the unknown registration kept; with an unknown `businessCountry` stored, 200 and the value replaced. Registration `PUT` with a valid status on the unknown-status registration: 200, and get then returns 200. Characterisation, likely bug |
 
 ### Cross-cutting
 
