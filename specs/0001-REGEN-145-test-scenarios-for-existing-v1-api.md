@@ -24,9 +24,9 @@ We need a set of v1 tests that is set in stone: either not changed, or changed o
 
 ## Proposed solution
 
-Add a separate, black-box test project for v1, make it difficult to change, and run it wherever the normal tests run.
+Add a separate, black-box test project for v1, make it difficult to change, and run it locally and on every pull request, in `check-pull-request.yml`.
 
-This story delivers the project, its protection, its pipeline steps, and tests for all of the API's current behaviour that can be observed from outside. The scenarios in the existing integration tests are the starting point; the full list is under "Scenarios".
+This story delivers the project, its protection, its pipeline step, and tests for all of the API's current behaviour that can be observed from outside. The scenarios in the existing integration tests are the starting point; the full list is under "Scenarios".
 
 ### The project
 
@@ -221,7 +221,7 @@ Slice 1 comes first. Slices 2 to 6 can then be taken by different engineers, bec
 
 | Slice | Work | Scenarios |
 |---|---|---|
-| 1 | Project skeleton with one test, the supporting changes, the pipeline steps and `CODEOWNERS` | X-OPS-01 |
+| 1 | Project skeleton with one test, the supporting changes, the pipeline step and `CODEOWNERS` | X-OPS-01 |
 | 2 | Get and organisation PUT | ORG-GET-*, ORG-PUT-* |
 | 3 | Registration PUT and DELETE | REG-PUT-*, REG-DEL-* |
 | 4 | Search | ORG-SEARCH-* |
@@ -247,7 +247,7 @@ Slice 1 comes first. Slices 2 to 6 can then be taken by different engineers, bec
 | How tied to the code | Fully black-box: no production types, no direct database access |
 | How to make them difficult to change | `CODEOWNERS` with required owner review |
 | Where MongoDB is touched | Only the `LEG-*` tests, through one helper using raw `BsonDocument`s, because legacy production data cannot be created through the API |
-| Where they run | Against Docker Compose, locally and in the pipeline. No deployed environment |
+| Where they run | Against Docker Compose, locally and in the pull request check (`check-pull-request.yml`) only, not in the publish workflows. No deployed environment |
 | What this story covers | All v1 behaviour that can be observed from outside the API: the 83 scenarios in this spec, delivered in slices |
 | 401 and 403 | In scope, using limited-scope test clients added to `compose.yml` |
 | Behaviour that looks like a bug | Pinned as marked characterisation tests, so that a later fix is a deliberate, owner-approved change |
