@@ -1,3 +1,7 @@
+using System.Net;
+using System.Text;
+using AwesomeAssertions;
+
 namespace Defra.WasteOrganisations.Api.V1.Tests;
 
 /// <summary>
@@ -33,4 +37,27 @@ public abstract class V1TestBase
 
     /// <summary>Pause between two requests whose timestamps are compared.</summary>
     protected static Task Wait() => Task.Delay(WaitDuration, TestContext.Current.CancellationToken);
+
+    /// <summary>Wraps a raw JSON body as <c>application/json</c>.</summary>
+    protected static StringContent Json(string body) => new(body, Encoding.UTF8, "application/json");
+
+    /// <summary>
+    /// Creates an organisation with a new id through the API, as a full-scope client, so each
+    /// test owns its data and never relies on what another test left behind.
+    /// </summary>
+    protected static async Task<Guid> CreateOrganisation(string body)
+    {
+        var id = Guid.NewGuid();
+        using var client = CreateClient(TestClient.Developer);
+
+        using var response = await client.PutAsync(
+            $"/organisations/{id}",
+            Json(body),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        return id;
+    }
 }
