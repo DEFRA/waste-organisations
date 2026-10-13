@@ -1,5 +1,6 @@
-# Base dotnet image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:2d584d8147faddb0d678c5748d47953e5b8e18621ed4fb7049a91381d9d7746f AS base
+# Base dotnet image v10.0
+#  - using image digest only for immutability and security (see SonarCloud rule docker:S8431)
+FROM mcr.microsoft.com/dotnet/aspnet@sha256:2d584d8147faddb0d678c5748d47953e5b8e18621ed4fb7049a91381d9d7746f AS base
 WORKDIR /app
 
 # Add curl to template.
@@ -10,7 +11,8 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 
 # Build stage image
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:2fa828c68761b1b8c23d7662dc134421b9d3b59fe1425fdbc80804e390cdb24d AS build
+#  - using image digest only for immutability and security (see SonarCloud rule docker:S8431)
+FROM mcr.microsoft.com/dotnet/sdk@sha256:2fa828c68761b1b8c23d7662dc134421b9d3b59fe1425fdbc80804e390cdb24d AS build
 WORKDIR /src
 
 COPY .config/dotnet-tools.json .config/dotnet-tools.json
