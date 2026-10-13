@@ -29,10 +29,13 @@ When adding or moving a NuGet package reference, check whether `.github/dependab
 - ASP.NET runtime packages usually belong in `nuget-aspnetcore-runtime`, unless they are specifically test or documentation packages.
 - Swagger/OpenAPI documentation packages usually belong in `nuget-api-documentation`.
 - MongoDB, compression, and persistence-adjacent packages usually belong in `nuget-data-access`.
+- PostgreSQL packages also belong in `nuget-data-access`: `Npgsql*` (which covers `Npgsql.EntityFrameworkCore.PostgreSQL`), `Microsoft.EntityFrameworkCore*`, and `AspNetCore.HealthChecks.NpgSql`.
 - Logging, metrics, tracing, and telemetry packages usually belong in `nuget-observability`.
 - Code analysis and formatting tools usually belong in `nuget-code-analysis`.
 
 GitHub Actions updates can stay grouped together weekly unless the user asks for finer separation.
+
+Dependabot does not see the Liquibase image: it is the `FROM` line of the `dockerfile_inline` in the `liquibase` service in `compose.yml`, not an `image:` entry. Bump its tag and digest by hand, resolving the digest (for example with `docker buildx imagetools inspect liquibase/liquibase:<tag>`) rather than writing it from memory. Do not add a `liquibase` entry to the `docker-compose` ignore list: it would match nothing.
 
 Before finishing a Dependabot change:
 
@@ -83,6 +86,16 @@ docker compose down -v --remove-orphans
 ```
 
 In the sandbox environment, Api.IntegrationTests need escalation because the test application accesses Docker Compose services.
+
+## Postgres And Liquibase
+
+The Docker Compose stack includes Postgres and Liquibase as well as Mongo and the API. `liquibase` is a one-shot service: it applies the changelog in `changelog/` to Postgres and exits, and `api` waits for it to complete successfully. An exited `liquibase` container after `docker compose up --build -d` is therefore expected, not a failure.
+
+Api.IntegrationTests connect from the host to the Compose Postgres on `127.0.0.1:5432`, so host port 5432 must be free before the stack starts. Do not change the host port in `compose.yml` or in the tests to get round a local Postgres that holds it: stop and ask.
+
+The Postgres schema is managed by the Liquibase changelog, not by EF Core migrations. See the "Postgres schema changes" section of `README.md` for how to add a changelog file.
+
+`dotnet csharpier check .` at the repository root also checks `changelog/*.xml`. CI does not: the check runs inside the Docker build, and the `Dockerfile` does not copy `changelog/`. Run the check locally after editing a changelog file.
 
 ## V1 API Tests
 
