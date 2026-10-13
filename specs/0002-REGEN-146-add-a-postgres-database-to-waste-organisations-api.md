@@ -6,7 +6,7 @@
 | Priority | P1 (High): it blocks the v2 data stories under REGEN-125, but nothing is broken today |
 | Parent | REGEN-125 Access to org data via Org API |
 | Risk | Medium (see Risks) |
-| Source | Jira story REGEN-146 (reporter darren.walker, assignee Tom Harrison), the 3-amigos outcomes comment added to it on 13 October 2026, and the refinement answers of 13 October 2026 |
+| Source | Jira story REGEN-146 (reporter darren.walker, assignee Tom Harrison), the 3-amigos outcomes comment added to it on 13 October 2026, the refinement answers of 13 October 2026, and the follow-ups of 13 October 2026 that a flag sets, per environment, whether a failing Postgres check reports `Degraded` or `Unhealthy` |
 
 ## Problem/Opportunity
 
@@ -46,7 +46,7 @@ There is no CDP .NET template with Postgres: `DEFRA/cdp-dotnet-backend-template`
 
 ## Proposed Solution
 
-Add Postgres beside MongoDB, following the Mongo pattern in the code and the CDP standard above: an options class and settings, a shared Npgsql data source with IAM authentication in CDP, an empty EF Core context on top of it, a Postgres health check on the readiness endpoints, a Liquibase changelog with a baseline tag, Postgres and Liquibase in Docker Compose, the changelog published from the publish workflows, and the database enabled for the service in CDP dev and test.
+Add Postgres beside MongoDB, following the Mongo pattern in the code and the CDP standard above: an options class and settings, a shared Npgsql data source with IAM authentication in CDP, an empty EF Core context on top of it, a Postgres health check on the readiness endpoints whose failure status a configuration flag sets per environment, a Liquibase changelog with a baseline tag, Postgres and Liquibase in Docker Compose, the changelog published from the publish workflows, and the database enabled for the service in CDP dev and test.
 
 ### Configuration
 
@@ -60,6 +60,9 @@ A `Postgres` section beside `Mongo`, bound to `PostgresOptions` with data annota
 | `Postgres:User` | `set-automatically-when-deployed` | `postgres` | |
 | `Postgres:Password` | not set | `postgres` | |
 | `Postgres:UseIamAuthentication` | `true` | `false` | |
+| `Postgres:HealthCheckFailureStatus` | `Degraded` | `Unhealthy` | |
+
+`HealthCheckFailureStatus` is the feature flag for the health check (Health check): the status the check reports when it cannot reach Postgres. It is a `HealthStatus` from `Microsoft.Extensions.Diagnostics.HealthChecks`, and only `Degraded` and `Unhealthy` are valid; `Healthy` is rejected by the validator because it would hide a failure. It is `Degraded` in `appsettings.json` and the `PostgresOptions` default, so in CDP a failure is visible but does not take the service out of service. It is `Unhealthy` locally and in the integration tests, so a broken local setup fails loudly. Per environment it is changed through cdp-app-config with `Postgres__HealthCheckFailureStatus`.
 
 `Host`, `DatabaseName` and `User` are required. `Password` is required only when `UseIamAuthentication` is `false`; validate that with `IValidateOptions<PostgresOptions>`, since a data annotation cannot express it. In CDP the real values come through cdp-app-config as `Postgres__*` environment variables and secrets, exactly as `Mongo__DatabaseUri` does today.
 
@@ -87,16 +90,27 @@ A new `AddPostgres(IConfiguration, bool integrationTest)` in `src/Api/Data/`, ca
 
 ### Health check
 
-Register `AddNpgSql(...)` named `postgres`, taking the data source from the service provider, tagged `ready`. Result:
+Register `AddNpgSql(...)` named `postgres`, taking the data source from the service provider, tagged `ready`, with `failureStatus` set from `Postgres:HealthCheckFailureStatus` and a `timeout` of 3 seconds. The check is always registered (outside `integrationTest`); the flag only decides what a failure means. It is read once at start-up from `PostgresOptions`, like the other Postgres settings, and no feature-management library is added. Changing it in an environment takes a redeployment, which is how cdp-app-config changes reach the service anyway.
 
-| Endpoint | Change |
-|---|---|
-| `/health` and `/health/authorized` | Include the Postgres check. CDP's readiness probe therefore returns 503 while Postgres is unreachable, and the instance is taken out of service until it is |
-| `/health/all` | Gains a `postgres` entry with `Healthy` or `Unhealthy`, the exception message when unhealthy, and the overall status reflects it |
+ASP.NET Core maps `Healthy` and `Degraded` to HTTP 200 and `Unhealthy` to 503, and the overall status of an endpoint is the worst of its checks. Result:
 
-The registration is skipped when `integrationTest` is true, with the data source.
+| Endpoint | Postgres reachable | Postgres failing, flag `Degraded` | Postgres failing, flag `Unhealthy` |
+|---|---|---|---|
+| `/health` and `/health/authorized` | 200 `Healthy` | 200 `Degraded`: CDP's readiness probe passes and the instance stays in service | 503 `Unhealthy`: the instance is taken out of service until Postgres is reachable |
+| `/health/all` | 200, `postgres: Healthy` | 200, overall `Degraded`, `postgres: Degraded` with the exception message | 503, overall `Unhealthy`, `postgres: Unhealthy` with the exception message |
 
-Consequence: the code must not be deployed to a CDP environment before Postgres is provisioned there, or the service goes unhealthy (Risks, Work breakdown).
+The failure is observable in both modes:
+
+- `/health/all` carries the exception message, which tells the causes apart: for example a DNS or connection error when the database is not provisioned or not reachable, and `28P01: password authentication failed` (or the IAM equivalent) when the credentials are wrong.
+- The health check service logs every non-healthy result: `Degraded` as a warning and `Unhealthy` as an error, under `Microsoft.Extensions.Diagnostics.HealthChecks.DefaultHealthCheckService`. CDP probes `/health` continuously, so a failing Postgres produces a steady stream of warnings in the service's logs in OpenSearch, which a dashboard or alert can watch.
+
+The 3-second `timeout` matters for `Degraded` mode: a connection that hangs (for example a security group dropping packets) would otherwise wait for the Npgsql connect timeout (15 seconds by default), likely longer than CDP's probe waits (to confirm with the platform), and the probe would fail the instance regardless of the flag. On timeout the check reports the configured failure status.
+
+Nothing connects at start-up, so an unprovisioned database or wrong credentials cause no error outside the health check until code uses Postgres, and no code does in this story.
+
+The registration is skipped when `integrationTest` is true, with the data source, whatever the flag says.
+
+Consequence: the code can be deployed to a CDP environment before Postgres is provisioned there, or with credentials that turn out to be wrong, and the service stays in service while `/health/all` and the logs show what is wrong. Once `postgres` reports `Healthy` in an environment, the flag can be switched to `Unhealthy` there so Postgres becomes a hard readiness dependency (CDP environments, Work breakdown).
 
 ### Schema: Liquibase changelog
 
@@ -131,13 +145,16 @@ Later stories add `db.changelog-1.N.xml` files and include them from the master.
 1. Enable Postgres for `waste-organisations` in dev and test through the platform. This is the open question Ogonna is looking into: a portal setting, a platform tenant-configuration change, or a request to the platform team in `cdp-support`.
 2. Record the names of the environment variables the platform supplies (host, port, database, user) and map them to `Postgres__Host`, `Postgres__Port`, `Postgres__DatabaseName` and `Postgres__User` in cdp-app-config for both environments. `Postgres__UseIamAuthentication` stays `true` from `appsettings.json`.
 3. Confirm how CDP applies the published changelog (on deployment, or triggered from the portal) and apply it to dev and test.
-4. Deploy, and check `/health` and `/health/all` in both environments.
+4. Deploy with the flag at its default, `Degraded`, and check `/health/all` in both environments. If `postgres` is `Degraded`, fix the cause the exception message names (mapping, credentials, IAM grant, TLS) and redeploy; the service stays in service meanwhile.
+5. Once `postgres` is `Healthy`, set `Postgres__HealthCheckFailureStatus` to `Unhealthy` in cdp-app-config for the environment, redeploy, and check `/health` returns 200 `Healthy`.
+
+The service can be deployed to an environment with the rest of this story's code before steps 1 to 3 are done there; `/health/all` then shows `postgres: Degraded`.
 
 ### Tests
 
 | Project | Test |
 |---|---|
-| `Api.Tests` | `PostgresOptions` validation: missing `Host` fails; IAM off without `Password` fails; IAM on without `Password` passes. The existing `/health` test keeps passing because nothing Postgres-related is registered in-process |
+| `Api.Tests` | `PostgresOptions` validation: missing `Host` fails; IAM off without `Password` fails; IAM on without `Password` passes; `HealthCheckFailureStatus` defaults to `Degraded` when not set; `Healthy` is rejected. The existing `/health` test keeps passing because nothing Postgres-related is registered in-process |
 | `Api.IntegrationTests` | `GET /health/all` against the Compose stack returns 200 with `results.postgres.status` = `Healthy` (Verify snapshot, as the other scenarios use). A second test opens a connection to `127.0.0.1:5432` and checks that `databasechangelog` holds the `v1.0.0` tag, which proves the Liquibase step in Compose ran |
 | `tests/Testing/Endpoints.cs` | Add `Health.All()` returning `health/all` |
 
@@ -152,19 +169,23 @@ Later stories add `db.changelog-1.N.xml` files and include them from the master.
 
 ### Work breakdown
 
-Slices 1 to 3 can be built and verified locally and in CI without CDP. Slice 4 depends on the platform answer and must be done before the code is deployed to dev or test.
+Slices 1 to 3 can be built and verified locally and in CI without CDP, and deployed to dev and test with the flag at `Degraded`. Slice 4 depends on the platform answer and ends with the flag at `Unhealthy`.
 
 | Slice | Work | Verified by |
 |---|---|---|
-| 1 | `PostgresOptions`, `AddPostgres`, the data source, `PostgresDbContext`, the health check, the three settings files, package references, Dependabot groups, unit tests | `Api.Tests` passes; `/health/all` with the Development profile and a local Postgres shows `postgres: Healthy` |
+| 1 | `PostgresOptions` with `HealthCheckFailureStatus`, `AddPostgres`, the data source, `PostgresDbContext`, the health check with its configurable failure status and timeout, the three settings files, package references, Dependabot groups, unit tests | `Api.Tests` passes; `/health/all` with the Development profile and a local Postgres shows `postgres: Healthy`; with a wrong `Postgres__Password` and `Postgres__HealthCheckFailureStatus=Degraded`, `/health` returns 200 `Degraded`, `/health/all` shows the authentication error and a warning is logged; with `Unhealthy`, `/health` returns 503 |
 | 2 | `changelog/`, the `postgres` and `liquibase` Compose services, `api` dependencies and environment, `Health.All()`, the two integration tests, README and AGENTS updates | `docker compose up --build -d` then `Api.IntegrationTests` passes |
 | 3 | `publish-db-migrations` step in both publish workflows | A merge to `main` publishes a migrations artefact alongside the image |
-| 4 | Postgres enabled for dev and test on CDP, cdp-app-config mapping, changelog applied, deployment checked | `/health` returns 200 and `/health/all` shows `postgres: Healthy` in dev and test |
+| 4 | Postgres enabled for dev and test on CDP, cdp-app-config mapping, changelog applied, deployment checked at `Degraded`, then `Postgres__HealthCheckFailureStatus=Unhealthy` set | `/health` returns 200 `Healthy` and `/health/all` shows `postgres: Healthy` in dev and test, with the flag at `Unhealthy` |
 
 ## Acceptance Criteria
 
 - [ ] Postgres is available to the API in CDP dev and test: `/health` returns 200, `/health/all` reports `postgres` as `Healthy`, and the `v1.0.0` tag is present in `databasechangelog` in both environments.
-- [ ] The Postgres health check is part of `/health` and `/health/authorized`, so an unreachable Postgres makes readiness return 503. The API itself still starts.
+- [ ] The Postgres health check is part of `/health`, `/health/authorized` and `/health/all`, and the API starts whether or not Postgres is reachable.
+- [ ] With `Postgres:HealthCheckFailureStatus` at `Degraded` (or not set), a failing Postgres check, including wrong credentials, makes `/health` return 200 `Degraded`, so the instance stays in service, while `/health/all` reports `postgres: Degraded` with the exception message and a warning is logged.
+- [ ] With `Postgres:HealthCheckFailureStatus` at `Unhealthy`, a failing Postgres check makes `/health` return 503 and logs an error.
+- [ ] A Postgres check that does not answer within 3 seconds reports the configured failure status rather than holding the probe open.
+- [ ] The flag is `Degraded` in `appsettings.json`, `Unhealthy` in the Development and IntegrationTests settings, overridable per environment through `Postgres__HealthCheckFailureStatus`, and `Healthy` is rejected at start-up.
 - [ ] `docker compose up --build -d` starts Postgres, applies the changelog and starts the API with Postgres healthy, with no manual step. `docker compose down -v --remove-orphans` removes the data.
 - [ ] `Postgres` configuration follows the `Mongo` pattern: a bound and validated options class, values in the three settings files, overridable through `Postgres__*` environment variables.
 - [ ] `PostgresDbContext` is registered on the shared data source and has no entities. `Npgsql.EntityFrameworkCore.PostgreSQL`, `AWSSDK.RDS` and `AspNetCore.HealthChecks.NpgSql` are the only packages added.
@@ -195,13 +216,15 @@ Slices 1 to 3 can be built and verified locally and in CI without CDP. Slice 4 d
 | Schema management | Liquibase, because that is what CDP's build action publishes and the platform applies. EF Core migrations would not reach the environment database |
 | Initial schema | A tag-only changeset. No tables until a story needs them |
 | Authentication | IAM in CDP, password locally, switched by `Postgres:UseIamAuthentication`. The same split both DEFRA .NET services use |
-| Health check tag | `ready`, so Postgres is part of readiness from the start. The service is therefore deployed to an environment only after Postgres exists there |
+| Health check tag | `ready`, so once the check is on, Postgres is part of readiness |
+| Health check flag | `Postgres:HealthCheckFailureStatus` sets what a failing check reports: `Degraded` by default and in CDP until Postgres is confirmed healthy there, `Unhealthy` locally, in tests, and in dev and test once confirmed. Rather than an on/off switch, because a switched-off check would hide wrong credentials or a missing IAM grant until the moment it was switched on, and then cause an outage; `Degraded` keeps the failure visible in `/health/all` and the logs without failing readiness. `Healthy` is not allowed, as it would be the same as having no check. A plain options value rather than `Microsoft.FeatureManagement`: it is one setting read at start-up, and per-environment values already come from cdp-app-config |
+| Health check timeout | 3 seconds, so a hanging connection reports the failure status before CDP's probe gives up; otherwise `Degraded` would not protect against a network-level failure |
 | Start-up behaviour | The API starts whether or not Postgres is reachable. Readiness reports the state, so a Postgres outage does not crash-loop the container or stop MongoDB traffic once it recovers |
 | Database name | `waste-organisations`, as agreed. If CDP names the database itself, the platform's name wins and the settings files change |
 
 ## Dependencies
 
-- **Ogonna's finding** on how Postgres is provisioned for a CDP service in dev and test, and the environment variables the platform then provides. Slice 4 cannot start without it, and slices 1 to 3 must not be deployed to dev or test before it is done.
+- **Ogonna's finding** on how Postgres is provisioned for a CDP service in dev and test, and the environment variables the platform then provides. Slice 4 cannot start without it. Slices 1 to 3 can be deployed before it, with the health check flag at `Degraded`.
 - **cdp-app-config access** for `waste-organisations` in dev and test, to map those variables.
 - **Confirmation of the Aurora PostgreSQL major version** CDP runs, so the Compose image matches it.
 
@@ -209,7 +232,10 @@ Slices 1 to 3 can be built and verified locally and in CI without CDP. Slice 4 d
 
 | Risk | Level | Mitigation |
 |---|---|---|
-| The code reaches dev or test before Postgres is provisioned there, and readiness fails | Medium | Merge slices 1 to 3 but do not deploy until slice 4 is ready, or deploy with `Postgres__*` pointing at the provisioned database in the same change. State this in the pull request |
+| The code reaches dev or test before Postgres is provisioned there, or with wrong credentials, and readiness fails | Low | `Postgres:HealthCheckFailureStatus` is `Degraded` in `appsettings.json`, so readiness still passes; the failure shows in `/health/all` and as warnings in the logs |
+| A `Degraded` Postgres goes unnoticed, because nothing fails | Medium | Check `/health/all` after every deployment in slice 4. Switch the flag to `Unhealthy` once `postgres` is `Healthy`, which the acceptance criteria require for dev and test. Consider an OpenSearch alert on the health check warnings |
+| The flag is switched to `Unhealthy` while Postgres is still failing, and readiness fails | Low | Switch only after `/health/all` shows `postgres: Healthy` at `Degraded`. Setting it back to `Degraded` and redeploying restores readiness |
+| A failing Postgres check logs a warning on every probe, which is noisy in an environment where Postgres is not provisioned yet | Low | Accept it for dev and test until slice 4 is done; it is the signal that something is still missing |
 | CDP's Postgres offering differs from what the reference services assume (different variable names, no IAM, a fixed database name) | Medium | Slices 1 to 3 are unaffected; the options class takes whatever values cdp-app-config maps. Adjust the mapping, not the code |
 | TLS handshake to Aurora fails because the RDS certificate authority is not trusted by the container | Medium | The CDP trust store loaded by `AddCustomTrustStore()` is expected to include it, as it does for DocumentDB. If not, set `RootCertificate` on the data source builder to the RDS CA bundle, or `SslMode = VerifyFull` with it. Confirm in dev before test |
 | A hyphen in the database name `waste-organisations` needs quoting in SQL and some tools | Low | Nothing in this story writes SQL against it. Liquibase, Npgsql and the Postgres image accept it. If it causes friction, switch to `waste_organisations` before any data is stored |
