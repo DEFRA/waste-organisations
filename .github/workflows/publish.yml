@@ -54,6 +54,11 @@ jobs:
         uses: DEFRA/cdp-build-action/build@99f1b3c7c622347a66476a8c659189f832701bd8 # main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish database migrations
+        uses: DEFRA/cdp-build-action/publish-db-migrations@99f1b3c7c622347a66476a8c659189f832701bd8 # main
+        with:
+          path: ./changelog
+          github-token: ${{ secrets.GITHUB_TOKEN }}
   sonarcloud-scan:
     name: CDP SonarCloud Scan
     permissions:
