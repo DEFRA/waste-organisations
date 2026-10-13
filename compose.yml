@@ -25,14 +25,35 @@ services:
       retries: 10
     restart: unless-stopped
 
+  liquibase:
+    build:
+      # The image has no PostgreSQL JDBC driver, so it is added here. Dependabot does not
+      # see an image inside dockerfile_inline: bump the tag and digest by hand.
+      dockerfile_inline: |
+        FROM liquibase/liquibase:5.0.4@sha256:060f96efff4811ccf03957ff3160f21ea04139b89940640f8ad54a065cdc6906
+        RUN lpm add postgresql --global
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/waste-organisations
+      LIQUIBASE_COMMAND_USERNAME: postgres
+      LIQUIBASE_COMMAND_PASSWORD: postgres
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: db.changelog.xml
+    volumes:
+      - ./changelog:/liquibase/changelog
+    # Applies the changelog once and exits; the api waits for it to succeed.
+    command: update
+    restart: "no"
+
   api:
     build:
       dockerfile: Dockerfile
     depends_on:
       mongodb:
         condition: service_started
-      postgres:
-        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__DatabaseUri: mongodb://mongodb:27017/
