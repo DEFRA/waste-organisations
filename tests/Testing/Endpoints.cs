@@ -5,6 +5,8 @@ public static class Endpoints
     public static class Health
     {
         public static string Ready() => "health";
+
+        public static string All() => "health/all";
     }
 
     public static class OpenApi

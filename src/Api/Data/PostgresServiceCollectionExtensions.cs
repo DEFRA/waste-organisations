@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Amazon;
 using Amazon.RDS.Util;
+using Defra.WasteOrganisations.Api.Utils.Health;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Npgsql;
 
@@ -13,6 +15,10 @@ public static class PostgresServiceCollectionExtensions
     // An RDS auth token lives 15 minutes, so it is replaced well before it expires
     private static readonly TimeSpan s_iamTokenRefreshInterval = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan s_iamTokenFailureRetryInterval = TimeSpan.FromSeconds(30);
+
+    // Shorter than the Npgsql connect timeout (15 seconds), so a connection that hangs reports
+    // the configured failure status instead of holding the readiness probe open
+    private static readonly TimeSpan s_healthCheckTimeout = TimeSpan.FromSeconds(3);
 
     public static IServiceCollection AddPostgres(
         this IServiceCollection services,
@@ -38,6 +44,24 @@ public static class PostgresServiceCollectionExtensions
             (sp, options) =>
                 options.UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.EnableRetryOnFailure())
         );
+
+        // The failure status decides whether an unreachable Postgres takes the instance out of
+        // service (Unhealthy) or only shows in /health/all and the logs (Degraded). A check is
+        // registered before options can be resolved, so it is read from configuration here;
+        // ValidateOnStart above still rejects an invalid value
+        var healthCheckFailureStatus =
+            configuration.GetSection(PostgresOptions.SectionName).Get<PostgresOptions>()?.HealthCheckFailureStatus
+            ?? HealthStatus.Degraded;
+
+        services
+            .AddHealthChecks()
+            .AddNpgSql(
+                sp => sp.GetRequiredService<NpgsqlDataSource>(),
+                name: "postgres",
+                failureStatus: healthCheckFailureStatus,
+                tags: [WebApplicationExtensions.Ready],
+                timeout: s_healthCheckTimeout
+            );
 
         return services;
     }
