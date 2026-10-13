@@ -80,12 +80,15 @@ updates:
         update-types:
           - 'minor'
           - 'patch'
-      # MongoDB-related packages can be tested as one dependency family.
+      # MongoDB and PostgreSQL data access packages can be tested as one dependency family.
       nuget-data-access:
         applies-to: version-updates
         patterns:
           - 'AspNetCore.HealthChecks.MongoDb'
+          - 'AspNetCore.HealthChecks.NpgSql'
+          - 'Microsoft.EntityFrameworkCore*'
           - 'MongoDB.Driver*'
+          - 'Npgsql*'
           - 'Snappier'
         update-types:
           - 'minor'
@@ -125,6 +128,10 @@ updates:
     ignore:
       # Keep Mongo on its existing major version while allowing minor and patch updates.
       - dependency-name: 'mongo'
+        update-types:
+          - 'version-update:semver-major'
+      # Keep Postgres on the major version CDP runs while allowing minor and patch updates.
+      - dependency-name: 'postgres'
         update-types:
           - 'version-update:semver-major'
     schedule:
