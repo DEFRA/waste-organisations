@@ -18,12 +18,14 @@ An API for managing organisation data and their ongoing registrations in relatio
 docker compose up -d
 ```
 
+This starts Mongo and Postgres, runs Liquibase once to apply the changelog in `changelog/` to Postgres, and then starts the API.
+
 ### Running via .NET
 
-Mongo will be needed and can be started as follows:
+Mongo and Postgres will be needed, with the Liquibase changelog applied to Postgres. They can be started as follows:
 
 ```bash
-docker compose up mongodb -d
+docker compose up mongodb postgres liquibase -d
 ```
 
 Start the API as follows:
@@ -37,6 +39,28 @@ The same port (8080) is used for launch profile and Docker compose configuration
 ### Documentation
 
 API documentation can be viewed at http://localhost:8080/redoc/index.html once the service is running.
+
+### Postgres schema changes
+
+The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) changelog in `changelog/`, not by EF Core migrations. `changelog/db.changelog.xml` is the master file and includes the versioned files in order.
+
+To change the schema:
+
+- Add a new `changelog/db.changelog-1.N.xml` file (the next number after the latest one) containing the new changesets.
+- Include it at the end of `changelog/db.changelog.xml`, in the same way `db.changelog-1.0.xml` is included.
+- Never edit a changeset once it is published. Liquibase records a checksum for every changeset it has applied, so a change is always a new changeset.
+
+Apply the changelog to the local database again as follows:
+
+```bash
+docker compose up liquibase
+```
+
+To inspect what has been applied to the local database:
+
+```bash
+docker compose exec postgres psql -U postgres -d waste-organisations -c 'select tag from databasechangelog'
+```
 
 ### Stopping and clearing local resources
 
@@ -52,7 +76,7 @@ docker compose down -v --remove-orphans
 
 ## Tests
 
-Tests with the `IntegrationTests` trait require additional local dependencies - either the API running in Docker or Mongo.
+Tests with the `IntegrationTests` trait require additional local dependencies - either the API running in Docker, or the API running via .NET with Mongo, Postgres and Liquibase started in Docker.
 
 Running unit tests:
 
@@ -108,6 +132,7 @@ See [dependabot.yml](.github/dependabot.yml) for group configuration.
 - [Publish](.github/workflows/publish.yml)
   - Merge PR to main
   - Build Docker image and publish to CDP
+  - Publish the Liquibase changelog (`changelog/`) to CDP as a database migrations artefact, versioned with the image
   - Sonar
 
 ## CDP
