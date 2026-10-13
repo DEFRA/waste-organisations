@@ -83,3 +83,20 @@ docker compose down -v --remove-orphans
 ```
 
 In the sandbox environment, Api.IntegrationTests need escalation because the test application accesses Docker Compose services.
+
+## V1 API Tests
+
+`tests/Api.V1.Tests` is a black-box test project that pins the behaviour of the existing (v1) API. It runs against the Docker Compose stack, like the integration tests. See `specs/0001-REGEN-145-test-scenarios-for-existing-v1-api.md`.
+
+Never edit or delete a v1 test or snapshot (`*.verified.*`) to make a build pass. A failing v1 test means the API's behaviour changed: stop and ask.
+
+With the local environment running (`docker compose up --build -d`), run Api.V1.Tests with:
+
+```bash
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet build tests/Api.V1.Tests/Api.V1.Tests.csproj --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal
+DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll --no-build -v:minimal
+```
+
+Run Api.V1.Tests after Api.IntegrationTests, never in the same `dotnet test` call or at the same time: the integration tests delete every document in the `Organisation` collection before each test, which would remove data a v1 test has just created.
+
+In the sandbox environment, Api.V1.Tests need escalation because the tests call the API running in Docker Compose.

@@ -1,0 +1,7 @@
+# The Waste Manage Account team owns the repository.
+# The v1 tests pin the behaviour of the existing v1 API (REGEN-145).
+# A change to them, or to this file, needs the v1 approver's approval.
+# The last matching rule wins, so the v1 rules below replace the team rule.
+*                       @DEFRA/waste-manage-account
+/tests/Api.V1.Tests/    @FluentSynergyDW
+/.github/CODEOWNERS     @FluentSynergyDW

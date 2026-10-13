@@ -26,6 +26,7 @@ COPY src/Api/Api.csproj src/Api/Api.csproj
 COPY tests/Testing/Testing.csproj tests/Testing/Testing.csproj
 COPY tests/Api.Tests/Api.Tests.csproj tests/Api.Tests/Api.Tests.csproj
 COPY tests/Api.IntegrationTests/Api.IntegrationTests.csproj tests/Api.IntegrationTests/Api.IntegrationTests.csproj
+COPY tests/Api.V1.Tests/Api.V1.Tests.csproj tests/Api.V1.Tests/Api.V1.Tests.csproj
 COPY waste-organisations.slnx waste-organisations.slnx
 COPY Directory.Build.props Directory.Build.props
 
@@ -35,6 +36,7 @@ COPY src/Api src/Api
 COPY tests/Testing tests/Testing
 COPY tests/Api.Tests tests/Api.Tests
 COPY tests/Api.IntegrationTests tests/Api.IntegrationTests
+COPY tests/Api.V1.Tests tests/Api.V1.Tests
 
 RUN dotnet csharpier check .
 

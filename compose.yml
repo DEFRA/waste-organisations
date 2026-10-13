@@ -18,6 +18,18 @@ services:
       Mongo__DatabaseUri: mongodb://mongodb:27017/
       PORT: 8080
       AWS_EMF_ENVIRONMENT: Local
+      # Limited-scope clients for the v1 tests (tests/Api.V1.Tests), so 403 can be tested.
+      # The full-scope clients are in src/Api/appsettings.Development.json.
+      Acl__Clients__ReadOnlyApiKey__Type: ApiKey
+      Acl__Clients__ReadOnlyApiKey__Secret: read-only-pwd
+      Acl__Clients__ReadOnlyApiKey__Scopes__0: read
+      Acl__Clients__WriteOnlyApiKey__Type: ApiKey
+      Acl__Clients__WriteOnlyApiKey__Secret: write-only-pwd
+      Acl__Clients__WriteOnlyApiKey__Scopes__0: write
+      Acl__Clients__ReadOnlyOAuth__Type: OAuth
+      Acl__Clients__ReadOnlyOAuth__Scopes__0: read
+      Acl__Clients__WriteOnlyOAuth__Type: OAuth
+      Acl__Clients__WriteOnlyOAuth__Scopes__0: write
     ports:
       - 8080:8080
     healthcheck:

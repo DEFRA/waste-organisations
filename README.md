@@ -68,12 +68,22 @@ dotnet build tests/Api.IntegrationTests/Api.IntegrationTests.csproj
 dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build
 ```
 
+Running v1 API tests (with the API running in Docker):
+
+```bash
+dotnet build tests/Api.V1.Tests/Api.V1.Tests.csproj
+dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll --no-build
+```
+
+The v1 API tests are black-box tests that pin the current behaviour of the v1 API. Changes to them or their snapshots need approval from the code owners. Run them after the integration tests, not at the same time: the integration tests clear the organisation data the v1 tests create.
+
 Running all tests (with the integration-test dependencies available):
 
 ```bash
 dotnet build
 dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build
 dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build
+dotnet test --test-modules tests/Api.V1.Tests/bin/Debug/net10.0/Api.V1.Tests.dll --no-build
 ```
 
 ## Code quality

@@ -1,0 +1,24 @@
+﻿{
+  "id": "Guid_1",
+  "name": "V1 Renamed Organisation Ltd",
+  "tradingName": null,
+  "businessCountry": "GB-WLS",
+  "companiesHouseNumber": null,
+  "address": {
+    "addressLine1": "2 Changed Road",
+    "addressLine2": null,
+    "town": null,
+    "county": null,
+    "postcode": "CH2 2NG",
+    "country": null
+  },
+  "registrations": [
+    {
+      "created": "DateTimeOffset_1",
+      "updated": "DateTimeOffset_1",
+      "status": "REGISTERED",
+      "type": "SMALL_PRODUCER",
+      "registrationYear": 2025
+    }
+  ]
+}
