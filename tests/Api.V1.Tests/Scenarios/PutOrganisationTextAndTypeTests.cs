@@ -80,10 +80,12 @@ public class PutOrganisationTextAndTypeTests : V1TestBase
             }
             """;
 
-        var (response, _) = await PutOrganisation(id, payload);
+        var (response, putBody) = await PutOrganisation(id, payload);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var storedName = Property(await GetOrganisation(id), "name");
+        var stored = await GetOrganisation(id);
+        AssertPutBodyMatchesGet(putBody, stored);
+        var storedName = Property(stored, "name");
         if (name is null)
         {
             storedName.ValueKind.Should().Be(JsonValueKind.Null);
@@ -110,10 +112,12 @@ public class PutOrganisationTextAndTypeTests : V1TestBase
             }
             """;
 
-        var (response, _) = await PutOrganisation(id, payload);
+        var (response, putBody) = await PutOrganisation(id, payload);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var registration = Property(await GetOrganisation(id), "registrations")[0];
+        var stored = await GetOrganisation(id);
+        AssertPutBodyMatchesGet(putBody, stored);
+        var registration = Property(stored, "registrations")[0];
         registration.GetProperty("type").GetString().Should().Be("LARGE_PRODUCER");
     }
 
@@ -133,10 +137,12 @@ public class PutOrganisationTextAndTypeTests : V1TestBase
             }
             """;
 
-        var (response, _) = await PutOrganisation(id, payload);
+        var (response, putBody) = await PutOrganisation(id, payload);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var registration = Property(await GetOrganisation(id), "registrations")[0];
+        var stored = await GetOrganisation(id);
+        AssertPutBodyMatchesGet(putBody, stored);
+        var registration = Property(stored, "registrations")[0];
         registration.GetProperty("registrationYear").GetInt32().Should().Be(2025);
     }
 

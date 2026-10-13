@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json.Nodes;
 using AwesomeAssertions;
 
 namespace Defra.WasteOrganisations.Api.V1.Tests;
@@ -37,6 +38,18 @@ public abstract class V1TestBase
 
     /// <summary>Pause between two requests whose timestamps are compared.</summary>
     protected static Task Wait() => Task.Delay(WaitDuration, TestContext.Current.CancellationToken);
+
+    /// <summary>
+    /// Asserts that the body a PUT returned is the organisation a later GET returns, so a stale or
+    /// incomplete write response cannot pass while storage is correct.
+    /// </summary>
+    protected static void AssertPutBodyMatchesGet(string putBody, string getBody) =>
+        JsonNode
+            .DeepEquals(JsonNode.Parse(putBody), JsonNode.Parse(getBody))
+            .Should()
+            .BeTrue(
+                $"the PUT response must match the stored organisation.{Environment.NewLine}PUT: {putBody}{Environment.NewLine}GET: {getBody}"
+            );
 
     /// <summary>Wraps a raw JSON body as <c>application/json</c>.</summary>
     protected static StringContent Json(string body) => new(body, Encoding.UTF8, "application/json");

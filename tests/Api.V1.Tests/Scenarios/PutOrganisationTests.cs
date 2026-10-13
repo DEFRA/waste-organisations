@@ -44,10 +44,12 @@ public class PutOrganisationTests : V1TestBase
             }
             """;
 
-        var (response, _) = await PutOrganisation(id, changed);
+        var (response, putBody) = await PutOrganisation(id, changed);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        await VerifyJson(await GetOrganisation(id));
+        var stored = await GetOrganisation(id);
+        AssertPutBodyMatchesGet(putBody, stored);
+        await VerifyJson(stored);
     }
 
     [Theory]

@@ -108,10 +108,11 @@ public class PutOrganisationBodyEdgeCaseTests : V1TestBase
             }
             """;
 
-        var (response, _) = await PutOrganisation(id, Json(payload));
+        var (response, putBody) = await PutOrganisation(id, Json(payload));
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var stored = await GetOrganisation(id);
+        AssertPutBodyMatchesGet(putBody, stored);
         Property(stored, "name").GetString().Should().Be("V1 Cased Properties Ltd");
         Property(stored, "address", "postcode").GetString().Should().Be("TE1 1ST");
         AssertSingleRegistration(stored);

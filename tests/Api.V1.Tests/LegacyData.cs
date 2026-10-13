@@ -71,9 +71,10 @@ public sealed class LegacyData : IAsyncDisposable
     {
         var id = document["_id"].AsBsonBinaryData.ToGuid(GuidRepresentation.Standard);
 
-        await Collection.Value.InsertOneAsync(document, cancellationToken: TestContext.Current.CancellationToken);
-
+        // Track the id first: a timeout can leave the write stored, and clean-up must still remove it.
         _insertedIds.Add(id);
+
+        await Collection.Value.InsertOneAsync(document, cancellationToken: TestContext.Current.CancellationToken);
     }
 
     /// <summary>
