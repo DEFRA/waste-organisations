@@ -7,15 +7,36 @@ services:
       - mongodb-data:/data
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    environment:
+      # Matches the Postgres section in src/Api/appsettings.Development.json.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: waste-organisations
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d waste-organisations"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   api:
     build:
       dockerfile: Dockerfile
     depends_on:
       mongodb:
         condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__DatabaseUri: mongodb://mongodb:27017/
+      Postgres__Host: postgres
       PORT: 8080
       AWS_EMF_ENVIRONMENT: Local
       # Limited-scope clients for the v1 tests (tests/Api.V1.Tests), so 403 can be tested.
@@ -41,3 +62,4 @@ services:
 
 volumes:
   mongodb-data:
+  postgres-data:
