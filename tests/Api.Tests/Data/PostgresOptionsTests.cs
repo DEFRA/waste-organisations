@@ -117,9 +117,7 @@ public class PostgresOptionsTests(ApiWebApplicationFactory factory) : IClassFixt
         configure?.Invoke(settings);
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
-        using var provider = new ServiceCollection()
-            .AddPostgres(configuration, integrationTest: true)
-            .BuildServiceProvider();
+        using var provider = new ServiceCollection().AddPostgres(configuration).BuildServiceProvider();
 
         return provider.GetRequiredService<IOptions<PostgresOptions>>().Value;
     }

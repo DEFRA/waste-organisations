@@ -60,9 +60,9 @@ A `Postgres` section beside `Mongo`, bound to `PostgresOptions` with data annota
 | `Postgres:User` | `set-automatically-when-deployed` | `postgres` | `postgres` | |
 | `Postgres:Password` | not set | `postgres` | not set | |
 | `Postgres:UseIamAuthentication` | `true` | `false` | `true` | |
-| `Postgres:HealthCheckFailureStatus` | `Degraded` | `Unhealthy` | `Unhealthy` | |
+| `Postgres:HealthCheckFailureStatus` | `Degraded` | `Unhealthy` | `Degraded` | |
 
-The IntegrationTests settings carry no password: that environment is only used by `Api.Tests`, which runs the API in-process with the Postgres registration skipped, so the values are validated but never used to connect. `UseIamAuthentication` is `true` there so that validation passes without a credential, and no password is stored in a file Sonar analyses (rule S2068). The Docker integration tests supply their own password in code.
+The IntegrationTests settings carry no password and use `Degraded`: that environment is only used by `Api.Tests`, which runs the API in-process with no Postgres, so the health check fails there and must not fail readiness. `UseIamAuthentication` is `true` so that validation passes without a credential, and no password is stored in a file Sonar analyses (rule S2068). The Docker integration tests supply their own password in code. There is no test-specific branch in the registration: the in-process behaviour comes from this file alone.
 
 `HealthCheckFailureStatus` is the feature flag for the health check (Health check): the status the check reports when it cannot reach Postgres. It is a `HealthStatus` from `Microsoft.Extensions.Diagnostics.HealthChecks`, and only `Degraded` and `Unhealthy` are valid; `Healthy` is rejected by the validator because it would hide a failure. It is `Degraded` in `appsettings.json` and the `PostgresOptions` default, so in CDP a failure is visible but does not take the service out of service. It is `Unhealthy` locally and in the integration tests, so a broken local setup fails loudly. Per environment it is changed through cdp-app-config with `Postgres__HealthCheckFailureStatus`.
 
@@ -78,10 +78,10 @@ The IntegrationTests settings carry no password: that environment is only used b
 
 ### Data source and DbContext
 
-A new `AddPostgres(IConfiguration, bool integrationTest)` in `src/Api/Data/`, called from `Program.cs` next to `AddDbContext`:
+A new `AddPostgres(IConfiguration)` in `src/Api/Data/`, called from `Program.cs` next to `AddDbContext`:
 
 1. Bind and validate `PostgresOptions`.
-2. If `integrationTest` is true, return. `Api.Tests` runs the API in-process with no databases, and the Mongo registration already skips in the same way.
+2. Register everything unconditionally. The Mongo registration skips itself under `--integrationTest=true` because `MongoIndexService` connects at start-up; nothing here does, so the in-process `Api.Tests` need no such branch. Their settings file keeps the health check at `Degraded` instead.
 3. Build one `NpgsqlDataSource` with `NpgsqlDataSourceBuilder`: host, port, database and user from the options.
    - IAM on: `SslMode = Require`, and `UsePeriodicPasswordProvider` returning `RDSAuthTokenGenerator.GenerateAuthToken(region, host, port, user)` with the default AWS credential chain (the ECS task role, as the MongoDB `MONGODB-AWS` mechanism already uses). Region `eu-west-2`. Refresh every 10 minutes, retry after 30 seconds on failure; the token itself lives 15 minutes. These are the values `identity-service-helper` uses.
    - IAM off: the password from the options, no TLS requirement.
@@ -92,7 +92,7 @@ A new `AddPostgres(IConfiguration, bool integrationTest)` in `src/Api/Data/`, ca
 
 ### Health check
 
-Register `AddNpgSql(...)` named `postgres`, taking the data source from the service provider, tagged `ready`, with `failureStatus` set from `Postgres:HealthCheckFailureStatus` and a `timeout` of 3 seconds. The check is always registered (outside `integrationTest`); the flag only decides what a failure means. It is read once at start-up from `PostgresOptions`, like the other Postgres settings, and no feature-management library is added. Changing it in an environment takes a redeployment, which is how cdp-app-config changes reach the service anyway.
+Register `AddNpgSql(...)` named `postgres`, taking the data source from the service provider, tagged `ready`, with `failureStatus` set from `Postgres:HealthCheckFailureStatus` and a `timeout` of 3 seconds. The check is always registered; the flag only decides what a failure means. It is read once at start-up from `PostgresOptions`, like the other Postgres settings, and no feature-management library is added. Changing it in an environment takes a redeployment, which is how cdp-app-config changes reach the service anyway.
 
 ASP.NET Core maps `Healthy` and `Degraded` to HTTP 200 and `Unhealthy` to 503, and the overall status of an endpoint is the worst of its checks. Result:
 
@@ -110,7 +110,7 @@ The 3-second `timeout` matters for `Degraded` mode: a connection that hangs (for
 
 Nothing connects at start-up, so an unprovisioned database or wrong credentials cause no error outside the health check until code uses Postgres, and no code does in this story.
 
-The registration is skipped when `integrationTest` is true, with the data source, whatever the flag says.
+In the in-process `Api.Tests` nothing listens on `127.0.0.1:5432`, so the check reports `Degraded` there and `/health` stays 200.
 
 Consequence: the code can be deployed to a CDP environment before Postgres is provisioned there, or with credentials that turn out to be wrong, and the service stays in service while `/health/all` and the logs show what is wrong. Once `postgres` reports `Healthy` in an environment, the flag can be switched to `Unhealthy` there so Postgres becomes a hard readiness dependency (CDP environments, Work breakdown).
 
@@ -157,7 +157,7 @@ The service can be deployed to an environment with the rest of this story's code
 | Project | Test |
 |---|---|
 | `Api.Tests` | `PostgresOptions` validation: missing `Host` fails; IAM off without `Password` fails; IAM on without `Password` passes; `HealthCheckFailureStatus` defaults to `Degraded` when not set; `Healthy` is rejected. The existing `/health` test keeps passing because nothing Postgres-related is registered in-process |
-| `Api.IntegrationTests` | `GET /health/all` against the Compose stack returns 200 with `results.postgres.status` = `Healthy` (Verify snapshot, as the other scenarios use). A second test opens a connection to `127.0.0.1:5432` and checks that `databasechangelog` holds the `v1.0.0` tag, which proves the Liquibase step in Compose ran |
+| `Api.IntegrationTests` | `GET /health/all` against the Compose stack returns 200 with `results.postgres.status` = `Healthy` (Verify snapshot, as the other scenarios use). A second test resolves `PostgresDbContext` against `127.0.0.1:5432` and reads the tags in `databasechangelog` through it, expecting `v1.0.0`, which proves both the context and the Liquibase step in Compose |
 | `tests/Testing/Endpoints.cs` | Add `Health.All()` returning `health/all` |
 
 ### Supporting changes
@@ -187,7 +187,7 @@ Slices 1 to 3 can be built and verified locally and in CI without CDP, and deplo
 - [ ] With `Postgres:HealthCheckFailureStatus` at `Degraded` (or not set), a failing Postgres check, including wrong credentials, makes `/health` return 200 `Degraded`, so the instance stays in service, while `/health/all` reports `postgres: Degraded` with the exception message and a warning is logged.
 - [ ] With `Postgres:HealthCheckFailureStatus` at `Unhealthy`, a failing Postgres check makes `/health` return 503 and logs an error.
 - [ ] A Postgres check that does not answer within 3 seconds reports the configured failure status rather than holding the probe open.
-- [ ] The flag is `Degraded` in `appsettings.json`, `Unhealthy` in the Development and IntegrationTests settings, overridable per environment through `Postgres__HealthCheckFailureStatus`, and `Healthy` is rejected at start-up.
+- [ ] The flag is `Degraded` in `appsettings.json` and the IntegrationTests settings, `Unhealthy` in the Development settings, overridable per environment through `Postgres__HealthCheckFailureStatus`, and `Healthy` is rejected at start-up.
 - [ ] `docker compose up --build -d` starts Postgres, applies the changelog and starts the API with Postgres healthy, with no manual step. `docker compose down -v --remove-orphans` removes the data.
 - [ ] `Postgres` configuration follows the `Mongo` pattern: a bound and validated options class, values in the three settings files, overridable through `Postgres__*` environment variables.
 - [ ] `PostgresDbContext` is registered on the shared data source and has no entities. `Npgsql.EntityFrameworkCore.PostgreSQL`, `AWSSDK.RDS` and `AspNetCore.HealthChecks.NpgSql` are the only packages added.
@@ -250,7 +250,7 @@ Slices 1 to 3 can be built and verified locally and in CI without CDP, and deplo
 ## Notes
 
 - Branch name: `REGEN-146-add-a-postgres-database-to-waste-organisations-api`.
-- `Program.cs` reads `--integrationTest=true` into a flag and `TestWebApplicationFactory` sets it; `AddPostgres` must honour it exactly as `AddDbContext` does, or `Api.Tests` will try to reach a database.
+- `Program.cs` reads `--integrationTest=true` into a flag for the Mongo registration and logging. `AddPostgres` does not take it: the in-process `Api.Tests` register the real data source and health check, and rely on `appsettings.IntegrationTests.json` (`Degraded`) so that an absent Postgres does not fail `/health`.
 - `AspNetCore.HealthChecks.NpgSql` can take a `Func<IServiceProvider, NpgsqlDataSource>`; use that so the check shares the application's data source and its IAM password provider rather than opening its own connection string.
 - `RDSAuthTokenGenerator.GenerateAuthToken` is synchronous and signs locally; it does not call AWS. The credential chain resolves the ECS task role in CDP and the `test` keys from `compose/aws.env` locally, which is harmless because IAM is off locally.
 - With `UseNpgsql(dataSource)` EF Core reuses the data source and its password provider, so IAM tokens refresh without any EF Core configuration.

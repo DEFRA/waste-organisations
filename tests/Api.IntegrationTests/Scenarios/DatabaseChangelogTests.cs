@@ -61,6 +61,6 @@ public class DatabaseChangelogTests : IntegrationTestBase
             )
             .Build();
 
-        return new ServiceCollection().AddPostgres(configuration, integrationTest: false).BuildServiceProvider();
+        return new ServiceCollection().AddPostgres(configuration).BuildServiceProvider();
     }
 }

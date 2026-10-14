@@ -20,11 +20,7 @@ public static class PostgresServiceCollectionExtensions
     // the configured failure status instead of holding the readiness probe open
     private static readonly TimeSpan s_healthCheckTimeout = TimeSpan.FromSeconds(3);
 
-    public static IServiceCollection AddPostgres(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        bool integrationTest
-    )
+    public static IServiceCollection AddPostgres(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IValidateOptions<PostgresOptions>, PostgresOptionsValidator>();
         services
@@ -33,12 +29,10 @@ public static class PostgresServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        if (integrationTest)
-            return services;
-
         // One data source for the whole application, so every consumer shares its pool and,
         // in CDP, its IAM token. Building it opens no connection: the API starts whether or
-        // not Postgres is reachable
+        // not Postgres is reachable, and the in-process tests need no special case, only the
+        // Degraded failure status their settings file sets
         services.AddSingleton(sp => CreateDataSource(sp.GetRequiredService<IOptions<PostgresOptions>>().Value));
         services.AddDbContext<PostgresDbContext>(
             (sp, options) =>
