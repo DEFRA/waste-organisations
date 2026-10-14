@@ -75,8 +75,10 @@ public static class PostgresServiceCollectionExtensions
 
         if (options.UseIamAuthentication)
         {
-            // RDS only accepts an IAM token over TLS
-            builder.ConnectionStringBuilder.SslMode = SslMode.Require;
+            // RDS only accepts an IAM token over TLS. VerifyFull checks the certificate chain
+            // and the host name: Require would encrypt but accept any server, and the token is
+            // a credential worth protecting. The RDS CA comes from the trust store CDP injects
+            builder.ConnectionStringBuilder.SslMode = SslMode.VerifyFull;
 
             // The token is signed locally with the default AWS credential chain (the ECS task
             // role in CDP); generating it makes no call to AWS

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace Defra.WasteOrganisations.Api.Tests.Data;
 
@@ -58,6 +59,37 @@ public class PostgresOptionsTests(ApiWebApplicationFactory factory) : IClassFixt
     }
 
     [Fact]
+    public void WhenIamOn_DataSourceShouldVerifyServerCertificateAndHost()
+    {
+        // The IAM token is sent as the password, so the server must prove who it is:
+        // Require would encrypt the connection but accept any certificate
+        using var provider = BuildProvider(settings =>
+        {
+            settings.Remove(PasswordKey);
+            settings[UseIamAuthenticationKey] = "true";
+        });
+
+        var connectionString = new NpgsqlConnectionStringBuilder(
+            provider.GetRequiredService<NpgsqlDataSource>().ConnectionString
+        );
+
+        connectionString.SslMode.Should().Be(SslMode.VerifyFull);
+    }
+
+    [Fact]
+    public void WhenIamOff_DataSourceShouldNotRequireTls()
+    {
+        using var provider = BuildProvider();
+
+        var connectionString = new NpgsqlConnectionStringBuilder(
+            provider.GetRequiredService<NpgsqlDataSource>().ConnectionString
+        );
+
+        // The data source hides the password from its connection string, so only the mode is visible
+        connectionString.SslMode.Should().Be(SslMode.Prefer);
+    }
+
+    [Fact]
     public void WhenHealthCheckFailureStatusNotSet_ShouldDefaultToDegraded()
     {
         // The enum's zero value is Unhealthy, which would fail readiness in any
@@ -107,6 +139,13 @@ public class PostgresOptionsTests(ApiWebApplicationFactory factory) : IClassFixt
 
     private static PostgresOptions Resolve(Action<Dictionary<string, string?>>? configure = null)
     {
+        using var provider = BuildProvider(configure);
+
+        return provider.GetRequiredService<IOptions<PostgresOptions>>().Value;
+    }
+
+    private static ServiceProvider BuildProvider(Action<Dictionary<string, string?>>? configure = null)
+    {
         var settings = new Dictionary<string, string?>
         {
             [HostKey] = "127.0.0.1",
@@ -117,8 +156,7 @@ public class PostgresOptionsTests(ApiWebApplicationFactory factory) : IClassFixt
         configure?.Invoke(settings);
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
-        using var provider = new ServiceCollection().AddPostgres(configuration).BuildServiceProvider();
 
-        return provider.GetRequiredService<IOptions<PostgresOptions>>().Value;
+        return new ServiceCollection().AddPostgres(configuration).BuildServiceProvider();
     }
 }
