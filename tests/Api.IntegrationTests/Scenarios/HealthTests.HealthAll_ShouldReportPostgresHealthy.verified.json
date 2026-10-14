@@ -1,0 +1,8 @@
+﻿{
+  "status": "Healthy",
+  "results": {
+    "postgres": {
+      "status": "Healthy"
+    }
+  }
+}

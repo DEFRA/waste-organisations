@@ -47,6 +47,7 @@ try
     builder.Services.AddAuthenticationAuthorization();
     builder.Services.AddRequestMetrics();
     builder.Services.AddDbContext(builder.Configuration, integrationTest);
+    builder.Services.AddPostgres(builder.Configuration);
     builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
     builder.Services.AddTransient<OrganisationRegistrationService>();

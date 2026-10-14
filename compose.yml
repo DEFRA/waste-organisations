@@ -7,15 +7,57 @@ services:
       - mongodb-data:/data
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    environment:
+      # Matches the Postgres section in src/Api/appsettings.Development.json.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: waste_organisations
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d waste_organisations"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  liquibase:
+    build:
+      # The image has no PostgreSQL JDBC driver, so it is added here. Dependabot does not
+      # see an image inside dockerfile_inline: bump the tag and digest by hand.
+      dockerfile_inline: |
+        FROM liquibase/liquibase:5.0.4@sha256:060f96efff4811ccf03957ff3160f21ea04139b89940640f8ad54a065cdc6906
+        RUN lpm add postgresql --global
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/waste_organisations
+      LIQUIBASE_COMMAND_USERNAME: postgres
+      LIQUIBASE_COMMAND_PASSWORD: postgres
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: db.changelog.xml
+    volumes:
+      - ./changelog:/liquibase/changelog
+    # Applies the changelog once and exits; the api waits for it to succeed.
+    command: update
+    restart: "no"
+
   api:
     build:
       dockerfile: Dockerfile
     depends_on:
       mongodb:
         condition: service_started
+      liquibase:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__DatabaseUri: mongodb://mongodb:27017/
+      Postgres__DefaultHost: postgres
       PORT: 8080
       AWS_EMF_ENVIRONMENT: Local
       # Limited-scope clients for the v1 tests (tests/Api.V1.Tests), so 403 can be tested.
@@ -41,3 +83,4 @@ services:
 
 volumes:
   mongodb-data:
+  postgres-data:

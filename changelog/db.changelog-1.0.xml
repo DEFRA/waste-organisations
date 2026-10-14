@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <!-- The "empty schema": no tables yet. The tag proves the migration ran and is the baseline to roll back to. -->
+  <changeSet id="1" author="waste-organisations">
+    <tagDatabase tag="v1.0.0" />
+  </changeSet>
+</databaseChangeLog>
