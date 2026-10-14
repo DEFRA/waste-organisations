@@ -8,9 +8,9 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
 public class DatabaseChangelogTests : IntegrationTestBase
 {
-    // Nothing in the API uses PostgresDbContext yet and the registration is skipped in-process
-    // (Api.Tests), so this is the only test that resolves the context from AddPostgres. It
-    // connects from the host to the Compose Postgres, the way the API does under dotnet run
+    // Nothing in the API uses PostgresDbContext yet, so this is the only test that resolves the
+    // context from AddPostgres and queries through it. It connects from the host to the Compose
+    // Postgres, the way the API does under dotnet run
     [Fact]
     public async Task PostgresDbContext_ShouldConnectAndHaveNoEntities()
     {
@@ -34,14 +34,11 @@ public class DatabaseChangelogTests : IntegrationTestBase
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
 
-        var connection = context.Database.GetDbConnection();
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
-        await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT COUNT(*) FROM databasechangelog WHERE tag = 'v1.0.0'";
+        var tags = await context
+            .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
+            .ToListAsync(TestContext.Current.CancellationToken);
 
-        var count = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
-
-        count.Should().Be(1L);
+        tags.Should().Contain("v1.0.0");
     }
 
     private static ServiceProvider BuildServiceProvider()
