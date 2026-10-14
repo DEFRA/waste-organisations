@@ -52,15 +52,17 @@ Add Postgres beside MongoDB, following the Mongo pattern in the code and the CDP
 
 A `Postgres` section beside `Mongo`, bound to `PostgresOptions` with data annotations, the way `MongoDbOptions` is bound.
 
-| Key | `appsettings.json` (CDP) | `appsettings.Development.json` and `appsettings.IntegrationTests.json` | `compose.yml` (`api` service) |
-|---|---|---|---|
-| `Postgres:Host` | `set-automatically-when-deployed` | `127.0.0.1` | `postgres` |
-| `Postgres:Port` | `5432` | `5432` | |
-| `Postgres:DatabaseName` | `waste-organisations` | `waste-organisations` | |
-| `Postgres:User` | `set-automatically-when-deployed` | `postgres` | |
-| `Postgres:Password` | not set | `postgres` | |
-| `Postgres:UseIamAuthentication` | `true` | `false` | |
-| `Postgres:HealthCheckFailureStatus` | `Degraded` | `Unhealthy` | |
+| Key | `appsettings.json` (CDP) | `appsettings.Development.json` | `appsettings.IntegrationTests.json` | `compose.yml` (`api` service) |
+|---|---|---|---|---|
+| `Postgres:Host` | `set-automatically-when-deployed` | `127.0.0.1` | `127.0.0.1` | `postgres` |
+| `Postgres:Port` | `5432` | `5432` | `5432` | |
+| `Postgres:DatabaseName` | `waste-organisations` | `waste-organisations` | `waste-organisations` | |
+| `Postgres:User` | `set-automatically-when-deployed` | `postgres` | `postgres` | |
+| `Postgres:Password` | not set | `postgres` | not set | |
+| `Postgres:UseIamAuthentication` | `true` | `false` | `true` | |
+| `Postgres:HealthCheckFailureStatus` | `Degraded` | `Unhealthy` | `Unhealthy` | |
+
+The IntegrationTests settings carry no password: that environment is only used by `Api.Tests`, which runs the API in-process with the Postgres registration skipped, so the values are validated but never used to connect. `UseIamAuthentication` is `true` there so that validation passes without a credential, and no password is stored in a file Sonar analyses (rule S2068). The Docker integration tests supply their own password in code.
 
 `HealthCheckFailureStatus` is the feature flag for the health check (Health check): the status the check reports when it cannot reach Postgres. It is a `HealthStatus` from `Microsoft.Extensions.Diagnostics.HealthChecks`, and only `Degraded` and `Unhealthy` are valid; `Healthy` is rejected by the validator because it would hide a failure. It is `Degraded` in `appsettings.json` and the `PostgresOptions` default, so in CDP a failure is visible but does not take the service out of service. It is `Unhealthy` locally and in the integration tests, so a broken local setup fails loudly. Per environment it is changed through cdp-app-config with `Postgres__HealthCheckFailureStatus`.
 
