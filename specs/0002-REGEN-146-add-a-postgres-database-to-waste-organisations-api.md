@@ -54,9 +54,9 @@ A `Postgres` section beside `Mongo`, bound to `PostgresOptions` with data annota
 
 | Key | `appsettings.json` (CDP) | `appsettings.Development.json` | `appsettings.IntegrationTests.json` | `compose.yml` (`api` service) |
 |---|---|---|---|---|
-| `Postgres:Host` | `set-automatically-when-deployed` | `127.0.0.1` | `127.0.0.1` | `postgres` |
+| `Postgres:DefaultHost` | `set-automatically-when-deployed` | `127.0.0.1` | `127.0.0.1` | `postgres` |
 | `Postgres:Port` | `5432` | `5432` | `5432` | |
-| `Postgres:DatabaseName` | `waste-organisations` | `waste-organisations` | `waste-organisations` | |
+| `Postgres:DatabaseName` | `waste_organisations` | `waste_organisations` | `waste_organisations` | |
 | `Postgres:User` | `set-automatically-when-deployed` | `postgres` | `postgres` | |
 | `Postgres:Password` | not set | `postgres` | not set | |
 | `Postgres:UseIamAuthentication` | `true` | `false` | `true` | |
@@ -66,7 +66,7 @@ The IntegrationTests settings carry no password and use `Degraded`: that environ
 
 `HealthCheckFailureStatus` is the feature flag for the health check (Health check): the status the check reports when it cannot reach Postgres. It is a `HealthStatus` from `Microsoft.Extensions.Diagnostics.HealthChecks`, and only `Degraded` and `Unhealthy` are valid; `Healthy` is rejected by the validator because it would hide a failure. It is `Degraded` in `appsettings.json` and the `PostgresOptions` default, so in CDP a failure is visible but does not take the service out of service. It is `Unhealthy` locally and in the integration tests, so a broken local setup fails loudly. Per environment it is changed through cdp-app-config with `Postgres__HealthCheckFailureStatus`.
 
-`Host`, `DatabaseName` and `User` are required. `Password` is required only when `UseIamAuthentication` is `false`; validate that with `IValidateOptions<PostgresOptions>`, since a data annotation cannot express it. In CDP the real values come through cdp-app-config as `Postgres__*` environment variables and secrets, exactly as `Mongo__DatabaseUri` does today.
+The key names follow the cdp-app-config entries for the service (`DEFRA/cdp-app-config` pull request 4868), which set `Postgres__User`, `Postgres__DatabaseName`, `Postgres__DefaultHost` (the Aurora writer endpoint) and `Postgres__ReadOnlyHost` (the reader endpoint) for dev, test, ext-test, perf-test and prod. `ReadOnlyHost` is not bound by this story (Out of scope): the key sits in the configuration until a read-only data source is wired. `DefaultHost`, `DatabaseName` and `User` are required. `Password` is required only when `UseIamAuthentication` is `false`; validate that with `IValidateOptions<PostgresOptions>`, since a data annotation cannot express it. In CDP the real values come through cdp-app-config as `Postgres__*` environment variables and secrets, exactly as `Mongo__DatabaseUri` does today.
 
 ### Packages (`src/Api/Api.csproj`)
 
@@ -127,9 +127,9 @@ Later stories add `db.changelog-1.N.xml` files and include them from the master.
 
 | Service | Change |
 |---|---|
-| `postgres` | `postgres:16-alpine` pinned by digest, as `mongodb` is. `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` matching the Development settings. Port `5432:5432`. Volume `postgres-data:/var/lib/postgresql/data`. Health check `pg_isready -U postgres -d waste-organisations` |
+| `postgres` | `postgres:16-alpine` pinned by digest, as `mongodb` is. `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` matching the Development settings. Port `5432:5432`. Volume `postgres-data:/var/lib/postgresql/data`. Health check `pg_isready -U postgres -d waste_organisations` |
 | `liquibase` | `liquibase/liquibase` 5.x pinned by digest, with the PostgreSQL driver added (`lpm add postgresql --global` in a `dockerfile_inline`, as `cdp-sbom-explorer-backend` does). Mounts `./changelog` to `/liquibase/changelog`, is configured with `LIQUIBASE_COMMAND_URL`, `_USERNAME`, `_PASSWORD` and `_CHANGELOG_FILE=db.changelog.xml`, runs `update` once, `restart: no`, depends on `postgres` being healthy |
-| `api` | Adds `Postgres__Host: postgres`, and `depends_on` `liquibase` with `condition: service_completed_successfully`. The existing container health check on `/health/all` then also covers Postgres |
+| `api` | Adds `Postgres__DefaultHost: postgres`, and `depends_on` `liquibase` with `condition: service_completed_successfully`. The existing container health check on `/health/all` then also covers Postgres |
 | `volumes` | Adds `postgres-data` |
 
 `docker compose up --build -d` brings up both databases, applies the changelog and starts the API, with no extra step. `docker compose down -v --remove-orphans` removes the data, as today.
@@ -145,7 +145,7 @@ Later stories add `db.changelog-1.N.xml` files and include them from the master.
 ### CDP environments (dev and test)
 
 1. Enable Postgres for `waste-organisations` in dev and test through the platform. This is the open question Ogonna is looking into: a portal setting, a platform tenant-configuration change, or a request to the platform team in `cdp-support`.
-2. Record the names of the environment variables the platform supplies (host, port, database, user) and map them to `Postgres__Host`, `Postgres__Port`, `Postgres__DatabaseName` and `Postgres__User` in cdp-app-config for both environments. `Postgres__UseIamAuthentication` stays `true` from `appsettings.json`.
+2. Set `Postgres__DefaultHost`, `Postgres__DatabaseName` and `Postgres__User` in cdp-app-config for every environment. Done for dev, test, ext-test, perf-test and prod in `DEFRA/cdp-app-config` pull request 4868, which also records `Postgres__ReadOnlyHost`. `Postgres__Port` and `Postgres__UseIamAuthentication` stay at their `appsettings.json` defaults.
 3. Confirm how CDP applies the published changelog (on deployment, or triggered from the portal) and apply it to dev and test.
 4. Deploy with the flag at its default, `Degraded`, and check `/health/all` in both environments. If `postgres` is `Degraded`, fix the cause the exception message names (mapping, credentials, IAM grant, TLS) and redeploy; the service stays in service meanwhile.
 5. Once `postgres` is `Healthy`, set `Postgres__HealthCheckFailureStatus` to `Unhealthy` in cdp-app-config for the environment, redeploy, and check `/health` returns 200 `Healthy`.
@@ -203,7 +203,7 @@ Slices 1 to 3 can be built and verified locally and in CI without CDP, and deplo
 - Any table, entity, `DbSet` or repository for v2 data.
 - EF Core migrations, in any form.
 - Any change to MongoDB code, configuration, indexes or tests.
-- A read-only data source against the Aurora reader endpoint. `identity-service-helper` wires one; add it when a read-heavy feature needs it.
+- A read-only data source against the Aurora reader endpoint. cdp-app-config already carries `Postgres__ReadOnlyHost` for every environment and `identity-service-helper` shows the wiring; add it when a read-heavy feature needs it.
 - Postgres in production or any environment other than dev and test.
 - Adding a MongoDB health check. There is none today, although `AspNetCore.HealthChecks.MongoDb` is referenced; worth its own small ticket.
 - Working out how CDP provisions Postgres. That is Ogonna's action and a dependency of this story, not part of it.
@@ -222,7 +222,7 @@ Slices 1 to 3 can be built and verified locally and in CI without CDP, and deplo
 | Health check flag | `Postgres:HealthCheckFailureStatus` sets what a failing check reports: `Degraded` by default and in CDP until Postgres is confirmed healthy there, `Unhealthy` locally, in tests, and in dev and test once confirmed. Rather than an on/off switch, because a switched-off check would hide wrong credentials or a missing IAM grant until the moment it was switched on, and then cause an outage; `Degraded` keeps the failure visible in `/health/all` and the logs without failing readiness. `Healthy` is not allowed, as it would be the same as having no check. A plain options value rather than `Microsoft.FeatureManagement`: it is one setting read at start-up, and per-environment values already come from cdp-app-config |
 | Health check timeout | 3 seconds, so a hanging connection reports the failure status before CDP's probe gives up; otherwise `Degraded` would not protect against a network-level failure |
 | Start-up behaviour | The API starts whether or not Postgres is reachable. Readiness reports the state, so a Postgres outage does not crash-loop the container or stop MongoDB traffic once it recovers |
-| Database name | `waste-organisations`, as agreed. If CDP names the database itself, the platform's name wins and the settings files change |
+| Database name | `waste_organisations`: CDP names the database and the IAM user after the service with underscores (cdp-app-config pull request 4868). The 3-amigos wording `waste-organisations` is replaced everywhere, locally as well, so the local and deployed databases share one name and no identifier needs quoting |
 
 ## Dependencies
 
@@ -240,7 +240,6 @@ Slices 1 to 3 can be built and verified locally and in CI without CDP, and deplo
 | A failing Postgres check logs a warning on every probe, which is noisy in an environment where Postgres is not provisioned yet | Low | Accept it for dev and test until slice 4 is done; it is the signal that something is still missing |
 | CDP's Postgres offering differs from what the reference services assume (different variable names, no IAM, a fixed database name) | Medium | Slices 1 to 3 are unaffected; the options class takes whatever values cdp-app-config maps. Adjust the mapping, not the code |
 | `VerifyFull` fails against Aurora: the RDS certificate authority is not in the trust store, or the certificate does not carry the cluster endpoint name | Medium | The CDP trust store loaded by `AddCustomTrustStore()` is expected to include the CA, as it does for DocumentDB. If the chain fails, set `Root Certificate` to the RDS CA bundle. If only the host name fails, fall back to `VerifyCA` and record why. Confirm in dev before test. No local test covers TLS: the Compose Postgres has no certificate |
-| A hyphen in the database name `waste-organisations` needs quoting in SQL and some tools | Low | Nothing in this story writes SQL against it. Liquibase, Npgsql and the Postgres image accept it. If it causes friction, switch to `waste_organisations` before any data is stored |
 | The Liquibase container cannot download the PostgreSQL driver in CI | Low | Vendor the JDBC jar under `changelog/` instead, as `identity-service-helper` does |
 | `publish-db-migrations` behaves unexpectedly on the first run | Low | The action only publishes when the folder changed and does not fail for an unchanged folder. Watch the first run on `main` |
 | The Compose stack gets slower to start, so the integration test step in CI times out | Low | Liquibase on an empty changelog takes seconds. The `api` health check already waits with retries |

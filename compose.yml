@@ -13,13 +13,13 @@ services:
       # Matches the Postgres section in src/Api/appsettings.Development.json.
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: waste-organisations
+      POSTGRES_DB: waste_organisations
     ports:
       - 5432:5432
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d waste-organisations"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d waste_organisations"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -36,7 +36,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/waste-organisations
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/waste_organisations
       LIQUIBASE_COMMAND_USERNAME: postgres
       LIQUIBASE_COMMAND_PASSWORD: postgres
       LIQUIBASE_COMMAND_CHANGELOG_FILE: db.changelog.xml
@@ -57,7 +57,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__DatabaseUri: mongodb://mongodb:27017/
-      Postgres__Host: postgres
+      Postgres__DefaultHost: postgres
       PORT: 8080
       AWS_EMF_ENVIRONMENT: Local
       # Limited-scope clients for the v1 tests (tests/Api.V1.Tests), so 403 can be tested.

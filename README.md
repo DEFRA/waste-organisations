@@ -59,7 +59,7 @@ docker compose up liquibase
 To inspect what has been applied to the local database:
 
 ```bash
-docker compose exec postgres psql -U postgres -d waste-organisations -c 'select tag from databasechangelog'
+docker compose exec postgres psql -U postgres -d waste_organisations -c 'select tag from databasechangelog'
 ```
 
 ### Stopping and clearing local resources

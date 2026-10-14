@@ -11,7 +11,7 @@ namespace Defra.WasteOrganisations.Api.Tests.Data;
 
 public class PostgresOptionsTests(ApiWebApplicationFactory factory) : IClassFixture<ApiWebApplicationFactory>
 {
-    private const string HostKey = "Postgres:Host";
+    private const string HostKey = "Postgres:DefaultHost";
     private const string PasswordKey = "Postgres:Password";
     private const string UseIamAuthenticationKey = "Postgres:UseIamAuthentication";
     private const string HealthCheckFailureStatusKey = "Postgres:HealthCheckFailureStatus";
@@ -21,9 +21,9 @@ public class PostgresOptionsTests(ApiWebApplicationFactory factory) : IClassFixt
     {
         var options = Resolve();
 
-        options.Host.Should().Be("127.0.0.1");
+        options.DefaultHost.Should().Be("127.0.0.1");
         options.Port.Should().Be(5432);
-        options.DatabaseName.Should().Be("waste-organisations");
+        options.DatabaseName.Should().Be("waste_organisations");
         options.User.Should().Be("postgres");
         options.UseIamAuthentication.Should().BeFalse();
     }
@@ -149,7 +149,7 @@ public class PostgresOptionsTests(ApiWebApplicationFactory factory) : IClassFixt
         var settings = new Dictionary<string, string?>
         {
             [HostKey] = "127.0.0.1",
-            ["Postgres:DatabaseName"] = "waste-organisations",
+            ["Postgres:DatabaseName"] = "waste_organisations",
             ["Postgres:User"] = "postgres",
             [PasswordKey] = "postgres",
         };

@@ -66,7 +66,7 @@ public static class PostgresServiceCollectionExtensions
         {
             ConnectionStringBuilder =
             {
-                Host = options.Host,
+                Host = options.DefaultHost,
                 Port = options.Port,
                 Database = options.DatabaseName,
                 Username = options.User,

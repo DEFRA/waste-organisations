@@ -9,8 +9,10 @@ public class PostgresOptions
 {
     public const string SectionName = "Postgres";
 
+    // Named as in cdp-app-config, which also carries ReadOnlyHost (the Aurora reader
+    // endpoint); that key is not bound until a read-only data source is wired
     [Required]
-    public string? Host { get; set; }
+    public string? DefaultHost { get; set; }
 
     [Range(1, 65535)]
     public int Port { get; set; } = 5432;

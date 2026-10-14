@@ -48,9 +48,9 @@ public class DatabaseChangelogTests : IntegrationTestBase
             .AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["Postgres:Host"] = "127.0.0.1",
+                    ["Postgres:DefaultHost"] = "127.0.0.1",
                     ["Postgres:Port"] = "5432",
-                    ["Postgres:DatabaseName"] = "waste-organisations",
+                    ["Postgres:DatabaseName"] = "waste_organisations",
                     ["Postgres:User"] = "postgres",
                     ["Postgres:Password"] = "postgres",
                     ["Postgres:UseIamAuthentication"] = "false",
