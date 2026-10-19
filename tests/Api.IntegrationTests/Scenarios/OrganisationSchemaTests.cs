@@ -36,9 +36,9 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var read = await context
             .Organisations.Include(o => o.OrganisationType)
             .Include(o => o.Addresses)
-            .ThenInclude(a => a.Address)
+                .ThenInclude(a => a.Address)
             .Include(o => o.Addresses)
-            .ThenInclude(a => a.UsageType)
+                .ThenInclude(a => a.UsageType)
             .SingleAsync(o => o.OrganisationId == organisation.OrganisationId, TestContext.Current.CancellationToken);
 
         read.OrganisationName.Should().Be(organisation.OrganisationName);
@@ -61,7 +61,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         read.UpdatedAt.Kind.Should().Be(DateTimeKind.Utc);
 
         read.OrganisationType.Should().NotBeNull();
-        read.OrganisationType!.IsAPartnership.Should().BeTrue();
+        read.OrganisationType.IsAPartnership.Should().BeTrue();
         read.OrganisationType.OrganisationTypeName.Should().Be("Partnership");
 
         read.Addresses.Should().HaveCount(2);
