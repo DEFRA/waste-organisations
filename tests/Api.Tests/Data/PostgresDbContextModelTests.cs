@@ -55,8 +55,6 @@ public class PostgresDbContextModelTests
                     "country",
                     "state_province_or_region",
                     "phone_number",
-                    "valid_from",
-                    "valid_to",
                     "created_at",
                     "updated_at",
                 ]

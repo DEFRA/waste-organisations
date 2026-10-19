@@ -3,6 +3,7 @@ using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
@@ -193,15 +194,18 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
     // The check constraint rejects a row whose valid_to is earlier than its valid_from
     [Fact]
-    public async Task AddressValidToBeforeValidFrom_IsRejectedByCheckConstraint()
+    public async Task OrganisationAddressValidToBeforeValidFrom_IsRejectedByCheckConstraint()
     {
         await using var provider = BuildServiceProvider();
+        var registeredId = await UsageTypeIdAsync(provider, "Registered");
+        var organisation = NewOrganisation();
+        await SaveOrganisationAsync(provider, organisation);
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        var address = NewAddress("1 High Street");
-        address.ValidTo = address.ValidFrom.AddDays(-1);
-        context.Addresses.Add(address);
+        var organisationAddress = NewOrganisationAddress(organisation.OrganisationId, registeredId, "1 High Street");
+        organisationAddress.ValidTo = organisationAddress.ValidFrom.AddDays(-1);
+        context.OrganisationAddresses.Add(organisationAddress);
 
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await save.Should().ThrowAsync<DbUpdateException>();
@@ -237,6 +241,63 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await save.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // The columns have no database default: TimestampInterceptor fills every timestamp left unset
+    // from TimeProvider on insert, and moves updated_at on update, leaving created_at as it was
+    [Fact]
+    public async Task Organisation_SavedWithoutTimestamps_GetsThemFromTimeProvider()
+    {
+        var created = new DateTimeOffset(2026, 10, 19, 9, 30, 0, TimeSpan.Zero);
+        var timeProvider = new FakeTimeProvider(created);
+        await using var provider = BuildServiceProvider(timeProvider);
+        var registeredId = await UsageTypeIdAsync(provider, "Registered");
+
+        var organisation = new Organisation
+        {
+            OrganisationId = Guid.CreateVersion7(),
+            OrganisationName = "Untimed Ltd",
+            HomeNationCode = "ENG",
+        };
+        organisation.Addresses.Add(
+            new OrganisationAddress
+            {
+                OrganisationAddressId = Guid.CreateVersion7(),
+                UsageTypeId = registeredId,
+                Address = new Address { AddressId = Guid.CreateVersion7(), AddressLine1 = "1 High Street" },
+            }
+        );
+        await SaveOrganisationAsync(provider, organisation);
+
+        var updated = created.AddHours(1);
+        timeProvider.SetUtcNow(updated);
+        await using (var updateScope = provider.CreateAsyncScope())
+        {
+            var context = updateScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+            var toUpdate = await context.Organisations.SingleAsync(
+                o => o.OrganisationId == organisation.OrganisationId,
+                TestContext.Current.CancellationToken
+            );
+            toUpdate.TradingName = "Untimed";
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var scope = provider.CreateAsyncScope();
+        var readContext = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var read = await readContext
+            .Organisations.Include(o => o.Addresses)
+                .ThenInclude(a => a.Address)
+            .SingleAsync(o => o.OrganisationId == organisation.OrganisationId, TestContext.Current.CancellationToken);
+
+        read.ValidFrom.Should().Be(created.UtcDateTime);
+        read.CreatedAt.Should().Be(created.UtcDateTime);
+        read.UpdatedAt.Should().Be(updated.UtcDateTime);
+        var organisationAddress = read.Addresses.Single();
+        organisationAddress.ValidFrom.Should().Be(created.UtcDateTime);
+        organisationAddress.CreatedAt.Should().Be(created.UtcDateTime);
+        organisationAddress.UpdatedAt.Should().Be(created.UtcDateTime);
+        organisationAddress.Address.CreatedAt.Should().Be(created.UtcDateTime);
+        organisationAddress.Address.UpdatedAt.Should().Be(created.UtcDateTime);
     }
 
     private static async Task SaveOrganisationAsync(ServiceProvider provider, Organisation organisation)
@@ -313,7 +374,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Country = "United Kingdom",
             StateProvinceOrRegion = "England",
             PhoneNumber = "01234 567890",
-            ValidFrom = now,
             CreatedAt = now,
             UpdatedAt = now,
         };

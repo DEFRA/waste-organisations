@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 
-public class Address
+public class Address : ITimestamped
 {
     public Guid AddressId { get; set; }
     public string? AddressLine1 { get; set; }
@@ -14,8 +14,6 @@ public class Address
     public string? Country { get; set; }
     public string? StateProvinceOrRegion { get; set; }
     public string? PhoneNumber { get; set; }
-    public DateTime ValidFrom { get; set; }
-    public DateTime? ValidTo { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -35,8 +33,6 @@ public class AddressConfiguration : IEntityTypeConfiguration<Address>
         builder.Property(a => a.Country).HasColumnName("country");
         builder.Property(a => a.StateProvinceOrRegion).HasColumnName("state_province_or_region");
         builder.Property(a => a.PhoneNumber).HasColumnName("phone_number");
-        builder.Property(a => a.ValidFrom).HasColumnName("valid_from");
-        builder.Property(a => a.ValidTo).HasColumnName("valid_to");
         builder.Property(a => a.CreatedAt).HasColumnName("created_at");
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
     }

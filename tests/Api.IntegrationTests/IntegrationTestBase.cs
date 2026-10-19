@@ -12,7 +12,7 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests;
 [Collection("Integration Tests")]
 public abstract class IntegrationTestBase
 {
-    protected static ServiceProvider BuildServiceProvider()
+    protected static ServiceProvider BuildServiceProvider(TimeProvider? timeProvider = null)
     {
         // The Postgres section of src/Api/appsettings.Development.json, which compose.yml matches
         var configuration = new ConfigurationBuilder()
@@ -29,7 +29,12 @@ public abstract class IntegrationTestBase
             )
             .Build();
 
-        return new ServiceCollection().AddPostgres(configuration).BuildServiceProvider();
+        var services = new ServiceCollection();
+        // Registered first, so the TryAdd in AddPostgres keeps it
+        if (timeProvider is not null)
+            services.AddSingleton(timeProvider);
+
+        return services.AddPostgres(configuration).BuildServiceProvider();
     }
 
     protected static HttpClient CreateClient()

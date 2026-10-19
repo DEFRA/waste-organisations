@@ -39,7 +39,7 @@ The board also has SUBSIDIARY, ORGANISATION_LIFECYCLE, SchemeOperator, SchemeMem
 
 ## Proposed Solution
 
-Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address usage types, and map them with EF Core entities in `PostgresDbContext`. Follow the board, with the changes and conventions in Decisions: snake_case names, `text` and `timestamptz` types, UUIDv7 keys set by the application, no circular foreign key between `organisation_address` and `address_usagetype`, `ON DELETE RESTRICT`, and address history kept through `valid_from`/`valid_to`.
+Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address usage types, and map them with EF Core entities in `PostgresDbContext`. Follow the board, with the changes and conventions in Decisions: snake_case names, `text` and `timestamptz` types, UUIDv7 keys set by the application, no circular foreign key between `organisation_address` and `address_usagetype`, `ON DELETE RESTRICT`, address history kept through `valid_from`/`valid_to` on `organisation_address`, and timestamps set by the application, not by database defaults.
 
 ### Conventions (all tables)
 
@@ -47,10 +47,10 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 - Primary keys are `uuid` with no default. The API sets them with `Guid.CreateVersion7()`, so keys are time-ordered and index well.
 - The board's VARCHAR columns are `text`. No lengths until the payloads are final: a length is a constraint, and the Confluence payloads are expected to evolve.
 - TIMESTAMP columns are `timestamptz`. DATE columns (none in scope) would stay `date`.
-- `created_at` and `updated_at` are `timestamptz NOT NULL DEFAULT now()`. The application sets `updated_at` when it changes a row; there is no trigger.
-- Where a table has `valid_from` and `valid_to`: `valid_from` is `timestamptz NOT NULL DEFAULT now()`, `valid_to` is nullable, and `NULL` means "current". A check constraint enforces `valid_to IS NULL OR valid_to > valid_from`.
+- `created_at` and `updated_at` are `timestamptz NOT NULL` with no default. A database default would never apply: EF Core sends every mapped column in an `INSERT`, so an unset `DateTime` would be stored as `-infinity` (PR review). `TimestampInterceptor` (EF Core entities) sets them from `TimeProvider`; there is no trigger.
+- Where a table has `valid_from` and `valid_to`: `valid_from` is `timestamptz NOT NULL` with no default, set by `TimestampInterceptor` when the caller leaves it unset; `valid_to` is nullable, and `NULL` means "current". A check constraint enforces `valid_to IS NULL OR valid_to > valid_from`.
 - Every foreign key is `ON DELETE RESTRICT`. History is closed with `valid_to`, never removed by a cascade.
-- Every foreign key column has an index; Postgres does not create one for a foreign key.
+- Every foreign key column has an index; Postgres does not create one for a foreign key. Where a unique constraint already covers the column (`organisation_type.organisation_id`), its index serves and no second one is added.
 - The tables live in the `public` schema, like `databasechangelog`.
 
 ### Tables
@@ -71,10 +71,10 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 | `organisation_type` | `text` | NULL | |
 | `organisation_size` | `integer` | NULL | |
 | `turnover` | `bigint` | NULL | |
-| `valid_from` | `timestamptz` | NOT NULL | Default `now()` |
+| `valid_from` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `valid_to` | `timestamptz` | NULL | |
-| `created_at` | `timestamptz` | NOT NULL | Default `now()` |
-| `updated_at` | `timestamptz` | NOT NULL | Default `now()` |
+| `created_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
+| `updated_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 
 `organisation_name` and `home_nation_code` are the only business columns that are `NOT NULL`. The Jira questions also list "address" as mandatory; a row cannot require a child row, so the create endpoint enforces that.
 
@@ -87,7 +87,7 @@ As drawn on the board: a child of `organisation`, not a reference list.
 | Column | Type | Null | Notes |
 |---|---|---|---|
 | `organisation_type_id` | `uuid` | NOT NULL | PK |
-| `organisation_id` | `uuid` | NOT NULL | FK to `organisation`. Unique: the board says an organisation "has an" organisation type |
+| `organisation_id` | `uuid` | NOT NULL | FK to `organisation`. Unique (`uq_organisation_type_organisation_id`, whose index is also the FK's index): the board says an organisation "has an" organisation type |
 | `is_a_partnership` | `boolean` | NOT NULL | Default `false` |
 | `organisation_type` | `text` | NULL | The legal form, for example "Partnership" or "Limited liability" |
 
@@ -130,12 +130,12 @@ The code looks a usage type up by `usage_type`, not by a hard-coded id.
 | `country` | `text` | NULL | |
 | `state_province_or_region` | `text` | NULL | |
 | `phone_number` | `text` | NULL | |
-| `valid_from` | `timestamptz` | NOT NULL | Default `now()` |
-| `valid_to` | `timestamptz` | NULL | |
-| `created_at` | `timestamptz` | NOT NULL | Default `now()` |
-| `updated_at` | `timestamptz` | NOT NULL | Default `now()` |
+| `created_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
+| `updated_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 
 All address lines are nullable, as in the Mongo `Address` today.
+
+`address` has no `valid_from`/`valid_to`, unlike the board. An address row belongs to exactly one `organisation_address` row (not shared), so its validity is the validity of that row, and keeping a second pair here would leave two places to close history with nothing keeping them in step (PR review). `organisation_address` is the only history.
 
 Addresses are not shared between organisations or usage types: each `organisation_address` row has its own `address` row. The board's natural key (`address_line1` + `postcode`) is a non-unique index, `ix_address_address_line1_postcode`, so a later dedupe or lookup can use it; it is not a constraint (Decisions).
 
@@ -147,10 +147,10 @@ Addresses are not shared between organisations or usage types: each `organisatio
 | `organisation_id` | `uuid` | NOT NULL | FK to `organisation` |
 | `address_id` | `uuid` | NOT NULL | FK to `address` |
 | `usage_type_id` | `uuid` | NOT NULL | FK to `address_usagetype` |
-| `valid_from` | `timestamptz` | NOT NULL | Default `now()` |
+| `valid_from` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `valid_to` | `timestamptz` | NULL | |
-| `created_at` | `timestamptz` | NOT NULL | Default `now()` |
-| `updated_at` | `timestamptz` | NOT NULL | Default `now()` |
+| `created_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
+| `updated_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 
 History is kept: changing an organisation's registered address sets `valid_to` on the current `organisation_address` row and inserts a new one with a new `address`. A partial unique index, `ux_organisation_address_current`, on `(organisation_id, usage_type_id) WHERE valid_to IS NULL` allows one current address per organisation per usage type and any number of closed ones.
 
@@ -184,6 +184,7 @@ In `src/Api/Data/Postgres/Entities/`, namespace `Defra.WasteOrganisations.Api.Da
 - Column names are explicit. No naming-convention package is added, so `.github/dependabot.yml` does not change.
 - `PostgresDbContext` gains a `DbSet` per entity, and its "empty on purpose" comment is updated.
 - The EF model must match the changelog exactly; EF never creates or migrates the schema.
+- `TimestampInterceptor` (`src/Api/Data/Postgres/`), a `SaveChangesInterceptor` registered in `AddPostgres`, sets timestamps from `TimeProvider` (milliseconds, as on the Mongo side, so a value written equals the value read back). On insert it fills `created_at`, `updated_at` and `valid_from` where the caller left them unset, so a migration can supply its own; on update it always moves `updated_at` to now. Entities opt in through `ITimestamped` (`Organisation`, `Address`, `OrganisationAddress`) and `IValidFrom` (`Organisation`, `OrganisationAddress`).
 - Nothing in the API writes to these tables in this story. The create endpoint is REGEN-141's own work.
 
 ### Tests
@@ -196,7 +197,8 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 - A second current `Registered` address for the same organisation is rejected by `ux_organisation_address_current`; after `valid_to` is set on the first, the second is accepted.
 - An `organisation_address` with an unknown `usage_type_id` or `organisation_id` is rejected by its foreign key.
 - Deleting an organisation that has addresses is rejected (`RESTRICT`).
-- `valid_to` earlier than `valid_from` is rejected by the check constraint.
+- `valid_to` earlier than `valid_from` on `organisation_address` is rejected by the check constraint.
+- An organisation saved with no timestamps set gets them from `TimeProvider`, and an update moves only `updated_at`.
 - A second `organisation_type` row for the same organisation is rejected.
 
 `PostgresDbContext_ShouldConnectAndHaveNoEntities` changes to assert the five entity types instead of none. It is an integration test, not a v1 test. Tests create their own organisations with fresh ids and do not depend on each other's rows; the Mongo clean-up in the integration tests does not touch Postgres.
@@ -242,6 +244,8 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 | Seed the board's six usage types only | The board is the agreed model; `Correspondence` waits for refinement |
 | Keep history with `valid_from`/`valid_to`; one current address per organisation and usage type; addresses not shared | Matches the board's columns and the "records change deltas and timestamps" success metric, without the update anomalies of shared address rows |
 | Natural key (`address_line1` + `postcode`) is an index, not a constraint | Not shared means two organisations at one address need two rows |
+| No `valid_from`/`valid_to` on `address` | Not shared, so `organisation_address` already holds the period; one place to close history (PR review) |
+| Timestamps set by `TimestampInterceptor` from `TimeProvider`, no database defaults | EF always writes every column, so a default never fires; the interceptor also keeps `updated_at` current on update, which a default cannot. Without a default, an `INSERT` outside EF that omits a timestamp fails `NOT NULL` instead of quietly taking the database clock (PR review) |
 | snake_case names | Postgres convention; no quoting in SQL, `psql` or Liquibase |
 | UUIDv7 set by the application, no column default | Time-ordered keys index well, and the entity has its id before it is saved |
 | `text` and `timestamptz` | Payload field lengths are not known yet; `timestamptz` stores an instant, so UTC handling is unambiguous |

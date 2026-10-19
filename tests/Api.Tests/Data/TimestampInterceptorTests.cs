@@ -1,0 +1,155 @@
+using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Data.Postgres;
+using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Time.Testing;
+
+namespace Defra.WasteOrganisations.Api.Tests.Data;
+
+// Drives SetTimestamps against the change tracker with no database: SaveChanges itself is
+// covered by Api.IntegrationTests
+public class TimestampInterceptorTests
+{
+    private static readonly DateTimeOffset s_now = new(2026, 10, 19, 9, 30, 15, 123, TimeSpan.Zero);
+
+    private readonly FakeTimeProvider _timeProvider = new(s_now.AddTicks(4567));
+
+    [Fact]
+    public void WhenAdded_ShouldSetUnsetTimestampsToNowInMilliseconds()
+    {
+        using var context = CreateContext();
+        var organisation = NewOrganisation();
+        var organisationAddress = new OrganisationAddress
+        {
+            OrganisationAddressId = Guid.CreateVersion7(),
+            UsageType = new AddressUsageType { UsageTypeId = Guid.CreateVersion7(), UsageType = "Registered" },
+            Address = new Address { AddressId = Guid.CreateVersion7() },
+        };
+        organisation.Addresses.Add(organisationAddress);
+        context.Organisations.Add(organisation);
+
+        Subject().SetTimestamps(context);
+
+        var expected = s_now.UtcDateTime;
+        organisation.ValidFrom.Should().Be(expected);
+        organisation.CreatedAt.Should().Be(expected);
+        organisation.UpdatedAt.Should().Be(expected);
+        organisationAddress.ValidFrom.Should().Be(expected);
+        organisationAddress.CreatedAt.Should().Be(expected);
+        organisationAddress.UpdatedAt.Should().Be(expected);
+        organisationAddress.Address.CreatedAt.Should().Be(expected);
+        organisationAddress.Address.UpdatedAt.Should().Be(expected);
+        expected.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
+    [Fact]
+    public void WhenAdded_ShouldKeepTimestampsAlreadySet()
+    {
+        using var context = CreateContext();
+        var earlier = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        var organisation = NewOrganisation();
+        organisation.ValidFrom = earlier;
+        organisation.CreatedAt = earlier;
+        organisation.UpdatedAt = earlier;
+        context.Organisations.Add(organisation);
+
+        Subject().SetTimestamps(context);
+
+        organisation.ValidFrom.Should().Be(earlier);
+        organisation.CreatedAt.Should().Be(earlier);
+        organisation.UpdatedAt.Should().Be(earlier);
+    }
+
+    [Fact]
+    public void WhenModified_ShouldMoveOnlyUpdatedAt()
+    {
+        using var context = CreateContext();
+        var earlier = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        var organisation = NewOrganisation();
+        organisation.ValidFrom = earlier;
+        organisation.CreatedAt = earlier;
+        organisation.UpdatedAt = earlier;
+        context.Organisations.Attach(organisation);
+        organisation.TradingName = "Renamed";
+        context.ChangeTracker.DetectChanges();
+
+        Subject().SetTimestamps(context);
+
+        organisation.UpdatedAt.Should().Be(s_now.UtcDateTime);
+        organisation.CreatedAt.Should().Be(earlier);
+        organisation.ValidFrom.Should().Be(earlier);
+        context.Entry(organisation).Property(o => o.UpdatedAt).IsModified.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WhenUnchanged_ShouldLeaveTimestamps()
+    {
+        using var context = CreateContext();
+        var earlier = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        var organisation = NewOrganisation();
+        organisation.UpdatedAt = earlier;
+        context.Organisations.Attach(organisation);
+
+        Subject().SetTimestamps(context);
+
+        organisation.UpdatedAt.Should().Be(earlier);
+    }
+
+    [Fact]
+    public void WhenNoContext_ShouldDoNothing()
+    {
+        var act = () => Subject().SetTimestamps(null);
+
+        act.Should().NotThrow();
+    }
+
+    // Nothing listens on port 1, so the save fails when it connects: the interceptor has
+    // already run by then, which is what these two tests check
+    [Fact]
+    public void WhenSaving_ShouldSetTimestampsBeforeWriting()
+    {
+        using var context = CreateContext(Subject());
+        var organisation = NewOrganisation();
+        context.Organisations.Add(organisation);
+
+        var act = () => context.SaveChanges();
+
+        act.Should().Throw<Exception>();
+        organisation.CreatedAt.Should().Be(s_now.UtcDateTime);
+    }
+
+    [Fact]
+    public async Task WhenSavingAsync_ShouldSetTimestampsBeforeWriting()
+    {
+        await using var context = CreateContext(Subject());
+        var organisation = NewOrganisation();
+        context.Organisations.Add(organisation);
+
+        var act = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<Exception>();
+        organisation.CreatedAt.Should().Be(s_now.UtcDateTime);
+    }
+
+    private TimestampInterceptor Subject() => new(_timeProvider);
+
+    private static Organisation NewOrganisation() =>
+        new()
+        {
+            OrganisationId = Guid.CreateVersion7(),
+            OrganisationName = "Organisation",
+            HomeNationCode = "ENG",
+        };
+
+    private static PostgresDbContext CreateContext(TimestampInterceptor? interceptor = null)
+    {
+        var options = new DbContextOptionsBuilder<PostgresDbContext>().UseNpgsql(
+            "Host=127.0.0.1;Port=1;Database=waste_organisations;Timeout=1"
+        );
+        if (interceptor is not null)
+            options.AddInterceptors(interceptor);
+
+        return new PostgresDbContext(options.Options);
+    }
+}

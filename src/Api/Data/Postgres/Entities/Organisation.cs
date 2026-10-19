@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 
-public class Organisation
+public class Organisation : IValidFrom, ITimestamped
 {
     public Guid OrganisationId { get; set; }
     public string OrganisationName { get; set; } = null!;

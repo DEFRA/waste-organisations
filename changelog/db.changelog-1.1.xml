@@ -24,14 +24,14 @@
       <column name="organisation_type" type="text" />
       <column name="organisation_size" type="integer" />
       <column name="turnover" type="bigint" />
-      <column name="valid_from" type="timestamptz" defaultValueComputed="now()">
+      <column name="valid_from" type="timestamptz">
         <constraints nullable="false" />
       </column>
       <column name="valid_to" type="timestamptz" />
-      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+      <column name="created_at" type="timestamptz">
         <constraints nullable="false" />
       </column>
-      <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+      <column name="updated_at" type="timestamptz">
         <constraints nullable="false" />
       </column>
     </createTable>
@@ -76,14 +76,10 @@
       <column name="country" type="text" />
       <column name="state_province_or_region" type="text" />
       <column name="phone_number" type="text" />
-      <column name="valid_from" type="timestamptz" defaultValueComputed="now()">
+      <column name="created_at" type="timestamptz">
         <constraints nullable="false" />
       </column>
-      <column name="valid_to" type="timestamptz" />
-      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
-        <constraints nullable="false" />
-      </column>
-      <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+      <column name="updated_at" type="timestamptz">
         <constraints nullable="false" />
       </column>
     </createTable>
@@ -103,14 +99,14 @@
       <column name="usage_type_id" type="uuid">
         <constraints nullable="false" />
       </column>
-      <column name="valid_from" type="timestamptz" defaultValueComputed="now()">
+      <column name="valid_from" type="timestamptz">
         <constraints nullable="false" />
       </column>
       <column name="valid_to" type="timestamptz" />
-      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+      <column name="created_at" type="timestamptz">
         <constraints nullable="false" />
       </column>
-      <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+      <column name="updated_at" type="timestamptz">
         <constraints nullable="false" />
       </column>
     </createTable>
@@ -160,12 +156,6 @@
     />
   </changeSet>
 
-  <changeSet id="1.1-ix-organisation-type-organisation-id" author="waste-organisations">
-    <createIndex indexName="ix_organisation_type_organisation_id" tableName="organisation_type">
-      <column name="organisation_id" />
-    </createIndex>
-  </changeSet>
-
   <changeSet id="1.1-ix-organisation-address-organisation-id" author="waste-organisations">
     <createIndex indexName="ix_organisation_address_organisation_id" tableName="organisation_address">
       <column name="organisation_id" />
@@ -213,15 +203,6 @@
     </sql>
     <rollback>
       ALTER TABLE organisation DROP CONSTRAINT ck_organisation_valid_to;
-    </rollback>
-  </changeSet>
-
-  <changeSet id="1.1-ck-address-valid-to" author="waste-organisations">
-    <sql>
-      ALTER TABLE address ADD CONSTRAINT ck_address_valid_to CHECK (valid_to IS NULL OR valid_to > valid_from);
-    </sql>
-    <rollback>
-      ALTER TABLE address DROP CONSTRAINT ck_address_valid_to;
     </rollback>
   </changeSet>
 
