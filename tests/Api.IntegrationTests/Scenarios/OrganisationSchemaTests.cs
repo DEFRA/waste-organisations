@@ -70,9 +70,19 @@ public class OrganisationSchemaTests : IntegrationTestBase
             var actual = read.Addresses.Single(a => a.OrganisationAddressId == expected.OrganisationAddressId);
             actual.UsageTypeId.Should().Be(expected.UsageTypeId);
             actual.Address.AddressLine1.Should().Be(expected.Address.AddressLine1);
+            actual.Address.AddressLine2.Should().Be(expected.Address.AddressLine2);
+            actual.Address.City.Should().Be(expected.Address.City);
+            actual.Address.County.Should().Be(expected.Address.County);
             actual.Address.Postcode.Should().Be(expected.Address.Postcode);
+            actual.Address.Country.Should().Be(expected.Address.Country);
+            actual.Address.StateProvinceOrRegion.Should().Be(expected.Address.StateProvinceOrRegion);
+            actual.Address.PhoneNumber.Should().Be(expected.Address.PhoneNumber);
+            actual.Address.CreatedAt.Should().Be(expected.Address.CreatedAt);
+            actual.Address.UpdatedAt.Should().Be(expected.Address.UpdatedAt);
             actual.ValidFrom.Should().Be(expected.ValidFrom);
             actual.ValidFrom.Kind.Should().Be(DateTimeKind.Utc);
+            actual.CreatedAt.Should().Be(expected.CreatedAt);
+            actual.UpdatedAt.Should().Be(expected.UpdatedAt);
         }
     }
 
