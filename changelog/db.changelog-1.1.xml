@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <changeSet id="1.1-create-organisation" author="waste-organisations">
+    <createTable tableName="organisation">
+      <column name="organisation_id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="organisation_name" type="text">
+        <constraints nullable="false" />
+      </column>
+      <column name="trading_name" type="text" />
+      <column name="companies_house_number" type="text" />
+      <column name="home_nation_code" type="text">
+        <constraints nullable="false" />
+      </column>
+      <column name="nation_code" type="text" />
+      <column name="main_activity_sic" type="text" />
+      <column name="organisation_type_code" type="text" />
+      <column name="organisation_sub_type_code" type="text" />
+      <column name="organisation_type" type="text" />
+      <column name="organisation_size" type="integer" />
+      <column name="turnover" type="bigint" />
+      <column name="valid_from" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+      <column name="valid_to" type="timestamptz" />
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+      <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet id="1.1-create-organisation-type" author="waste-organisations">
+    <createTable tableName="organisation_type">
+      <column name="organisation_type_id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="organisation_id" type="uuid">
+        <constraints nullable="false" />
+      </column>
+      <column name="is_a_partnership" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false" />
+      </column>
+      <column name="organisation_type" type="text" />
+    </createTable>
+  </changeSet>
+
+  <changeSet id="1.1-create-address-usagetype" author="waste-organisations">
+    <createTable tableName="address_usagetype">
+      <column name="usage_type_id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="usage_type" type="text">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet id="1.1-create-address" author="waste-organisations">
+    <createTable tableName="address">
+      <column name="address_id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="address_line1" type="text" />
+      <column name="address_line2" type="text" />
+      <column name="city" type="text" />
+      <column name="county" type="text" />
+      <column name="postcode" type="text" />
+      <column name="country" type="text" />
+      <column name="state_province_or_region" type="text" />
+      <column name="phone_number" type="text" />
+      <column name="valid_from" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+      <column name="valid_to" type="timestamptz" />
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+      <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet id="1.1-create-organisation-address" author="waste-organisations">
+    <createTable tableName="organisation_address">
+      <column name="organisation_address_id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="organisation_id" type="uuid">
+        <constraints nullable="false" />
+      </column>
+      <column name="address_id" type="uuid">
+        <constraints nullable="false" />
+      </column>
+      <column name="usage_type_id" type="uuid">
+        <constraints nullable="false" />
+      </column>
+      <column name="valid_from" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+      <column name="valid_to" type="timestamptz" />
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+      <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+</databaseChangeLog>
