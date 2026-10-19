@@ -40,16 +40,8 @@ public class OrganisationAddressConfiguration : IEntityTypeConfiguration<Organis
             .HasForeignKey(a => a.OrganisationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder
-            .HasOne(a => a.Address)
-            .WithMany()
-            .HasForeignKey(a => a.AddressId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(a => a.Address).WithMany().HasForeignKey(a => a.AddressId).OnDelete(DeleteBehavior.Restrict);
 
-        builder
-            .HasOne(a => a.UsageType)
-            .WithMany()
-            .HasForeignKey(a => a.UsageTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(a => a.UsageType).WithMany().HasForeignKey(a => a.UsageTypeId).OnDelete(DeleteBehavior.Restrict);
     }
 }
