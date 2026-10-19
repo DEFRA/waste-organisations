@@ -190,4 +190,56 @@
       <column name="postcode" />
     </createIndex>
   </changeSet>
+
+  <changeSet id="1.1-uq-address-usagetype-usage-type" author="waste-organisations">
+    <addUniqueConstraint
+      constraintName="uq_address_usagetype_usage_type"
+      tableName="address_usagetype"
+      columnNames="usage_type"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-uq-organisation-type-organisation-id" author="waste-organisations">
+    <addUniqueConstraint
+      constraintName="uq_organisation_type_organisation_id"
+      tableName="organisation_type"
+      columnNames="organisation_id"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-ck-organisation-valid-to" author="waste-organisations">
+    <sql>
+      ALTER TABLE organisation ADD CONSTRAINT ck_organisation_valid_to CHECK (valid_to IS NULL OR valid_to > valid_from);
+    </sql>
+    <rollback>
+      ALTER TABLE organisation DROP CONSTRAINT ck_organisation_valid_to;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ck-address-valid-to" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_valid_to CHECK (valid_to IS NULL OR valid_to > valid_from);
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP CONSTRAINT ck_address_valid_to;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ck-organisation-address-valid-to" author="waste-organisations">
+    <sql>
+      ALTER TABLE organisation_address ADD CONSTRAINT ck_organisation_address_valid_to CHECK (valid_to IS NULL OR valid_to > valid_from);
+    </sql>
+    <rollback>
+      ALTER TABLE organisation_address DROP CONSTRAINT ck_organisation_address_valid_to;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ux-organisation-address-current" author="waste-organisations">
+    <sql>
+      CREATE UNIQUE INDEX ux_organisation_address_current ON organisation_address (organisation_id, usage_type_id) WHERE valid_to IS NULL;
+    </sql>
+    <rollback>
+      DROP INDEX ux_organisation_address_current;
+    </rollback>
+  </changeSet>
 </databaseChangeLog>
