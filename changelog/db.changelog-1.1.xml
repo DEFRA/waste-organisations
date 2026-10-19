@@ -115,4 +115,79 @@
       </column>
     </createTable>
   </changeSet>
+
+  <changeSet id="1.1-fk-organisation-type-organisation" author="waste-organisations">
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_type_organisation"
+      baseTableName="organisation_type"
+      baseColumnNames="organisation_id"
+      referencedTableName="organisation"
+      referencedColumnNames="organisation_id"
+      onDelete="RESTRICT"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-fk-organisation-address-organisation" author="waste-organisations">
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_address_organisation"
+      baseTableName="organisation_address"
+      baseColumnNames="organisation_id"
+      referencedTableName="organisation"
+      referencedColumnNames="organisation_id"
+      onDelete="RESTRICT"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-fk-organisation-address-address" author="waste-organisations">
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_address_address"
+      baseTableName="organisation_address"
+      baseColumnNames="address_id"
+      referencedTableName="address"
+      referencedColumnNames="address_id"
+      onDelete="RESTRICT"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-fk-organisation-address-usage-type" author="waste-organisations">
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_address_usage_type"
+      baseTableName="organisation_address"
+      baseColumnNames="usage_type_id"
+      referencedTableName="address_usagetype"
+      referencedColumnNames="usage_type_id"
+      onDelete="RESTRICT"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-ix-organisation-type-organisation-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_type_organisation_id" tableName="organisation_type">
+      <column name="organisation_id" />
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="1.1-ix-organisation-address-organisation-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_address_organisation_id" tableName="organisation_address">
+      <column name="organisation_id" />
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="1.1-ix-organisation-address-address-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_address_address_id" tableName="organisation_address">
+      <column name="address_id" />
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="1.1-ix-organisation-address-usage-type-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_address_usage_type_id" tableName="organisation_address">
+      <column name="usage_type_id" />
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="1.1-ix-address-address-line1-postcode" author="waste-organisations">
+    <createIndex indexName="ix_address_address_line1_postcode" tableName="address">
+      <column name="address_line1" />
+      <column name="postcode" />
+    </createIndex>
+  </changeSet>
 </databaseChangeLog>
