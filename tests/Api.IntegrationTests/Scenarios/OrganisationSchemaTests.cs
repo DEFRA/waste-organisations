@@ -2,7 +2,6 @@ using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
@@ -316,25 +315,5 @@ public class OrganisationSchemaTests : IntegrationTestBase
     {
         var now = DateTime.UtcNow;
         return new DateTime(now.Ticks - (now.Ticks % 10), DateTimeKind.Utc);
-    }
-
-    private static ServiceProvider BuildServiceProvider()
-    {
-        // The Postgres section of src/Api/appsettings.Development.json, which compose.yml matches
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["Postgres:DefaultHost"] = "127.0.0.1",
-                    ["Postgres:Port"] = "5432",
-                    ["Postgres:DatabaseName"] = "waste_organisations",
-                    ["Postgres:User"] = "postgres",
-                    ["Postgres:Password"] = "postgres",
-                    ["Postgres:UseIamAuthentication"] = "false",
-                }
-            )
-            .Build();
-
-        return new ServiceCollection().AddPostgres(configuration).BuildServiceProvider();
     }
 }
