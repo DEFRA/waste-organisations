@@ -242,4 +242,38 @@
       DROP INDEX ux_organisation_address_current;
     </rollback>
   </changeSet>
+
+  <changeSet id="1.1-seed-address-usagetype" author="waste-organisations">
+    <insert tableName="address_usagetype">
+      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000001" />
+      <column name="usage_type" value="Registered" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000002" />
+      <column name="usage_type" value="Audit" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000003" />
+      <column name="usage_type" value="ServiceOfNotice" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000004" />
+      <column name="usage_type" value="Principal" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000005" />
+      <column name="usage_type" value="Organisation" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000006" />
+      <column name="usage_type" value="Site" />
+    </insert>
+    <rollback>
+      DELETE FROM address_usagetype WHERE usage_type IN ('Registered', 'Audit', 'ServiceOfNotice', 'Principal', 'Organisation', 'Site');
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-tag-v1.1.0" author="waste-organisations">
+    <tagDatabase tag="v1.1.0" />
+  </changeSet>
 </databaseChangeLog>
