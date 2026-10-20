@@ -19,7 +19,7 @@ public class PostgresDbContextModelTests
                 "organisation",
                 [
                     "id",
-                    "organisation_name",
+                    "name",
                     "trading_name",
                     "companies_house_number",
                     "home_nation_code",
@@ -27,7 +27,7 @@ public class PostgresDbContextModelTests
                     "main_activity_sic",
                     "organisation_type_code",
                     "organisation_sub_type_code",
-                    "organisation_type",
+                    "organisation_type_name",
                     "organisation_size",
                     "turnover",
                     "valid_from",
@@ -36,12 +36,8 @@ public class PostgresDbContextModelTests
                     "updated_at",
                 ]
             },
-            {
-                typeof(OrganisationType),
-                "organisation_type",
-                ["id", "organisation_id", "is_a_partnership", "organisation_type"]
-            },
-            { typeof(AddressUsageType), "address_usagetype", ["id", "usage_type"] },
+            { typeof(OrganisationType), "organisation_type", ["id", "organisation_id", "is_a_partnership", "name"] },
+            { typeof(AddressUsageType), "address_usagetype", ["id", "name"] },
             {
                 typeof(Address),
                 "address",
@@ -114,11 +110,11 @@ public class PostgresDbContextModelTests
     public void Organisation_WhenAdded_ShouldFixUpForeignKeysFromNavigations()
     {
         using var context = CreateContext();
-        var usageType = new AddressUsageType { Id = Guid.CreateVersion7(), UsageType = "Registered" };
+        var usageType = new AddressUsageType { Id = Guid.CreateVersion7(), Name = "Registered" };
         var organisation = new Organisation
         {
             Id = Guid.CreateVersion7(),
-            OrganisationName = "Organisation",
+            Name = "Organisation",
             HomeNationCode = "ENG",
             OrganisationType = new OrganisationType { Id = Guid.CreateVersion7() },
         };

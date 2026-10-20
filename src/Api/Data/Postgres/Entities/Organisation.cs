@@ -6,7 +6,7 @@ namespace Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 public class Organisation : IValidFrom, ITimestamped
 {
     public Guid Id { get; set; }
-    public string OrganisationName { get; set; } = null!;
+    public string Name { get; set; } = null!;
     public string? TradingName { get; set; }
     public string? CompaniesHouseNumber { get; set; }
     public string HomeNationCode { get; set; } = null!;
@@ -33,7 +33,7 @@ public class OrganisationConfiguration : IEntityTypeConfiguration<Organisation>
         builder.ToTable("organisation");
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Id).HasColumnName("id").ValueGeneratedNever();
-        builder.Property(o => o.OrganisationName).HasColumnName("organisation_name");
+        builder.Property(o => o.Name).HasColumnName("name");
         builder.Property(o => o.TradingName).HasColumnName("trading_name");
         builder.Property(o => o.CompaniesHouseNumber).HasColumnName("companies_house_number");
         builder.Property(o => o.HomeNationCode).HasColumnName("home_nation_code");
@@ -41,7 +41,7 @@ public class OrganisationConfiguration : IEntityTypeConfiguration<Organisation>
         builder.Property(o => o.MainActivitySic).HasColumnName("main_activity_sic");
         builder.Property(o => o.OrganisationTypeCode).HasColumnName("organisation_type_code");
         builder.Property(o => o.OrganisationSubTypeCode).HasColumnName("organisation_sub_type_code");
-        builder.Property(o => o.OrganisationTypeName).HasColumnName("organisation_type");
+        builder.Property(o => o.OrganisationTypeName).HasColumnName("organisation_type_name");
         builder.Property(o => o.OrganisationSize).HasColumnName("organisation_size");
         builder.Property(o => o.Turnover).HasColumnName("turnover");
         builder.Property(o => o.ValidFrom).HasColumnName("valid_from");

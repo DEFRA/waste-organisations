@@ -61,15 +61,15 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 | Column | Type | Null | Notes |
 |---|---|---|---|
 | `id` | `uuid` | NOT NULL | PK |
-| `organisation_name` | `text` | NOT NULL | |
+| `name` | `text` | NOT NULL | The organisation's name; `name` in the Confluence payloads |
 | `trading_name` | `text` | NULL | |
 | `companies_house_number` | `text` | NULL | Not every organisation type is on Companies House (stand-up, 16 October 2026) |
 | `home_nation_code` | `text` | NOT NULL | |
 | `nation_code` | `text` | NULL | See Open Questions |
 | `main_activity_sic` | `text` | NULL | |
-| `organisation_type_code` | `text` | NULL | Overlaps `organisation_type`: see Open Questions |
+| `organisation_type_code` | `text` | NULL | Overlaps the `organisation_type` table: see Open Questions |
 | `organisation_sub_type_code` | `text` | NULL | |
-| `organisation_type` | `text` | NULL | |
+| `organisation_type_name` | `text` | NULL | The board's `OrganisationType`. Prefixed because it describes the organisation's type, not the organisation (Decisions) |
 | `organisation_size` | `integer` | NULL | |
 | `turnover` | `bigint` | NULL | |
 | `valid_from` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
@@ -77,7 +77,7 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 | `created_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `updated_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 
-`organisation_name` and `home_nation_code` are the only business columns that are `NOT NULL`. The Jira questions also list "address" as mandatory; a row cannot require a child row, so the create endpoint enforces that.
+`name` and `home_nation_code` are the only business columns that are `NOT NULL`. The Jira questions also list "address" as mandatory; a row cannot require a child row, so the create endpoint enforces that.
 
 No unique constraint on name, Companies House number or any combination: how duplicates are detected is still being decided (Open Questions).
 
@@ -90,7 +90,7 @@ As drawn on the board: a child of `organisation`, not a reference list.
 | `id` | `uuid` | NOT NULL | PK |
 | `organisation_id` | `uuid` | NOT NULL | FK to `organisation`. Unique (`uq_organisation_type_organisation_id`, whose index is also the FK's index): the board says an organisation "has an" organisation type |
 | `is_a_partnership` | `boolean` | NOT NULL | Default `false` |
-| `organisation_type` | `text` | NULL | The legal form, for example "Partnership" or "Limited liability" |
+| `name` | `text` | NULL | The legal form, for example "Partnership" or "Limited liability" |
 
 `organisationType` is the type in the legal sense, for example what Companies House returns (stand-up, 16 October 2026). Why both this table and the type columns on `organisation` exist is an open question for Michael Asante (Open Questions); this story builds both and leaves both nullable so either can be dropped later without a data migration.
 
@@ -101,11 +101,11 @@ A seeded reference list. Unlike the board, it has no `organisation_address_id`: 
 | Column | Type | Null | Notes |
 |---|---|---|---|
 | `id` | `uuid` | NOT NULL | PK |
-| `usage_type` | `text` | NOT NULL | Unique |
+| `name` | `text` | NOT NULL | Unique (`uq_address_usagetype_name`) |
 
 Seeded in the changelog with fixed UUID literals, one row each:
 
-| `usage_type` |
+| `name` |
 |---|
 | `Registered` |
 | `Audit` |
@@ -116,7 +116,7 @@ Seeded in the changelog with fixed UUID literals, one row each:
 
 These are the board's values. The Confluence `POST /organisations` payload also has `correspondenceAddress`, which has no usage type here (Open Questions). A new value is a new changeset that inserts a row, not a schema change.
 
-The code looks a usage type up by `usage_type`, not by a hard-coded id.
+The code looks a usage type up by `name`, not by a hard-coded id.
 
 #### `address`
 
@@ -244,6 +244,8 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 | `address_usagetype` is a reference list with no foreign key back to `organisation_address` | The board's two-way foreign keys are circular: neither row could be inserted first |
 | Seed the board's six usage types only | The board is the agreed model; `Correspondence` waits for refinement |
 | Keep history with `valid_from`/`valid_to`; one current address per organisation and usage type; addresses not shared | Matches the board's columns and the "records change deltas and timestamps" success metric, without the update anomalies of shared address rows |
+| A table's own attributes are not prefixed with the table's name: `organisation.name`, `organisation_type.name`, `address_usagetype.name` (properties `Name`) | The same rule as `id`: the table already says whose name it is. It matches `name` in the Confluence payloads, and it avoids `OrganisationType.OrganisationType`, which C# does not allow (PR review) |
+| `organisation.organisation_type_name` / `Organisation.OrganisationTypeName` keeps its prefix | It describes the organisation's type, not the organisation, so `organisation.name` would mean the wrong thing; `Organisation.OrganisationType` is already the navigation |
 | Each table's own key is `id` / `Id`; references are `<thing>_id` / `<Thing>Id` | One convention across the Mongo entity, the DTOs and the documented API, where every object's identifier is `Id` (PR review) |
 | Natural key (`address_line1` + `postcode`) is an index, not a constraint | Not shared means two organisations at one address need two rows |
 | No `valid_from`/`valid_to` on `address` | Not shared, so `organisation_address` already holds the period; one place to close history (PR review) |
@@ -251,7 +253,7 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 | snake_case names | Postgres convention; no quoting in SQL, `psql` or Liquibase |
 | UUIDv7 set by the application, no column default | Time-ordered keys index well, and the entity has its id before it is saved |
 | `text` and `timestamptz` | Payload field lengths are not known yet; `timestamptz` stores an instant, so UTC handling is unambiguous |
-| `organisation_name` and `home_nation_code` are `NOT NULL` | Mandatory per the Jira questions; everything else waits for the payload to settle |
+| `name` and `home_nation_code` are `NOT NULL` on `organisation` | Mandatory per the Jira questions; everything else waits for the payload to settle |
 | `ON DELETE RESTRICT` | History is closed, not deleted; a cascade could silently remove it |
 | EF entities in `Data/Postgres/Entities` | No name collision with the Mongo entities, which stay untouched |
 | Integration tests, no rollback test | Covers what the endpoint stories depend on; rollback is out of scope |
@@ -260,11 +262,11 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 
 To raise on REGEN-141 and with Michael Asante:
 
-1. **Organisation type, twice.** `organisation_type` (with `organisation_id`, `is_a_partnership`, `organisation_type`) and the `organisation_type_code`, `organisation_sub_type_code` and `organisation_type` columns on `organisation` overlap. Is `organisation_type` needed (the Jira thread already asks), should it be a reference list instead of a child table, and which column is the source of truth for the Confluence `organisationType` and `organisationSubType`?
+1. **Organisation type, twice.** `organisation_type` (with `organisation_id`, `is_a_partnership`, `name`) and the `organisation_type_code`, `organisation_sub_type_code` and `organisation_type_name` columns on `organisation` overlap. Is `organisation_type` needed (the Jira thread already asks), should it be a reference list instead of a child table, and which column is the source of truth for the Confluence `organisationType` and `organisationSubType`?
 2. **One type per organisation?** This spec makes `organisation_type.organisation_id` unique, reading "has an" on the board. Confirm.
 3. **Usage type values.** The board has `Organisation` and `Site`; the Confluence `POST /organisations` payload has `correspondenceAddress`, which the board does not. Add `Correspondence`? What are `Organisation` and `Site` addresses?
 4. **`nation_code` and `home_nation_code`.** What is the difference, and is `homeNation` in the payload `home_nation_code`?
-5. **Mandatory fields.** Are `organisation_name` and `home_nation_code` (plus at least one address, enforced by the endpoint) the right set?
+5. **Mandatory fields.** Are `name` and `home_nation_code` on `organisation` (plus at least one address, enforced by the endpoint) the right set?
 6. **Duplicate detection.** Due at backlog refinement on 16 October 2026 (stand-up: a duplicate returns the matching organisation with 200). The answer may add a unique constraint in a later changeset.
 7. **`valid_from`/`valid_to` on `organisation`.** What does closing an organisation mean, given `organisation_lifecycle` on the board?
 8. **External ids.** Where do `externalOrganisationId` and `externalSubsidiaryId` live? They are in every Confluence payload but on no table in scope.

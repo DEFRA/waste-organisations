@@ -6,7 +6,7 @@ namespace Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 public class AddressUsageType
 {
     public Guid Id { get; set; }
-    public string UsageType { get; set; } = null!;
+    public string Name { get; set; } = null!;
 }
 
 public class AddressUsageTypeConfiguration : IEntityTypeConfiguration<AddressUsageType>
@@ -16,6 +16,6 @@ public class AddressUsageTypeConfiguration : IEntityTypeConfiguration<AddressUsa
         builder.ToTable("address_usagetype");
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Id).HasColumnName("id").ValueGeneratedNever();
-        builder.Property(u => u.UsageType).HasColumnName("usage_type");
+        builder.Property(u => u.Name).HasColumnName("name");
     }
 }

@@ -23,7 +23,7 @@ public class TimestampInterceptorTests
         var organisationAddress = new OrganisationAddress
         {
             Id = Guid.CreateVersion7(),
-            UsageType = new AddressUsageType { Id = Guid.CreateVersion7(), UsageType = "Registered" },
+            UsageType = new AddressUsageType { Id = Guid.CreateVersion7(), Name = "Registered" },
             Address = new Address { Id = Guid.CreateVersion7() },
         };
         organisation.Addresses.Add(organisationAddress);
@@ -138,7 +138,7 @@ public class TimestampInterceptorTests
         new()
         {
             Id = Guid.CreateVersion7(),
-            OrganisationName = "Organisation",
+            Name = "Organisation",
             HomeNationCode = "ENG",
         };
 

@@ -8,7 +8,7 @@ public class OrganisationType
     public Guid Id { get; set; }
     public Guid OrganisationId { get; set; }
     public bool IsAPartnership { get; set; }
-    public string? OrganisationTypeName { get; set; }
+    public string? Name { get; set; }
 
     public Organisation Organisation { get; set; } = null!;
 }
@@ -22,7 +22,7 @@ public class OrganisationTypeConfiguration : IEntityTypeConfiguration<Organisati
         builder.Property(t => t.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(t => t.OrganisationId).HasColumnName("organisation_id");
         builder.Property(t => t.IsAPartnership).HasColumnName("is_a_partnership");
-        builder.Property(t => t.OrganisationTypeName).HasColumnName("organisation_type");
+        builder.Property(t => t.Name).HasColumnName("name");
 
         builder
             .HasOne(t => t.Organisation)

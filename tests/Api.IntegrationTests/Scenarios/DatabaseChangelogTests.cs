@@ -64,7 +64,7 @@ public class DatabaseChangelogTests : IntegrationTestBase
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
 
         var usageTypes = await context
-            .AddressUsageTypes.Select(u => u.UsageType)
+            .AddressUsageTypes.Select(u => u.Name)
             .ToListAsync(TestContext.Current.CancellationToken);
 
         usageTypes

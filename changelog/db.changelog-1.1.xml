@@ -9,7 +9,7 @@
       <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
-      <column name="organisation_name" type="text">
+      <column name="name" type="text">
         <constraints nullable="false" />
       </column>
       <column name="trading_name" type="text" />
@@ -21,7 +21,7 @@
       <column name="main_activity_sic" type="text" />
       <column name="organisation_type_code" type="text" />
       <column name="organisation_sub_type_code" type="text" />
-      <column name="organisation_type" type="text" />
+      <column name="organisation_type_name" type="text" />
       <column name="organisation_size" type="integer" />
       <column name="turnover" type="bigint" />
       <column name="valid_from" type="timestamptz">
@@ -48,7 +48,7 @@
       <column name="is_a_partnership" type="boolean" defaultValueBoolean="false">
         <constraints nullable="false" />
       </column>
-      <column name="organisation_type" type="text" />
+      <column name="name" type="text" />
     </createTable>
   </changeSet>
 
@@ -57,7 +57,7 @@
       <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
-      <column name="usage_type" type="text">
+      <column name="name" type="text">
         <constraints nullable="false" />
       </column>
     </createTable>
@@ -181,12 +181,8 @@
     </createIndex>
   </changeSet>
 
-  <changeSet id="1.1-uq-address-usagetype-usage-type" author="waste-organisations">
-    <addUniqueConstraint
-      constraintName="uq_address_usagetype_usage_type"
-      tableName="address_usagetype"
-      columnNames="usage_type"
-    />
+  <changeSet id="1.1-uq-address-usagetype-name" author="waste-organisations">
+    <addUniqueConstraint constraintName="uq_address_usagetype_name" tableName="address_usagetype" columnNames="name" />
   </changeSet>
 
   <changeSet id="1.1-uq-organisation-type-organisation-id" author="waste-organisations">
@@ -227,27 +223,27 @@
   <changeSet id="1.1-seed-address-usagetype" author="waste-organisations">
     <insert tableName="address_usagetype">
       <column name="id" value="00000000-0000-0000-0000-000000000001" />
-      <column name="usage_type" value="Registered" />
+      <column name="name" value="Registered" />
     </insert>
     <insert tableName="address_usagetype">
       <column name="id" value="00000000-0000-0000-0000-000000000002" />
-      <column name="usage_type" value="Audit" />
+      <column name="name" value="Audit" />
     </insert>
     <insert tableName="address_usagetype">
       <column name="id" value="00000000-0000-0000-0000-000000000003" />
-      <column name="usage_type" value="ServiceOfNotice" />
+      <column name="name" value="ServiceOfNotice" />
     </insert>
     <insert tableName="address_usagetype">
       <column name="id" value="00000000-0000-0000-0000-000000000004" />
-      <column name="usage_type" value="Principal" />
+      <column name="name" value="Principal" />
     </insert>
     <insert tableName="address_usagetype">
       <column name="id" value="00000000-0000-0000-0000-000000000005" />
-      <column name="usage_type" value="Organisation" />
+      <column name="name" value="Organisation" />
     </insert>
     <insert tableName="address_usagetype">
       <column name="id" value="00000000-0000-0000-0000-000000000006" />
-      <column name="usage_type" value="Site" />
+      <column name="name" value="Site" />
     </insert>
     <rollback>
       DELETE FROM address_usagetype WHERE usage_type IN ('Registered', 'Audit', 'ServiceOfNotice', 'Principal', 'Organisation', 'Site');

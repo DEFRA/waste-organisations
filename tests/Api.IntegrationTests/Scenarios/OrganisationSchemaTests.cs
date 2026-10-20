@@ -24,7 +24,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Id = Guid.CreateVersion7(),
             OrganisationId = organisation.Id,
             IsAPartnership = true,
-            OrganisationTypeName = "Partnership",
+            Name = "Partnership",
         };
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, principalId, "2 Mill Lane"));
@@ -41,7 +41,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 .ThenInclude(a => a.UsageType)
             .SingleAsync(o => o.Id == organisation.Id, TestContext.Current.CancellationToken);
 
-        read.OrganisationName.Should().Be(organisation.OrganisationName);
+        read.Name.Should().Be(organisation.Name);
         read.TradingName.Should().Be(organisation.TradingName);
         read.CompaniesHouseNumber.Should().Be(organisation.CompaniesHouseNumber);
         read.HomeNationCode.Should().Be(organisation.HomeNationCode);
@@ -62,10 +62,10 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         read.OrganisationType.Should().NotBeNull();
         read.OrganisationType.IsAPartnership.Should().BeTrue();
-        read.OrganisationType.OrganisationTypeName.Should().Be("Partnership");
+        read.OrganisationType.Name.Should().Be("Partnership");
 
         read.Addresses.Should().HaveCount(2);
-        read.Addresses.Select(a => a.UsageType.UsageType).Should().BeEquivalentTo("Registered", "Principal");
+        read.Addresses.Select(a => a.UsageType.Name).Should().BeEquivalentTo("Registered", "Principal");
         foreach (var expected in organisation.Addresses)
         {
             var actual = read.Addresses.Single(a => a.Id == expected.Id);
@@ -216,7 +216,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Id = Guid.CreateVersion7(),
             OrganisationId = organisation.Id,
             IsAPartnership = false,
-            OrganisationTypeName = "Limited",
+            Name = "Limited",
         };
         await SaveOrganisationAsync(provider, organisation);
 
@@ -228,7 +228,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 Id = Guid.CreateVersion7(),
                 OrganisationId = organisation.Id,
                 IsAPartnership = true,
-                OrganisationTypeName = "Partnership",
+                Name = "Partnership",
             }
         );
 
@@ -249,7 +249,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var organisation = new Organisation
         {
             Id = Guid.CreateVersion7(),
-            OrganisationName = "Untimed Ltd",
+            Name = "Untimed Ltd",
             HomeNationCode = "ENG",
         };
         organisation.Addresses.Add(
@@ -306,7 +306,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
         return await context
-            .AddressUsageTypes.Where(u => u.UsageType == usageType)
+            .AddressUsageTypes.Where(u => u.Name == usageType)
             .Select(u => u.Id)
             .SingleAsync(TestContext.Current.CancellationToken);
     }
@@ -317,7 +317,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         return new Organisation
         {
             Id = Guid.CreateVersion7(),
-            OrganisationName = "Acme Waste Ltd",
+            Name = "Acme Waste Ltd",
             TradingName = "Acme",
             CompaniesHouseNumber = "12345678",
             HomeNationCode = "ENG",
