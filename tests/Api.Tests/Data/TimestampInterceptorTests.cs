@@ -22,9 +22,9 @@ public class TimestampInterceptorTests
         var organisation = NewOrganisation();
         var organisationAddress = new OrganisationAddress
         {
-            OrganisationAddressId = Guid.CreateVersion7(),
-            UsageType = new AddressUsageType { UsageTypeId = Guid.CreateVersion7(), UsageType = "Registered" },
-            Address = new Address { AddressId = Guid.CreateVersion7() },
+            Id = Guid.CreateVersion7(),
+            UsageType = new AddressUsageType { Id = Guid.CreateVersion7(), UsageType = "Registered" },
+            Address = new Address { Id = Guid.CreateVersion7() },
         };
         organisation.Addresses.Add(organisationAddress);
         context.Organisations.Add(organisation);
@@ -137,7 +137,7 @@ public class TimestampInterceptorTests
     private static Organisation NewOrganisation() =>
         new()
         {
-            OrganisationId = Guid.CreateVersion7(),
+            Id = Guid.CreateVersion7(),
             OrganisationName = "Organisation",
             HomeNationCode = "ENG",
         };

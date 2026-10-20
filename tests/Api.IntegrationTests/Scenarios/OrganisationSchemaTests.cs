@@ -21,13 +21,13 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var organisation = NewOrganisation();
         organisation.OrganisationType = new OrganisationType
         {
-            OrganisationTypeId = Guid.CreateVersion7(),
-            OrganisationId = organisation.OrganisationId,
+            Id = Guid.CreateVersion7(),
+            OrganisationId = organisation.Id,
             IsAPartnership = true,
             OrganisationTypeName = "Partnership",
         };
-        organisation.Addresses.Add(NewOrganisationAddress(organisation.OrganisationId, registeredId, "1 High Street"));
-        organisation.Addresses.Add(NewOrganisationAddress(organisation.OrganisationId, principalId, "2 Mill Lane"));
+        organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
+        organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, principalId, "2 Mill Lane"));
 
         await SaveOrganisationAsync(provider, organisation);
 
@@ -39,7 +39,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 .ThenInclude(a => a.Address)
             .Include(o => o.Addresses)
                 .ThenInclude(a => a.UsageType)
-            .SingleAsync(o => o.OrganisationId == organisation.OrganisationId, TestContext.Current.CancellationToken);
+            .SingleAsync(o => o.Id == organisation.Id, TestContext.Current.CancellationToken);
 
         read.OrganisationName.Should().Be(organisation.OrganisationName);
         read.TradingName.Should().Be(organisation.TradingName);
@@ -68,7 +68,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         read.Addresses.Select(a => a.UsageType.UsageType).Should().BeEquivalentTo("Registered", "Principal");
         foreach (var expected in organisation.Addresses)
         {
-            var actual = read.Addresses.Single(a => a.OrganisationAddressId == expected.OrganisationAddressId);
+            var actual = read.Addresses.Single(a => a.Id == expected.Id);
             actual.UsageTypeId.Should().Be(expected.UsageTypeId);
             actual.Address.AddressLine1.Should().Be(expected.Address.AddressLine1);
             actual.Address.AddressLine2.Should().Be(expected.Address.AddressLine2);
@@ -96,15 +96,13 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var registeredId = await UsageTypeIdAsync(provider, "Registered");
 
         var organisation = NewOrganisation();
-        organisation.Addresses.Add(NewOrganisationAddress(organisation.OrganisationId, registeredId, "1 High Street"));
+        organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         await SaveOrganisationAsync(provider, organisation);
 
         await using (var failScope = provider.CreateAsyncScope())
         {
             var context = failScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-            context.OrganisationAddresses.Add(
-                NewOrganisationAddress(organisation.OrganisationId, registeredId, "2 Mill Lane")
-            );
+            context.OrganisationAddresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "2 Mill Lane"));
             var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
             await save.Should().ThrowAsync<DbUpdateException>();
         }
@@ -113,10 +111,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         {
             var context = closeScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
             var current = await context.OrganisationAddresses.SingleAsync(
-                a =>
-                    a.OrganisationId == organisation.OrganisationId
-                    && a.UsageTypeId == registeredId
-                    && a.ValidTo == null,
+                a => a.OrganisationId == organisation.Id && a.UsageTypeId == registeredId && a.ValidTo == null,
                 TestContext.Current.CancellationToken
             );
             current.ValidTo = UtcNowMicroseconds();
@@ -126,9 +121,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using (var acceptScope = provider.CreateAsyncScope())
         {
             var context = acceptScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-            context.OrganisationAddresses.Add(
-                NewOrganisationAddress(organisation.OrganisationId, registeredId, "2 Mill Lane")
-            );
+            context.OrganisationAddresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "2 Mill Lane"));
             var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
             await save.Should().NotThrowAsync();
         }
@@ -145,7 +138,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
         context.OrganisationAddresses.Add(
-            NewOrganisationAddress(organisation.OrganisationId, Guid.CreateVersion7(), "9 Nowhere Road")
+            NewOrganisationAddress(organisation.Id, Guid.CreateVersion7(), "9 Nowhere Road")
         );
 
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -177,13 +170,13 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var registeredId = await UsageTypeIdAsync(provider, "Registered");
 
         var organisation = NewOrganisation();
-        organisation.Addresses.Add(NewOrganisationAddress(organisation.OrganisationId, registeredId, "1 High Street"));
+        organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         await SaveOrganisationAsync(provider, organisation);
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
         var toDelete = await context.Organisations.SingleAsync(
-            o => o.OrganisationId == organisation.OrganisationId,
+            o => o.Id == organisation.Id,
             TestContext.Current.CancellationToken
         );
         context.Organisations.Remove(toDelete);
@@ -203,7 +196,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        var organisationAddress = NewOrganisationAddress(organisation.OrganisationId, registeredId, "1 High Street");
+        var organisationAddress = NewOrganisationAddress(organisation.Id, registeredId, "1 High Street");
         organisationAddress.ValidTo = organisationAddress.ValidFrom.AddDays(-1);
         context.OrganisationAddresses.Add(organisationAddress);
 
@@ -220,8 +213,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var organisation = NewOrganisation();
         organisation.OrganisationType = new OrganisationType
         {
-            OrganisationTypeId = Guid.CreateVersion7(),
-            OrganisationId = organisation.OrganisationId,
+            Id = Guid.CreateVersion7(),
+            OrganisationId = organisation.Id,
             IsAPartnership = false,
             OrganisationTypeName = "Limited",
         };
@@ -232,8 +225,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
         context.OrganisationTypes.Add(
             new OrganisationType
             {
-                OrganisationTypeId = Guid.CreateVersion7(),
-                OrganisationId = organisation.OrganisationId,
+                Id = Guid.CreateVersion7(),
+                OrganisationId = organisation.Id,
                 IsAPartnership = true,
                 OrganisationTypeName = "Partnership",
             }
@@ -255,16 +248,16 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         var organisation = new Organisation
         {
-            OrganisationId = Guid.CreateVersion7(),
+            Id = Guid.CreateVersion7(),
             OrganisationName = "Untimed Ltd",
             HomeNationCode = "ENG",
         };
         organisation.Addresses.Add(
             new OrganisationAddress
             {
-                OrganisationAddressId = Guid.CreateVersion7(),
+                Id = Guid.CreateVersion7(),
                 UsageTypeId = registeredId,
-                Address = new Address { AddressId = Guid.CreateVersion7(), AddressLine1 = "1 High Street" },
+                Address = new Address { Id = Guid.CreateVersion7(), AddressLine1 = "1 High Street" },
             }
         );
         await SaveOrganisationAsync(provider, organisation);
@@ -275,7 +268,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         {
             var context = updateScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
             var toUpdate = await context.Organisations.SingleAsync(
-                o => o.OrganisationId == organisation.OrganisationId,
+                o => o.Id == organisation.Id,
                 TestContext.Current.CancellationToken
             );
             toUpdate.TradingName = "Untimed";
@@ -287,7 +280,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var read = await readContext
             .Organisations.Include(o => o.Addresses)
                 .ThenInclude(a => a.Address)
-            .SingleAsync(o => o.OrganisationId == organisation.OrganisationId, TestContext.Current.CancellationToken);
+            .SingleAsync(o => o.Id == organisation.Id, TestContext.Current.CancellationToken);
 
         read.ValidFrom.Should().Be(created.UtcDateTime);
         read.CreatedAt.Should().Be(created.UtcDateTime);
@@ -314,7 +307,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
         return await context
             .AddressUsageTypes.Where(u => u.UsageType == usageType)
-            .Select(u => u.UsageTypeId)
+            .Select(u => u.Id)
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 
@@ -323,7 +316,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var now = UtcNowMicroseconds();
         return new Organisation
         {
-            OrganisationId = Guid.CreateVersion7(),
+            Id = Guid.CreateVersion7(),
             OrganisationName = "Acme Waste Ltd",
             TradingName = "Acme",
             CompaniesHouseNumber = "12345678",
@@ -350,7 +343,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var now = UtcNowMicroseconds();
         return new OrganisationAddress
         {
-            OrganisationAddressId = Guid.CreateVersion7(),
+            Id = Guid.CreateVersion7(),
             OrganisationId = organisationId,
             UsageTypeId = usageTypeId,
             Address = NewAddress(addressLine1),
@@ -365,7 +358,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var now = UtcNowMicroseconds();
         return new Address
         {
-            AddressId = Guid.CreateVersion7(),
+            Id = Guid.CreateVersion7(),
             AddressLine1 = addressLine1,
             AddressLine2 = "Floor 2",
             City = "Testville",

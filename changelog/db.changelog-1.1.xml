@@ -6,7 +6,7 @@
 >
   <changeSet id="1.1-create-organisation" author="waste-organisations">
     <createTable tableName="organisation">
-      <column name="organisation_id" type="uuid">
+      <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
       <column name="organisation_name" type="text">
@@ -39,7 +39,7 @@
 
   <changeSet id="1.1-create-organisation-type" author="waste-organisations">
     <createTable tableName="organisation_type">
-      <column name="organisation_type_id" type="uuid">
+      <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
       <column name="organisation_id" type="uuid">
@@ -54,7 +54,7 @@
 
   <changeSet id="1.1-create-address-usagetype" author="waste-organisations">
     <createTable tableName="address_usagetype">
-      <column name="usage_type_id" type="uuid">
+      <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
       <column name="usage_type" type="text">
@@ -65,7 +65,7 @@
 
   <changeSet id="1.1-create-address" author="waste-organisations">
     <createTable tableName="address">
-      <column name="address_id" type="uuid">
+      <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
       <column name="address_line1" type="text" />
@@ -87,7 +87,7 @@
 
   <changeSet id="1.1-create-organisation-address" author="waste-organisations">
     <createTable tableName="organisation_address">
-      <column name="organisation_address_id" type="uuid">
+      <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
       <column name="organisation_id" type="uuid">
@@ -118,7 +118,7 @@
       baseTableName="organisation_type"
       baseColumnNames="organisation_id"
       referencedTableName="organisation"
-      referencedColumnNames="organisation_id"
+      referencedColumnNames="id"
       onDelete="RESTRICT"
     />
   </changeSet>
@@ -129,7 +129,7 @@
       baseTableName="organisation_address"
       baseColumnNames="organisation_id"
       referencedTableName="organisation"
-      referencedColumnNames="organisation_id"
+      referencedColumnNames="id"
       onDelete="RESTRICT"
     />
   </changeSet>
@@ -140,7 +140,7 @@
       baseTableName="organisation_address"
       baseColumnNames="address_id"
       referencedTableName="address"
-      referencedColumnNames="address_id"
+      referencedColumnNames="id"
       onDelete="RESTRICT"
     />
   </changeSet>
@@ -151,7 +151,7 @@
       baseTableName="organisation_address"
       baseColumnNames="usage_type_id"
       referencedTableName="address_usagetype"
-      referencedColumnNames="usage_type_id"
+      referencedColumnNames="id"
       onDelete="RESTRICT"
     />
   </changeSet>
@@ -226,27 +226,27 @@
 
   <changeSet id="1.1-seed-address-usagetype" author="waste-organisations">
     <insert tableName="address_usagetype">
-      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000001" />
+      <column name="id" value="00000000-0000-0000-0000-000000000001" />
       <column name="usage_type" value="Registered" />
     </insert>
     <insert tableName="address_usagetype">
-      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000002" />
+      <column name="id" value="00000000-0000-0000-0000-000000000002" />
       <column name="usage_type" value="Audit" />
     </insert>
     <insert tableName="address_usagetype">
-      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000003" />
+      <column name="id" value="00000000-0000-0000-0000-000000000003" />
       <column name="usage_type" value="ServiceOfNotice" />
     </insert>
     <insert tableName="address_usagetype">
-      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000004" />
+      <column name="id" value="00000000-0000-0000-0000-000000000004" />
       <column name="usage_type" value="Principal" />
     </insert>
     <insert tableName="address_usagetype">
-      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000005" />
+      <column name="id" value="00000000-0000-0000-0000-000000000005" />
       <column name="usage_type" value="Organisation" />
     </insert>
     <insert tableName="address_usagetype">
-      <column name="usage_type_id" value="00000000-0000-0000-0000-000000000006" />
+      <column name="id" value="00000000-0000-0000-0000-000000000006" />
       <column name="usage_type" value="Site" />
     </insert>
     <rollback>

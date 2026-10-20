@@ -5,7 +5,7 @@ namespace Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 
 public class OrganisationType
 {
-    public Guid OrganisationTypeId { get; set; }
+    public Guid Id { get; set; }
     public Guid OrganisationId { get; set; }
     public bool IsAPartnership { get; set; }
     public string? OrganisationTypeName { get; set; }
@@ -18,8 +18,8 @@ public class OrganisationTypeConfiguration : IEntityTypeConfiguration<Organisati
     public void Configure(EntityTypeBuilder<OrganisationType> builder)
     {
         builder.ToTable("organisation_type");
-        builder.HasKey(t => t.OrganisationTypeId);
-        builder.Property(t => t.OrganisationTypeId).HasColumnName("organisation_type_id").ValueGeneratedNever();
+        builder.HasKey(t => t.Id);
+        builder.Property(t => t.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(t => t.OrganisationId).HasColumnName("organisation_id");
         builder.Property(t => t.IsAPartnership).HasColumnName("is_a_partnership");
         builder.Property(t => t.OrganisationTypeName).HasColumnName("organisation_type");

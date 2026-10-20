@@ -18,7 +18,7 @@ public class PostgresDbContextModelTests
                 typeof(Organisation),
                 "organisation",
                 [
-                    "organisation_id",
+                    "id",
                     "organisation_name",
                     "trading_name",
                     "companies_house_number",
@@ -39,14 +39,14 @@ public class PostgresDbContextModelTests
             {
                 typeof(OrganisationType),
                 "organisation_type",
-                ["organisation_type_id", "organisation_id", "is_a_partnership", "organisation_type"]
+                ["id", "organisation_id", "is_a_partnership", "organisation_type"]
             },
-            { typeof(AddressUsageType), "address_usagetype", ["usage_type_id", "usage_type"] },
+            { typeof(AddressUsageType), "address_usagetype", ["id", "usage_type"] },
             {
                 typeof(Address),
                 "address",
                 [
-                    "address_id",
+                    "id",
                     "address_line1",
                     "address_line2",
                     "city",
@@ -63,7 +63,7 @@ public class PostgresDbContextModelTests
                 typeof(OrganisationAddress),
                 "organisation_address",
                 [
-                    "organisation_address_id",
+                    "id",
                     "organisation_id",
                     "address_id",
                     "usage_type_id",
@@ -114,19 +114,19 @@ public class PostgresDbContextModelTests
     public void Organisation_WhenAdded_ShouldFixUpForeignKeysFromNavigations()
     {
         using var context = CreateContext();
-        var usageType = new AddressUsageType { UsageTypeId = Guid.CreateVersion7(), UsageType = "Registered" };
+        var usageType = new AddressUsageType { Id = Guid.CreateVersion7(), UsageType = "Registered" };
         var organisation = new Organisation
         {
-            OrganisationId = Guid.CreateVersion7(),
+            Id = Guid.CreateVersion7(),
             OrganisationName = "Organisation",
             HomeNationCode = "ENG",
-            OrganisationType = new OrganisationType { OrganisationTypeId = Guid.CreateVersion7() },
+            OrganisationType = new OrganisationType { Id = Guid.CreateVersion7() },
         };
-        var address = new Address { AddressId = Guid.CreateVersion7() };
+        var address = new Address { Id = Guid.CreateVersion7() };
         organisation.Addresses.Add(
             new OrganisationAddress
             {
-                OrganisationAddressId = Guid.CreateVersion7(),
+                Id = Guid.CreateVersion7(),
                 Address = address,
                 UsageType = usageType,
             }
@@ -134,11 +134,11 @@ public class PostgresDbContextModelTests
 
         context.Organisations.Add(organisation);
 
-        organisation.OrganisationType.OrganisationId.Should().Be(organisation.OrganisationId);
+        organisation.OrganisationType.OrganisationId.Should().Be(organisation.Id);
         var organisationAddress = organisation.Addresses.Single();
-        organisationAddress.OrganisationId.Should().Be(organisation.OrganisationId);
-        organisationAddress.AddressId.Should().Be(address.AddressId);
-        organisationAddress.UsageTypeId.Should().Be(usageType.UsageTypeId);
+        organisationAddress.OrganisationId.Should().Be(organisation.Id);
+        organisationAddress.AddressId.Should().Be(address.Id);
+        organisationAddress.UsageTypeId.Should().Be(usageType.Id);
         organisationAddress.Organisation.Should().BeSameAs(organisation);
     }
 

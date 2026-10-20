@@ -45,6 +45,7 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 
 - Table and column names are snake_case and unquoted: `OrganisationId` becomes `organisation_id`, `AddressLine1` becomes `address_line1`.
 - Primary keys are `uuid` with no default. The API sets them with `Guid.CreateVersion7()`, so keys are time-ordered and index well.
+- Every table's own key is the column `id` and the entity property `Id`, matching the Mongo `Organisation` entity, the v1 DTOs and the identifiers on the Organisations API Confluence page (PR review). A reference to another table keeps its name: column `<thing>_id`, property `<Thing>Id` (for example `organisation_address.organisation_id` and `OrganisationAddress.OrganisationId`). The board names keys after their table (`OrganisationId`, `AddressId`); this spec does not.
 - The board's VARCHAR columns are `text`. No lengths until the payloads are final: a length is a constraint, and the Confluence payloads are expected to evolve.
 - TIMESTAMP columns are `timestamptz`. DATE columns (none in scope) would stay `date`.
 - `created_at` and `updated_at` are `timestamptz NOT NULL` with no default. A database default would never apply: EF Core sends every mapped column in an `INSERT`, so an unset `DateTime` would be stored as `-infinity` (PR review). `TimestampInterceptor` (EF Core entities) sets them from `TimeProvider`; there is no trigger.
@@ -59,7 +60,7 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
-| `organisation_id` | `uuid` | NOT NULL | PK |
+| `id` | `uuid` | NOT NULL | PK |
 | `organisation_name` | `text` | NOT NULL | |
 | `trading_name` | `text` | NULL | |
 | `companies_house_number` | `text` | NULL | Not every organisation type is on Companies House (stand-up, 16 October 2026) |
@@ -86,7 +87,7 @@ As drawn on the board: a child of `organisation`, not a reference list.
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
-| `organisation_type_id` | `uuid` | NOT NULL | PK |
+| `id` | `uuid` | NOT NULL | PK |
 | `organisation_id` | `uuid` | NOT NULL | FK to `organisation`. Unique (`uq_organisation_type_organisation_id`, whose index is also the FK's index): the board says an organisation "has an" organisation type |
 | `is_a_partnership` | `boolean` | NOT NULL | Default `false` |
 | `organisation_type` | `text` | NULL | The legal form, for example "Partnership" or "Limited liability" |
@@ -99,7 +100,7 @@ A seeded reference list. Unlike the board, it has no `organisation_address_id`: 
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
-| `usage_type_id` | `uuid` | NOT NULL | PK |
+| `id` | `uuid` | NOT NULL | PK |
 | `usage_type` | `text` | NOT NULL | Unique |
 
 Seeded in the changelog with fixed UUID literals, one row each:
@@ -121,7 +122,7 @@ The code looks a usage type up by `usage_type`, not by a hard-coded id.
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
-| `address_id` | `uuid` | NOT NULL | PK |
+| `id` | `uuid` | NOT NULL | PK |
 | `address_line1` | `text` | NULL | |
 | `address_line2` | `text` | NULL | |
 | `city` | `text` | NULL | The Mongo `Address` calls this `Town` |
@@ -143,7 +144,7 @@ Addresses are not shared between organisations or usage types: each `organisatio
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
-| `organisation_address_id` | `uuid` | NOT NULL | PK |
+| `id` | `uuid` | NOT NULL | PK |
 | `organisation_id` | `uuid` | NOT NULL | FK to `organisation` |
 | `address_id` | `uuid` | NOT NULL | FK to `address` |
 | `usage_type_id` | `uuid` | NOT NULL | FK to `address_usagetype` |
@@ -243,6 +244,7 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 | `address_usagetype` is a reference list with no foreign key back to `organisation_address` | The board's two-way foreign keys are circular: neither row could be inserted first |
 | Seed the board's six usage types only | The board is the agreed model; `Correspondence` waits for refinement |
 | Keep history with `valid_from`/`valid_to`; one current address per organisation and usage type; addresses not shared | Matches the board's columns and the "records change deltas and timestamps" success metric, without the update anomalies of shared address rows |
+| Each table's own key is `id` / `Id`; references are `<thing>_id` / `<Thing>Id` | One convention across the Mongo entity, the DTOs and the documented API, where every object's identifier is `Id` (PR review) |
 | Natural key (`address_line1` + `postcode`) is an index, not a constraint | Not shared means two organisations at one address need two rows |
 | No `valid_from`/`valid_to` on `address` | Not shared, so `organisation_address` already holds the period; one place to close history (PR review) |
 | Timestamps set by `TimestampInterceptor` from `TimeProvider`, no database defaults | EF always writes every column, so a default never fires; the interceptor also keeps `updated_at` current on update, which a default cannot. Without a default, an `INSERT` outside EF that omits a timestamp fails `NOT NULL` instead of quietly taking the database clock (PR review) |
