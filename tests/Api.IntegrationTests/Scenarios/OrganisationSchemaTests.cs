@@ -50,8 +50,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
         read.OrganisationTypeCode.Should().Be(organisation.OrganisationTypeCode);
         read.OrganisationSubTypeCode.Should().Be(organisation.OrganisationSubTypeCode);
         read.OrganisationTypeName.Should().Be(organisation.OrganisationTypeName);
-        read.OrganisationSize.Should().Be(organisation.OrganisationSize);
-        read.Turnover.Should().Be(organisation.Turnover);
         read.ValidFrom.Should().Be(organisation.ValidFrom);
         read.ValidTo.Should().BeNull();
         read.CreatedAt.Should().Be(organisation.CreatedAt);
@@ -326,8 +324,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
             OrganisationTypeCode = "LTD",
             OrganisationSubTypeCode = "PLC",
             OrganisationTypeName = "Limited",
-            OrganisationSize = 3,
-            Turnover = 1_000_000L,
             ValidFrom = now,
             CreatedAt = now,
             UpdatedAt = now,

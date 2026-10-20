@@ -22,8 +22,6 @@
       <column name="organisation_type_code" type="text" />
       <column name="organisation_sub_type_code" type="text" />
       <column name="organisation_type_name" type="text" />
-      <column name="organisation_size" type="integer" />
-      <column name="turnover" type="bigint" />
       <column name="valid_from" type="timestamptz">
         <constraints nullable="false" />
       </column>

@@ -70,12 +70,12 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 | `organisation_type_code` | `text` | NULL | Overlaps the `organisation_type` table: see Open Questions |
 | `organisation_sub_type_code` | `text` | NULL | |
 | `organisation_type_name` | `text` | NULL | The board's `OrganisationType`. Prefixed because it describes the organisation's type, not the organisation (Decisions) |
-| `organisation_size` | `integer` | NULL | |
-| `turnover` | `bigint` | NULL | |
 | `valid_from` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `valid_to` | `timestamptz` | NULL | |
 | `created_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `updated_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
+
+The board's `OrganisationSize` and `Turnover` are not built (Decisions).
 
 `name` and `home_nation_code` are the only business columns that are `NOT NULL`. The Jira questions also list "address" as mandatory; a row cannot require a child row, so the create endpoint enforces that.
 
@@ -245,6 +245,7 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 | Seed the board's six usage types only | The board is the agreed model; `Correspondence` waits for refinement |
 | Keep history with `valid_from`/`valid_to`; one current address per organisation and usage type; addresses not shared | Matches the board's columns and the "records change deltas and timestamps" success metric, without the update anomalies of shared address rows |
 | A table's own attributes are not prefixed with the table's name: `organisation.name`, `organisation_type.name`, `address_usagetype.name` (properties `Name`) | The same rule as `id`: the table already says whose name it is. It matches `name` in the Confluence payloads, and it avoids `OrganisationType.OrganisationType`, which C# does not allow (PR review) |
+| No `organisation_size` or `turnover` on `organisation`, unlike the board | Producer size (large or small) is RPD's packaging classification, decided per registration year from thresholds such as turnover; the v1 API already holds it as a registration type, and registration data is moving to an RPD-owned Registrations service. This service stays agnostic of any one service's rules. Turnover means nothing without a financial year, and no Confluence payload has either field. A service that needs turnover can have it added later, per financial year (PR review) |
 | `organisation.organisation_type_name` / `Organisation.OrganisationTypeName` keeps its prefix | It describes the organisation's type, not the organisation, so `organisation.name` would mean the wrong thing; `Organisation.OrganisationType` is already the navigation |
 | Each table's own key is `id` / `Id`; references are `<thing>_id` / `<Thing>Id` | One convention across the Mongo entity, the DTOs and the documented API, where every object's identifier is `Id` (PR review) |
 | Natural key (`address_line1` + `postcode`) is an index, not a constraint | Not shared means two organisations at one address need two rows |

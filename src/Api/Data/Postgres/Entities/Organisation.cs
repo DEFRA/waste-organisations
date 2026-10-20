@@ -15,8 +15,6 @@ public class Organisation : IValidFrom, ITimestamped
     public string? OrganisationTypeCode { get; set; }
     public string? OrganisationSubTypeCode { get; set; }
     public string? OrganisationTypeName { get; set; }
-    public int? OrganisationSize { get; set; }
-    public long? Turnover { get; set; }
     public DateTime ValidFrom { get; set; }
     public DateTime? ValidTo { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -42,8 +40,6 @@ public class OrganisationConfiguration : IEntityTypeConfiguration<Organisation>
         builder.Property(o => o.OrganisationTypeCode).HasColumnName("organisation_type_code");
         builder.Property(o => o.OrganisationSubTypeCode).HasColumnName("organisation_sub_type_code");
         builder.Property(o => o.OrganisationTypeName).HasColumnName("organisation_type_name");
-        builder.Property(o => o.OrganisationSize).HasColumnName("organisation_size");
-        builder.Property(o => o.Turnover).HasColumnName("turnover");
         builder.Property(o => o.ValidFrom).HasColumnName("valid_from");
         builder.Property(o => o.ValidTo).HasColumnName("valid_to");
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");

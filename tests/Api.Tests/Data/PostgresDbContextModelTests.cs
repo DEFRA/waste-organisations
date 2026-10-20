@@ -28,8 +28,6 @@ public class PostgresDbContextModelTests
                     "organisation_type_code",
                     "organisation_sub_type_code",
                     "organisation_type_name",
-                    "organisation_size",
-                    "turnover",
                     "valid_from",
                     "valid_to",
                     "created_at",
