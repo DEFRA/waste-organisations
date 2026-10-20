@@ -44,7 +44,7 @@ public class TimestampInterceptorTests
     }
 
     [Fact]
-    public void WhenAdded_ShouldKeepTimestampsAlreadySet()
+    public void WhenAdded_ShouldOverwriteAuditTimestampsButKeepValidFrom()
     {
         using var context = CreateContext();
         var earlier = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
@@ -56,9 +56,46 @@ public class TimestampInterceptorTests
 
         Subject().SetTimestamps(context);
 
+        organisation.CreatedAt.Should().Be(s_now.UtcDateTime);
+        organisation.UpdatedAt.Should().Be(s_now.UtcDateTime);
         organisation.ValidFrom.Should().Be(earlier);
+    }
+
+    [Fact]
+    public void WhenModified_ShouldNotChangeCreatedAt()
+    {
+        using var context = CreateContext();
+        var earlier = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        var organisation = NewOrganisation();
+        organisation.CreatedAt = earlier;
+        organisation.UpdatedAt = earlier;
+        context.Organisations.Attach(organisation);
+        organisation.CreatedAt = earlier.AddYears(-10);
+        organisation.TradingName = "Renamed";
+        context.ChangeTracker.DetectChanges();
+
+        Subject().SetTimestamps(context);
+
         organisation.CreatedAt.Should().Be(earlier);
-        organisation.UpdatedAt.Should().Be(earlier);
+        context.Entry(organisation).Property(o => o.CreatedAt).IsModified.Should().BeFalse();
+    }
+
+    // Update() marks every property modified and takes the entity's values as the originals, so
+    // only leaving created_at out of the UPDATE keeps the stored value
+    [Fact]
+    public void WhenUpdatedWhileDetached_ShouldLeaveCreatedAtOutOfTheUpdate()
+    {
+        using var context = CreateContext();
+        var organisation = NewOrganisation();
+        organisation.CreatedAt = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        context.Organisations.Update(organisation);
+
+        Subject().SetTimestamps(context);
+
+        var entry = context.Entry(organisation);
+        entry.Property(o => o.CreatedAt).IsModified.Should().BeFalse();
+        entry.Property(o => o.UpdatedAt).IsModified.Should().BeTrue();
+        organisation.UpdatedAt.Should().Be(s_now.UtcDateTime);
     }
 
     [Fact]

@@ -234,11 +234,13 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await save.Should().ThrowAsync<DbUpdateException>();
     }
 
-    // The columns have no database default: TimestampInterceptor fills every timestamp left unset
-    // from TimeProvider on insert, and moves updated_at on update, leaving created_at as it was
+    // The columns have no database default, and only the service sets created_at and updated_at:
+    // TimestampInterceptor writes the clock's time on insert whatever the entity holds, fills
+    // valid_from when unset, and on update moves updated_at but never created_at
     [Fact]
-    public async Task Organisation_SavedWithoutTimestamps_GetsThemFromTimeProvider()
+    public async Task Organisation_AuditTimestamps_AreSetOnlyByTheService()
     {
+        var supplied = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var created = new DateTimeOffset(2026, 10, 19, 9, 30, 0, TimeSpan.Zero);
         var timeProvider = new FakeTimeProvider(created);
         await using var provider = BuildServiceProvider(timeProvider);
@@ -249,6 +251,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Id = Guid.CreateVersion7(),
             Name = "Untimed Ltd",
             HomeNationCode = "ENG",
+            CreatedAt = supplied,
+            UpdatedAt = supplied,
         };
         organisation.Addresses.Add(
             new OrganisationAddress
@@ -270,6 +274,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 TestContext.Current.CancellationToken
             );
             toUpdate.TradingName = "Untimed";
+            toUpdate.CreatedAt = supplied;
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
@@ -325,8 +330,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
             OrganisationSubTypeCode = "PLC",
             OrganisationTypeName = "Limited",
             ValidFrom = now,
-            CreatedAt = now,
-            UpdatedAt = now,
         };
     }
 
@@ -344,15 +347,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
             UsageTypeId = usageTypeId,
             Address = NewAddress(addressLine1),
             ValidFrom = now,
-            CreatedAt = now,
-            UpdatedAt = now,
         };
     }
 
-    private static Address NewAddress(string addressLine1)
-    {
-        var now = UtcNowMicroseconds();
-        return new Address
+    private static Address NewAddress(string addressLine1) =>
+        new()
         {
             Id = Guid.CreateVersion7(),
             AddressLine1 = addressLine1,
@@ -363,10 +362,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Country = "United Kingdom",
             StateProvinceOrRegion = "England",
             PhoneNumber = "01234 567890",
-            CreatedAt = now,
-            UpdatedAt = now,
         };
-    }
 
     // Postgres timestamptz keeps microseconds; truncating DateTime to the same resolution lets a
     // written value equal the value read back

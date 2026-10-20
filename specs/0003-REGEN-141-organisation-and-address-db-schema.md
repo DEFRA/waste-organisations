@@ -48,7 +48,7 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 - Every table's own key is the column `id` and the entity property `Id`, matching the Mongo `Organisation` entity, the v1 DTOs and the identifiers on the Organisations API Confluence page (PR review). A reference to another table keeps its name: column `<thing>_id`, property `<Thing>Id` (for example `organisation_address.organisation_id` and `OrganisationAddress.OrganisationId`). The board names keys after their table (`OrganisationId`, `AddressId`); this spec does not.
 - The board's VARCHAR columns are `text`. No lengths until the payloads are final: a length is a constraint, and the Confluence payloads are expected to evolve.
 - TIMESTAMP columns are `timestamptz`. DATE columns (none in scope) would stay `date`.
-- `created_at` and `updated_at` are `timestamptz NOT NULL` with no default. A database default would never apply: EF Core sends every mapped column in an `INSERT`, so an unset `DateTime` would be stored as `-infinity` (PR review). `TimestampInterceptor` (EF Core entities) sets them from `TimeProvider`; there is no trigger.
+- `created_at` and `updated_at` are `timestamptz NOT NULL` with no default. A database default would never apply: EF Core sends every mapped column in an `INSERT`, so an unset `DateTime` would be stored as `-infinity` (PR review). Only the service sets them: `TimestampInterceptor` (EF Core entities) writes them from `TimeProvider`, ignoring any value on the entity; there is no trigger.
 - Where a table has `valid_from` and `valid_to`: `valid_from` is `timestamptz NOT NULL` with no default, set by `TimestampInterceptor` when the caller leaves it unset; `valid_to` is nullable, and `NULL` means "current". A check constraint enforces `valid_to IS NULL OR valid_to > valid_from`.
 - Every foreign key is `ON DELETE RESTRICT`. History is closed with `valid_to`, never removed by a cascade.
 - Every foreign key column has an index; Postgres does not create one for a foreign key. Where a unique constraint already covers the column (`organisation_type.organisation_id`), its index serves and no second one is added.
@@ -185,7 +185,7 @@ In `src/Api/Data/Postgres/Entities/`, namespace `Defra.WasteOrganisations.Api.Da
 - Column names are explicit. No naming-convention package is added, so `.github/dependabot.yml` does not change.
 - `PostgresDbContext` gains a `DbSet` per entity, and its "empty on purpose" comment is updated.
 - The EF model must match the changelog exactly; EF never creates or migrates the schema.
-- `TimestampInterceptor` (`src/Api/Data/Postgres/`), a `SaveChangesInterceptor` registered in `AddPostgres`, sets timestamps from `TimeProvider` (milliseconds, as on the Mongo side, so a value written equals the value read back). On insert it fills `created_at`, `updated_at` and `valid_from` where the caller left them unset, so a migration can supply its own; on update it always moves `updated_at` to now. Entities opt in through `ITimestamped` (`Organisation`, `Address`, `OrganisationAddress`) and `IValidFrom` (`Organisation`, `OrganisationAddress`).
+- `TimestampInterceptor` (`src/Api/Data/Postgres/`), a `SaveChangesInterceptor` registered in `AddPostgres`, sets timestamps from `TimeProvider` (milliseconds, as on the Mongo side, so a value written equals the value read back). `created_at` and `updated_at` record when this service stored and last changed a row, so they are internal to it: on insert both become now whatever the entity holds; on update `updated_at` becomes now and `created_at` is left out of the `UPDATE`, so the stored value stands (PR review). `valid_from` is a business date a caller may set, for example a change that took effect earlier, so on insert it becomes now only when unset. An original date from another system, such as RPD's creation date in a migration, is a different fact and would get its own column. Entities opt in through `ITimestamped` (`Organisation`, `Address`, `OrganisationAddress`) and `IValidFrom` (`Organisation`, `OrganisationAddress`).
 - Nothing in the API writes to these tables in this story. The create endpoint is REGEN-141's own work.
 
 ### Tests
@@ -199,7 +199,7 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 - An `organisation_address` with an unknown `usage_type_id` or `organisation_id` is rejected by its foreign key.
 - Deleting an organisation that has addresses is rejected (`RESTRICT`).
 - `valid_to` earlier than `valid_from` on `organisation_address` is rejected by the check constraint.
-- An organisation saved with no timestamps set gets them from `TimeProvider`, and an update moves only `updated_at`.
+- An organisation saved with `created_at` and `updated_at` already set stores the clock's time instead, gets `valid_from` from the clock when unset, and an update that also changes `created_at` moves only `updated_at`.
 - A second `organisation_type` row for the same organisation is rejected.
 
 `PostgresDbContext_ShouldConnectAndHaveNoEntities` changes to assert the five entity types instead of none. It is an integration test, not a v1 test. Tests create their own organisations with fresh ids and do not depend on each other's rows; the Mongo clean-up in the integration tests does not touch Postgres.

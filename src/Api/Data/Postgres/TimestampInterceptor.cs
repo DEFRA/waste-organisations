@@ -32,8 +32,11 @@ public class TimestampInterceptor(TimeProvider timeProvider) : SaveChangesInterc
     }
 
     /// <summary>
-    /// On insert, fills each timestamp that is still unset, so a caller (for example a data
-    /// migration) can supply its own. On update, always moves <c>updated_at</c> to now.
+    /// <c>created_at</c> and <c>updated_at</c> record when this service stored and last changed
+    /// a row, so only this service sets them: on insert both become now whatever the entity
+    /// holds, and on update <c>updated_at</c> becomes now and <c>created_at</c> is left as
+    /// stored. <c>valid_from</c> is a business date a caller may set, so on insert it becomes
+    /// now only when unset.
     /// </summary>
     public void SetTimestamps(DbContext? context)
     {
@@ -48,10 +51,12 @@ public class TimestampInterceptor(TimeProvider timeProvider) : SaveChangesInterc
             switch (entry.State)
             {
                 case EntityState.Added:
+                    // Through the entry, not the entity, so the change is tracked even when
+                    // change detection has already run
                     if (entry.Entity is ITimestamped)
                     {
-                        SetIfUnset(entry, nameof(ITimestamped.CreatedAt), now);
-                        SetIfUnset(entry, nameof(ITimestamped.UpdatedAt), now);
+                        entry.Property(nameof(ITimestamped.CreatedAt)).CurrentValue = now;
+                        entry.Property(nameof(ITimestamped.UpdatedAt)).CurrentValue = now;
                     }
 
                     if (entry.Entity is IValidFrom)
@@ -60,9 +65,13 @@ public class TimestampInterceptor(TimeProvider timeProvider) : SaveChangesInterc
                     break;
 
                 case EntityState.Modified when entry.Entity is ITimestamped:
-                    // Through the entry, not the entity, so the change is tracked even when
-                    // change detection has already run
                     entry.Property(nameof(ITimestamped.UpdatedAt)).CurrentValue = now;
+
+                    // Left out of the UPDATE, so the stored value stands even for an entity
+                    // attached with Update(), whose original values are not the stored ones
+                    var createdAt = entry.Property(nameof(ITimestamped.CreatedAt));
+                    createdAt.CurrentValue = createdAt.OriginalValue;
+                    createdAt.IsModified = false;
 
                     break;
             }
