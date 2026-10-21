@@ -38,9 +38,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         read.Name.Should().Be(organisation.Name);
         read.TradingName.Should().Be(organisation.TradingName);
         read.CompaniesHouseNumber.Should().Be(organisation.CompaniesHouseNumber);
-        read.HomeNationCode.Should().Be(organisation.HomeNationCode);
-        read.NationCode.Should().Be(organisation.NationCode);
-        read.MainActivitySic.Should().Be(organisation.MainActivitySic);
+        read.HomeNation.Should().Be(organisation.HomeNation);
         read.OrganisationTypeId.Should().Be(organisation.OrganisationTypeId);
         read.ValidFrom.Should().Be(organisation.ValidFrom);
         read.ValidTo.Should().BeNull();
@@ -59,14 +57,18 @@ public class OrganisationSchemaTests : IntegrationTestBase
         {
             var actual = read.Addresses.Single(a => a.Id == expected.Id);
             actual.UsageTypeId.Should().Be(expected.UsageTypeId);
-            actual.Address.AddressLine1.Should().Be(expected.Address.AddressLine1);
-            actual.Address.AddressLine2.Should().Be(expected.Address.AddressLine2);
-            actual.Address.City.Should().Be(expected.Address.City);
-            actual.Address.County.Should().Be(expected.Address.County);
-            actual.Address.Postcode.Should().Be(expected.Address.Postcode);
-            actual.Address.Country.Should().Be(expected.Address.Country);
-            actual.Address.StateProvinceOrRegion.Should().Be(expected.Address.StateProvinceOrRegion);
-            actual.Address.PhoneNumber.Should().Be(expected.Address.PhoneNumber);
+            actual.Address.AddressLine.Should().Be(expected.Address.AddressLine);
+            actual.Address.SubBuildingName.Should().Be(expected.Address.SubBuildingName);
+            actual.Address.BuildingName.Should().Be(expected.Address.BuildingName);
+            actual.Address.BuildingNumber.Should().Be(expected.Address.BuildingNumber);
+            actual.Address.Street.Should().Be(expected.Address.Street);
+            actual.Address.Locality.Should().Be(expected.Address.Locality);
+            actual.Address.Region.Should().Be(expected.Address.Region);
+            actual.Address.PostalCode.Should().Be(expected.Address.PostalCode);
+            actual.Address.PoBox.Should().Be(expected.Address.PoBox);
+            actual.Address.CountryIso.Should().Be(expected.Address.CountryIso);
+            actual.Address.CountryName.Should().Be(expected.Address.CountryName);
+            actual.Address.IsUkAddress.Should().BeTrue();
             actual.Address.CreatedAt.Should().Be(expected.Address.CreatedAt);
             actual.Address.UpdatedAt.Should().Be(expected.Address.UpdatedAt);
             actual.ValidFrom.Should().Be(expected.ValidFrom);
@@ -225,7 +227,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         {
             Id = Guid.CreateVersion7(),
             Name = "Untimed Ltd",
-            HomeNationCode = "ENG",
+            HomeNation = "GB-ENG",
             CreatedAt = supplied,
             UpdatedAt = supplied,
         };
@@ -234,7 +236,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             {
                 Id = Guid.CreateVersion7(),
                 UsageTypeId = registeredId,
-                Address = new Address { Id = Guid.CreateVersion7(), AddressLine1 = "1 High Street" },
+                Address = new Address { Id = Guid.CreateVersion7(), Street = "High Street" },
             }
         );
         await SaveOrganisationAsync(provider, organisation);
@@ -269,6 +271,66 @@ public class OrganisationSchemaTests : IntegrationTestBase
         organisationAddress.UpdatedAt.Should().Be(created.UtcDateTime);
         organisationAddress.Address.CreatedAt.Should().Be(created.UtcDateTime);
         organisationAddress.Address.UpdatedAt.Should().Be(created.UtcDateTime);
+    }
+
+    // home_nation is one of the four UK nations in ISO 3166-2:GB, enforced by ck_organisation_home_nation
+    [Theory]
+    [InlineData("ENG")]
+    [InlineData("GB-XXX")]
+    public async Task Organisation_WithHomeNationOutsideTheUkNations_IsRejectedByCheckConstraint(string homeNation)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var organisation = NewOrganisation();
+        organisation.HomeNation = homeNation;
+        context.Organisations.Add(organisation);
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await save.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // country_iso is ISO 3166-1 alpha-2: ck_address_country_iso allows only two upper-case letters
+    [Theory]
+    [InlineData("GBR")]
+    [InlineData("gb")]
+    public async Task Address_WithCountryIsoNotAlpha2_IsRejectedByCheckConstraint(string countryIso)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        context.Addresses.Add(NewAddress("High Street", countryIso));
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await save.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // is_uk_address is generated from country_iso: true for GB, false for any other country and
+    // null when the country is unknown; EF reads it back after the save
+    [Theory]
+    [InlineData("GB", true)]
+    [InlineData("FR", false)]
+    [InlineData(null, null)]
+    public async Task Address_IsUkAddress_IsGeneratedFromCountryIso(string? countryIso, bool? expected)
+    {
+        await using var provider = BuildServiceProvider();
+        var address = NewAddress("High Street", countryIso);
+
+        await using (var saveScope = provider.CreateAsyncScope())
+        {
+            var context = saveScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+            context.Addresses.Add(address);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        address.IsUkAddress.Should().Be(expected);
+        await using var scope = provider.CreateAsyncScope();
+        var read = await scope
+            .ServiceProvider.GetRequiredService<PostgresDbContext>()
+            .Addresses.SingleAsync(a => a.Id == address.Id, TestContext.Current.CancellationToken);
+        read.IsUkAddress.Should().Be(expected);
     }
 
     private static async Task SaveOrganisationAsync(ServiceProvider provider, Organisation organisation)
@@ -308,18 +370,12 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Name = "Acme Waste Ltd",
             TradingName = "Acme",
             CompaniesHouseNumber = "12345678",
-            HomeNationCode = "ENG",
-            NationCode = "GB-ENG",
-            MainActivitySic = "38110",
+            HomeNation = "GB-ENG",
             ValidFrom = now,
         };
     }
 
-    private static OrganisationAddress NewOrganisationAddress(
-        Guid organisationId,
-        Guid usageTypeId,
-        string addressLine1
-    )
+    private static OrganisationAddress NewOrganisationAddress(Guid organisationId, Guid usageTypeId, string street)
     {
         var now = UtcNowMicroseconds();
         return new OrganisationAddress
@@ -327,23 +383,26 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Id = Guid.CreateVersion7(),
             OrganisationId = organisationId,
             UsageTypeId = usageTypeId,
-            Address = NewAddress(addressLine1),
+            Address = NewAddress(street),
             ValidFrom = now,
         };
     }
 
-    private static Address NewAddress(string addressLine1) =>
+    private static Address NewAddress(string street, string? countryIso = "GB") =>
         new()
         {
             Id = Guid.CreateVersion7(),
-            AddressLine1 = addressLine1,
-            AddressLine2 = "Floor 2",
-            City = "Testville",
-            County = "Testshire",
-            Postcode = "AB1 2CD",
-            Country = "United Kingdom",
-            StateProvinceOrRegion = "England",
-            PhoneNumber = "01234 567890",
+            AddressLine = "Rear entrance",
+            SubBuildingName = "Unit 4",
+            BuildingName = "Mill House",
+            BuildingNumber = "12A",
+            Street = street,
+            Locality = "Testville",
+            Region = "Testshire",
+            PostalCode = "AB1 2CD",
+            PoBox = "PO Box 99",
+            CountryIso = countryIso,
+            CountryName = countryIso is null ? null : "Test country",
         };
 
     // Postgres timestamptz keeps microseconds; truncating DateTime to the same resolution lets a

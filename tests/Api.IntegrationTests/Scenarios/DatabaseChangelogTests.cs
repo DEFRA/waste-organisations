@@ -72,9 +72,9 @@ public class DatabaseChangelogTests : IntegrationTestBase
         codes.Should().BeEquivalentTo(OrganisationTypeCodes.All.Select(c => c.Code));
     }
 
-    // The changelog seeds address_usagetype with the board's six usage types and nothing else
+    // The changelog seeds address_usagetype with the five kinds of address on the API page and nothing else
     [Fact]
-    public async Task AddressUsageType_ShouldHoldTheSixSeededValues()
+    public async Task AddressUsageType_ShouldHoldTheFiveSeededValues()
     {
         await using var provider = BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
@@ -84,8 +84,6 @@ public class DatabaseChangelogTests : IntegrationTestBase
             .AddressUsageTypes.Select(u => u.Name)
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        usageTypes
-            .Should()
-            .BeEquivalentTo("Registered", "Audit", "ServiceOfNotice", "Principal", "Organisation", "Site");
+        usageTypes.Should().BeEquivalentTo("Registered", "Audit", "ServiceOfNotice", "Principal", "Correspondence");
     }
 }

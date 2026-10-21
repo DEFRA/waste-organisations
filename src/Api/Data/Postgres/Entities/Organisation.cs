@@ -9,9 +9,9 @@ public class Organisation : IValidFrom, ITimestamped
     public string Name { get; set; } = null!;
     public string? TradingName { get; set; }
     public string? CompaniesHouseNumber { get; set; }
-    public string HomeNationCode { get; set; } = null!;
-    public string? NationCode { get; set; }
-    public string? MainActivitySic { get; set; }
+
+    /// <summary>ISO 3166-2:GB: <c>GB-ENG</c>, <c>GB-SCT</c>, <c>GB-WLS</c> or <c>GB-NIR</c>.</summary>
+    public string HomeNation { get; set; } = null!;
     public Guid? OrganisationTypeId { get; set; }
     public DateTime ValidFrom { get; set; }
     public DateTime? ValidTo { get; set; }
@@ -32,9 +32,7 @@ public class OrganisationConfiguration : IEntityTypeConfiguration<Organisation>
         builder.Property(o => o.Name).HasColumnName("name");
         builder.Property(o => o.TradingName).HasColumnName("trading_name");
         builder.Property(o => o.CompaniesHouseNumber).HasColumnName("companies_house_number");
-        builder.Property(o => o.HomeNationCode).HasColumnName("home_nation_code");
-        builder.Property(o => o.NationCode).HasColumnName("nation_code");
-        builder.Property(o => o.MainActivitySic).HasColumnName("main_activity_sic");
+        builder.Property(o => o.HomeNation).HasColumnName("home_nation");
         builder.Property(o => o.OrganisationTypeId).HasColumnName("organisation_type_id");
         builder.Property(o => o.ValidFrom).HasColumnName("valid_from");
         builder.Property(o => o.ValidTo).HasColumnName("valid_to");

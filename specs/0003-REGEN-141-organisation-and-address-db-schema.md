@@ -39,11 +39,11 @@ The board also has SUBSIDIARY, ORGANISATION_LIFECYCLE, SchemeOperator, SchemeMem
 
 ## Proposed Solution
 
-Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address usage types, and map them with EF Core entities in `PostgresDbContext`. Follow the board, with the changes and conventions in Decisions: snake_case names, `text` and `timestamptz` types, UUIDv7 keys set by the application, no circular foreign key between `organisation_address` and `address_usagetype`, `ON DELETE RESTRICT`, address history kept through `valid_from`/`valid_to` on `organisation_address`, and timestamps set by the application, not by database defaults.
+Add a `db.changelog-1.1.xml` that creates the five tables and seeds the organisation types and address usage types, and map them with EF Core entities in `PostgresDbContext`. The data the API exposes, as described on the Organisations API Confluence page, drives the schema; the Miro board, derived from the data RPD holds in Synapse, is a reference only (team decisions, 20 October 2026). The changes from the board and the conventions are in Decisions: snake_case names, `text` and `timestamptz` types, UUIDv7 keys set by the application, no circular foreign key between `organisation_address` and `address_usagetype`, `ON DELETE RESTRICT`, address history kept through `valid_from`/`valid_to` on `organisation_address`, and timestamps set by the application, not by database defaults.
 
 ### Conventions (all tables)
 
-- Table and column names are snake_case and unquoted: `OrganisationId` becomes `organisation_id`, `AddressLine1` becomes `address_line1`.
+- Table and column names are snake_case and unquoted: `OrganisationId` becomes `organisation_id`, `PostalCode` becomes `postal_code`.
 - Primary keys are `uuid` with no default. The API sets them with `Guid.CreateVersion7()`, so keys are time-ordered and index well.
 - Every table's own key is the column `id` and the entity property `Id`, matching the Mongo `Organisation` entity, the v1 DTOs and the identifiers on the Organisations API Confluence page (PR review). A reference to another table keeps its name: column `<thing>_id`, property `<Thing>Id` (for example `organisation_address.organisation_id` and `OrganisationAddress.OrganisationId`). The board names keys after their table (`OrganisationId`, `AddressId`); this spec does not.
 - The board's VARCHAR columns are `text`. No lengths until the payloads are final: a length is a constraint, and the Confluence payloads are expected to evolve.
@@ -64,18 +64,16 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 | `name` | `text` | NOT NULL | The organisation's name; `name` in the Confluence payloads |
 | `trading_name` | `text` | NULL | |
 | `companies_house_number` | `text` | NULL | Not every organisation type is on Companies House (stand-up, 16 October 2026) |
-| `home_nation_code` | `text` | NOT NULL | |
-| `nation_code` | `text` | NULL | See Open Questions |
-| `main_activity_sic` | `text` | NULL | |
+| `home_nation` | `text` | NOT NULL | `homeNation` on the API page. One of `GB-ENG`, `GB-SCT`, `GB-WLS`, `GB-NIR` (ISO 3166-2:GB), enforced by `ck_organisation_home_nation` |
 | `organisation_type_id` | `uuid` | NULL | FK to `organisation_type`; index `ix_organisation_organisation_type_id`. The API's `organisationType` carries that row's `code` |
 | `valid_from` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `valid_to` | `timestamptz` | NULL | |
 | `created_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `updated_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 
-The board's `OrganisationSize` and `Turnover` are not built, nor its `OrganisationTypeCode`, `OrganisationSubTypeCode` and `OrganisationType` columns, which `organisation_type_id` replaces (Decisions).
+The board's `HomeNationCode` and `NationCode` are replaced by `home_nation`, and its `MainActivitySic` is not built (not an MVP field). Its `OrganisationSize` and `Turnover` are not built either, nor its `OrganisationTypeCode`, `OrganisationSubTypeCode` and `OrganisationType` columns, which `organisation_type_id` replaces (Decisions).
 
-`name` and `home_nation_code` are the only business columns that are `NOT NULL`. The Jira questions also list "address" as mandatory; a row cannot require a child row, so the create endpoint enforces that.
+`name` and `home_nation` are the only business columns that are `NOT NULL`. The Jira questions also list "address" as mandatory; a row cannot require a child row, so the create endpoint enforces that.
 
 No unique constraint on name, Companies House number or any combination: how duplicates are detected is still being decided (Open Questions).
 
@@ -125,10 +123,9 @@ Seeded in the changelog with fixed UUID literals, one row each:
 | `Audit` |
 | `ServiceOfNotice` |
 | `Principal` |
-| `Organisation` |
-| `Site` |
+| `Correspondence` |
 
-These are the board's values. The Confluence `POST /organisations` payload also has `correspondenceAddress`, which has no usage type here (Open Questions). A new value is a new changeset that inserts a row, not a schema change.
+These are the five kinds of address on the API page: `registeredAddress`, `auditAddress`, `serviceOfNoticeAddress`, `principalAddress` and `correspondenceAddress`. The board's `Site` and `Organisation` are not seeded: `Site` is specific to RE/EX, and `Organisation` is on neither the API page nor the Confluence payloads. The team first agreed to drop `Audit` as well, as specific to RE/EX, but kept it after Darren found it in RPD's data (Ben Wakefield's data analysis; decided 21 October 2026). A new value is a new changeset that inserts a row, not a schema change.
 
 The code looks a usage type up by `name`, not by a hard-coded id.
 
@@ -137,22 +134,30 @@ The code looks a usage type up by `name`, not by a hard-coded id.
 | Column | Type | Null | Notes |
 |---|---|---|---|
 | `id` | `uuid` | NOT NULL | PK |
-| `address_line1` | `text` | NULL | |
-| `address_line2` | `text` | NULL | |
-| `city` | `text` | NULL | The Mongo `Address` calls this `Town` |
-| `county` | `text` | NULL | |
-| `postcode` | `text` | NULL | |
-| `country` | `text` | NULL | |
-| `state_province_or_region` | `text` | NULL | |
-| `phone_number` | `text` | NULL | |
+| `address_line` | `text` | NULL | `addressLine`: free text for anything the structured fields cannot hold |
+| `sub_building_name` | `text` | NULL | `subBuildingName`, for example "Flat 2" or "Unit 4" |
+| `building_name` | `text` | NULL | `buildingName` |
+| `building_number` | `text` | NULL | `buildingNumber`. Text, not a number: "12A" and "3-5" are building numbers |
+| `street` | `text` | NULL | `street` |
+| `locality` | `text` | NULL | `locality`: the town or city, for example London, as in the Companies House model. The Mongo `Address` calls this `Town` |
+| `region` | `text` | NULL | `region`, for example Surrey: the county, state or province |
+| `postal_code` | `text` | NULL | `postalCode` |
+| `po_box` | `text` | NULL | `po_box` |
+| `country_iso` | `text` | NULL | `country.iso`: ISO 3166-1 alpha-2, for example `GB`. `ck_address_country_iso` allows only two upper-case letters |
+| `country_name` | `text` | NULL | `country.name` |
+| `is_uk_address` | `boolean` | NULL | `isUkAddress`. Generated: `GENERATED ALWAYS AS (country_iso = 'GB') STORED`, so `NULL` when the country is unknown |
 | `created_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `updated_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 
-All address lines are nullable, as in the Mongo `Address` today.
+The columns are the Defra standard address model ("Defra Address Model" on the Confluence page "Companies House - Address Cleansing", Integration space), adopted now so the service matches the address model Defra expects going forward (team decisions, 20 October 2026). The model is not the board's, which reflects how RPD stores addresses today. RPD and RE/EX have not adopted the Defra model yet, so migrating their addresses will need translating to it later.
+
+Every text column is nullable: the model marks no field as required, and which ones the create endpoint requires belongs to that story. The model's `country` is an object with `iso` and `name`, so it is two columns. A UK address is exactly one whose ISO 3166-1 code is `GB` (Northern Ireland included; the Crown Dependencies have their own codes), so `is_uk_address` is a stored generated column: it is a real, queryable column matching the Defra field, it can never contradict `country_iso`, and nobody sets it. EF maps it as computed, so it is never written and is read back after a save. Only the alpha-2 format of `country_iso` is checked; a reference list of countries can be added later.
+
+The board's `PhoneNumber` is not built: a phone number is not part of an address, and neither the Defra model nor the API page has one.
 
 `address` has no `valid_from`/`valid_to`, unlike the board. An address row belongs to exactly one `organisation_address` row (not shared), so its validity is the validity of that row, and keeping a second pair here would leave two places to close history with nothing keeping them in step (PR review). `organisation_address` is the only history.
 
-Addresses are not shared between organisations or usage types: each `organisation_address` row has its own `address` row. The board's natural key (`address_line1` + `postcode`) is a non-unique index, `ix_address_address_line1_postcode`, so a later dedupe or lookup can use it; it is not a constraint (Decisions).
+Addresses are not shared between organisations or usage types: each `organisation_address` row has its own `address` row. The board's natural key for dedupe (`AddressLine1` + `Postcode`) is not built: the Defra model has no `AddressLine1`, and duplicate detection is a later story, which can add the index it needs.
 
 #### `organisation_address`
 
@@ -207,12 +212,14 @@ In `src/Api/Data/Postgres/Entities/`, namespace `Defra.WasteOrganisations.Api.Da
 In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --build -d`), extending the `DatabaseChangelogTests` pattern of resolving `PostgresDbContext` from `AddPostgres`:
 
 - The `v1.1.0` tag is in `databasechangelog`.
-- `address_usagetype` holds exactly the six seeded values.
+- `address_usagetype` holds exactly the five seeded values.
 - An organisation with an organisation type (by code) and two addresses (`Registered`, `Principal`) saved through `PostgresDbContext` reads back with every column and navigation equal, including `timestamptz` values as UTC.
 - A second current `Registered` address for the same organisation is rejected by `ux_organisation_address_current`; after `valid_to` is set on the first, the second is accepted.
 - An `organisation_address` with an unknown `usage_type_id` or `organisation_id` is rejected by its foreign key.
 - Deleting an organisation that has addresses is rejected (`RESTRICT`).
 - `valid_to` earlier than `valid_from` on `organisation_address` is rejected by the check constraint.
+- `home_nation` outside the four UK nations, and a `country_iso` that is not two upper-case letters, are rejected by their check constraints.
+- `is_uk_address` reads back `true` for `GB`, `false` for another country and `NULL` with no country.
 - An organisation saved with `created_at` and `updated_at` already set stores the clock's time instead, gets `valid_from` from the clock when unset, and an update that also changes `created_at` moves only `updated_at`.
 - `organisation_type` holds exactly the 40 seeded codes, equal to `OrganisationTypeCodes.All`.
 - An `organisation` with an unknown `organisation_type_id` is rejected by its foreign key.
@@ -234,7 +241,7 @@ In `Api.Tests`, `OrganisationTypeCodesTests` checks that the list has 40 entries
 
 - [ ] `docker compose up --build -d` applies `db.changelog-1.1.xml` with no manual step, `databasechangelog` holds `v1.1.0`, and the API starts healthy.
 - [ ] The five tables exist with the columns, types, nullability, defaults, foreign keys (`ON DELETE RESTRICT`), indexes and check constraints in this spec, in snake_case.
-- [ ] `address_usagetype` holds `Registered`, `Audit`, `ServiceOfNotice`, `Principal`, `Organisation` and `Site`, and has no foreign key to `organisation_address`.
+- [ ] `address_usagetype` holds `Registered`, `Audit`, `ServiceOfNotice`, `Principal` and `Correspondence`, and has no foreign key to `organisation_address`.
 - [ ] Only one current (`valid_to IS NULL`) `organisation_address` per organisation and usage type can exist; closed rows are unlimited.
 - [ ] `PostgresDbContext` maps the five tables, and an organisation with its type and addresses round-trips through it in the integration tests.
 - [ ] `db.changelog-1.0.xml` is unchanged, and no EF Core migration exists.
@@ -248,7 +255,8 @@ In `Api.Tests`, `OrganisationTypeCodesTests` checks that the list has 40 entries
 - Duplicate detection and any unique constraint for it.
 - `subsidiary`, `organisation_lifecycle` and the scheme tables (`scheme_operator`, `scheme_member`, `compliance_scheme`, `compliance_scheme_lifecycle`).
 - External ids from RPD (`externalOrganisationId`, `externalSubsidiaryId`, the six-digit public organisation id): they are in the Confluence payloads but not on the board.
-- `sicCode` beyond the board's `main_activity_sic`, and any reference list of SIC codes or nations.
+- SIC codes (`mainActivitySicCode`): not an MVP field.
+- Translating RPD and RE/EX addresses to the Defra address model.
 - A `name` on `organisation_type`, `is_a_partnership`, and an organisation sub-type.
 - Migrating organisation data from MongoDB or from RPD.
 - Triggers for `updated_at`, audit or change-delta tables.
@@ -262,18 +270,22 @@ In `Api.Tests`, `OrganisationTypeCodesTests` checks that the list has 40 entries
 | Seed all 36 Companies House `company_type` codes plus four of our own, with no common subset | Anything a Companies House lookup or an RPD migration returns can be stored as it is; one flat list keeps it simple |
 | The codes and their meanings are published in the API contract, from a C# list the seed is tested against | Consumers build their labels from one source rather than guessing; the test stops the published list and the table drifting apart |
 | `address_usagetype` is a reference list with no foreign key back to `organisation_address` | The board's two-way foreign keys are circular: neither row could be inserted first |
-| Seed the board's six usage types only | The board is the agreed model; `Correspondence` waits for refinement |
+| Seed five usage types: `Registered`, `Audit`, `ServiceOfNotice`, `Principal`, `Correspondence` | The five kinds of address on the API page. `Site` is specific to RE/EX and `Organisation` is on neither the API page nor the payloads. `Audit` was first dropped, then kept because RPD holds audit addresses (team decisions, 20 October 2026; 21 October 2026) |
+| `address` follows the Defra standard address model; `country` is `country_iso` (ISO 3166-1 alpha-2) plus `country_name`; no `phone_number` | Aligns with the address model Defra expects going forward rather than RPD's current one (team decisions, 20 October 2026). A phone number is not part of an address |
+| `is_uk_address` is generated from `country_iso` | Keeps the Defra field in the table while making it impossible to contradict the country; storing a caller's value would allow `true` with `FR` |
+| `home_nation` (ISO 3166-2:GB code), `NOT NULL`, limited by a check constraint to the four UK nations | `homeNation` on the API page replaces the board's `HomeNationCode` and `NationCode`; a fixed set of four is cheap for the database to enforce (team decisions, 20 October 2026) |
+| No `main_activity_sic` | Not an MVP field (team decisions, 20 October 2026) |
 | Keep history with `valid_from`/`valid_to`; one current address per organisation and usage type; addresses not shared | Matches the board's columns and the "records change deltas and timestamps" success metric, without the update anomalies of shared address rows |
 | A table's own attributes are not prefixed with the table's name: `organisation.name`, `address_usagetype.name`, `organisation_type.code` (properties `Name`, `Code`) | The same rule as `id`: the table already says whose attribute it is. It matches `name` in the Confluence payloads (PR review) |
 | No `organisation_size` or `turnover` on `organisation`, unlike the board | Producer size (large or small) is RPD's packaging classification, decided per registration year from thresholds such as turnover; the v1 API already holds it as a registration type, and registration data is moving to an RPD-owned Registrations service. This service stays agnostic of any one service's rules. Turnover means nothing without a financial year, and no Confluence payload has either field. (PR review) |
 | Each table's own key is `id` / `Id`; references are `<thing>_id` / `<Thing>Id` | One convention across the Mongo entity, the DTOs and the documented API, where every object's identifier is `Id` (PR review) |
-| Natural key (`address_line1` + `postcode`) is an index, not a constraint | Not shared means two organisations at one address need two rows |
+| No natural-key index on `address` | The board's `AddressLine1` + `Postcode` does not exist in the Defra model, and addresses are not shared; duplicate detection is a later story |
 | No `valid_from`/`valid_to` on `address` | Not shared, so `organisation_address` already holds the period; one place to close history (PR review) |
 | Timestamps set by `TimestampInterceptor` from `TimeProvider`, no database defaults | EF always writes every column, so a default never fires; the interceptor also keeps `updated_at` current on update, which a default cannot. Without a default, an `INSERT` outside EF that omits a timestamp fails `NOT NULL` instead of quietly taking the database clock (PR review) |
 | snake_case names | Postgres convention; no quoting in SQL, `psql` or Liquibase |
 | UUIDv7 set by the application, no column default | Time-ordered keys index well, and the entity has its id before it is saved |
 | `text` and `timestamptz` | Payload field lengths are not known yet; `timestamptz` stores an instant, so UTC handling is unambiguous |
-| `name` and `home_nation_code` are `NOT NULL` on `organisation` | Mandatory per the Jira questions; everything else waits for the payload to settle |
+| `name` and `home_nation` are `NOT NULL` on `organisation` | Mandatory per the Jira questions; everything else waits for the payload to settle |
 | `ON DELETE RESTRICT` | History is closed, not deleted; a cascade could silently remove it |
 | EF entities in `Data/Postgres/Entities` | No name collision with the Mongo entities, which stay untouched |
 | Integration tests, no rollback test | Covers what the endpoint stories depend on; rollback is out of scope |
@@ -284,9 +296,9 @@ To raise on REGEN-141 and with Michael Asante:
 
 1. ~~**Organisation type, twice.**~~ Answered 20 October 2026: `organisation_type` is a reference list of codes, and `organisation.organisation_type_id` is the only link (`organisation_type`, Decisions).
 2. ~~**One type per organisation?**~~ Answered 20 October 2026: yes, as a single foreign key on `organisation`.
-3. **Usage type values.** The board has `Organisation` and `Site`; the Confluence `POST /organisations` payload has `correspondenceAddress`, which the board does not. Add `Correspondence`? What are `Organisation` and `Site` addresses?
-4. **`nation_code` and `home_nation_code`.** What is the difference, and is `homeNation` in the payload `home_nation_code`?
-5. **Mandatory fields.** Are `name` and `home_nation_code` on `organisation` (plus at least one address, enforced by the endpoint) the right set?
+3. ~~**Usage type values.**~~ Answered 20 and 21 October 2026: `Correspondence` added, `Site` and `Organisation` dropped, `Audit` kept (`address_usagetype`, Decisions).
+4. ~~**`nation_code` and `home_nation_code`.**~~ Answered 20 October 2026: both are replaced by `home_nation`, matching `homeNation` on the API page.
+5. **Mandatory fields.** Are `name` and `home_nation` on `organisation` (plus at least one address, enforced by the endpoint) the right set? Which address fields does the create endpoint require?
 6. **Duplicate detection.** Due at backlog refinement on 16 October 2026 (stand-up: a duplicate returns the matching organisation with 200). The answer may add a unique constraint in a later changeset.
 7. **`valid_from`/`valid_to` on `organisation`.** What does closing an organisation mean, given `organisation_lifecycle` on the board?
 8. **External ids.** Where do `externalOrganisationId` and `externalSubsidiaryId` live? They are in every Confluence payload but on no table in scope.
@@ -307,5 +319,5 @@ To raise on REGEN-141 and with Michael Asante:
 
 ## Notes
 
-- Mongo `Address.Town` is `address.city` here; the mapping between the v1 and v2 shapes belongs to the endpoint stories.
+- Mongo `Address.Town` is `address.locality` here; the mapping between the v1 and v2 shapes belongs to the endpoint stories.
 - Postgres does not index foreign keys automatically; each FK column gets an index named `ix_<table>_<column>`.

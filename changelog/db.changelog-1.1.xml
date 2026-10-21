@@ -14,11 +14,9 @@
       </column>
       <column name="trading_name" type="text" />
       <column name="companies_house_number" type="text" />
-      <column name="home_nation_code" type="text">
+      <column name="home_nation" type="text">
         <constraints nullable="false" />
       </column>
-      <column name="nation_code" type="text" />
-      <column name="main_activity_sic" type="text" />
       <column name="organisation_type_id" type="uuid" />
       <column name="valid_from" type="timestamptz">
         <constraints nullable="false" />
@@ -60,14 +58,17 @@
       <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
-      <column name="address_line1" type="text" />
-      <column name="address_line2" type="text" />
-      <column name="city" type="text" />
-      <column name="county" type="text" />
-      <column name="postcode" type="text" />
-      <column name="country" type="text" />
-      <column name="state_province_or_region" type="text" />
-      <column name="phone_number" type="text" />
+      <column name="address_line" type="text" />
+      <column name="sub_building_name" type="text" />
+      <column name="building_name" type="text" />
+      <column name="building_number" type="text" />
+      <column name="street" type="text" />
+      <column name="locality" type="text" />
+      <column name="region" type="text" />
+      <column name="postal_code" type="text" />
+      <column name="po_box" type="text" />
+      <column name="country_iso" type="text" />
+      <column name="country_name" type="text" />
       <column name="created_at" type="timestamptz">
         <constraints nullable="false" />
       </column>
@@ -75,6 +76,16 @@
         <constraints nullable="false" />
       </column>
     </createTable>
+  </changeSet>
+
+  <!-- A UK address is exactly one whose ISO 3166-1 alpha-2 code is GB, so is_uk_address is derived and can never contradict country_iso -->
+  <changeSet id="1.1-address-is-uk-address" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD COLUMN is_uk_address boolean GENERATED ALWAYS AS (country_iso = 'GB') STORED;
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP COLUMN is_uk_address;
+    </rollback>
   </changeSet>
 
   <changeSet id="1.1-create-organisation-address" author="waste-organisations">
@@ -172,13 +183,6 @@
     </createIndex>
   </changeSet>
 
-  <changeSet id="1.1-ix-address-address-line1-postcode" author="waste-organisations">
-    <createIndex indexName="ix_address_address_line1_postcode" tableName="address">
-      <column name="address_line1" />
-      <column name="postcode" />
-    </createIndex>
-  </changeSet>
-
   <changeSet id="1.1-uq-address-usagetype-name" author="waste-organisations">
     <addUniqueConstraint constraintName="uq_address_usagetype_name" tableName="address_usagetype" columnNames="name" />
   </changeSet>
@@ -193,6 +197,24 @@
     </sql>
     <rollback>
       ALTER TABLE organisation DROP CONSTRAINT ck_organisation_valid_to;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ck-organisation-home-nation" author="waste-organisations">
+    <sql>
+      ALTER TABLE organisation ADD CONSTRAINT ck_organisation_home_nation CHECK (home_nation IN ('GB-ENG', 'GB-SCT', 'GB-WLS', 'GB-NIR'));
+    </sql>
+    <rollback>
+      ALTER TABLE organisation DROP CONSTRAINT ck_organisation_home_nation;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ck-address-country-iso" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_country_iso CHECK (country_iso IS NULL OR country_iso ~ '^[A-Z]{2}$');
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP CONSTRAINT ck_address_country_iso;
     </rollback>
   </changeSet>
 
@@ -397,11 +419,7 @@
     </insert>
     <insert tableName="address_usagetype">
       <column name="id" value="00000000-0000-0000-0000-000000000005" />
-      <column name="name" value="Organisation" />
-    </insert>
-    <insert tableName="address_usagetype">
-      <column name="id" value="00000000-0000-0000-0000-000000000006" />
-      <column name="name" value="Site" />
+      <column name="name" value="Correspondence" />
     </insert>
     <rollback>
       DELETE FROM address_usagetype WHERE usage_type IN ('Registered', 'Audit', 'ServiceOfNotice', 'Principal', 'Organisation', 'Site');

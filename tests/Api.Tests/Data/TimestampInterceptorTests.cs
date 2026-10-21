@@ -176,7 +176,7 @@ public class TimestampInterceptorTests
         {
             Id = Guid.CreateVersion7(),
             Name = "Organisation",
-            HomeNationCode = "ENG",
+            HomeNation = "GB-ENG",
         };
 
     private static PostgresDbContext CreateContext(TimestampInterceptor? interceptor = null)
