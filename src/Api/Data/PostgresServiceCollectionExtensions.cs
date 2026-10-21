@@ -1,8 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Amazon;
 using Amazon.RDS.Util;
+using Defra.WasteOrganisations.Api.Data.Postgres;
 using Defra.WasteOrganisations.Api.Utils.Health;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -34,9 +36,16 @@ public static class PostgresServiceCollectionExtensions
         // not Postgres is reachable, and the in-process tests need no special case, only the
         // Degraded failure status their settings file sets
         services.AddSingleton(sp => CreateDataSource(sp.GetRequiredService<IOptions<PostgresOptions>>().Value));
+
+        // The web host already registers TimeProvider; a bare service collection (as in the
+        // integration tests) does not
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<TimestampInterceptor>();
         services.AddDbContext<PostgresDbContext>(
             (sp, options) =>
-                options.UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.EnableRetryOnFailure())
+                options
+                    .UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.EnableRetryOnFailure())
+                    .AddInterceptors(sp.GetRequiredService<TimestampInterceptor>())
         );
 
         // The failure status decides whether an unreachable Postgres takes the instance out of
