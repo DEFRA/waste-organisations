@@ -218,6 +218,28 @@
     </rollback>
   </changeSet>
 
+  <!-- A UK address needs a postcode; an overseas one may not have any. COALESCE matters: a CHECK
+       passes when its expression is NULL, so btrim(NULL) <> '' alone would let a missing postcode through -->
+  <changeSet id="1.1-ck-address-uk-postal-code" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_uk_postal_code CHECK (country_iso IS DISTINCT FROM 'GB' OR COALESCE(btrim(postal_code), '') &lt;&gt; '');
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP CONSTRAINT ck_address_uk_postal_code;
+    </rollback>
+  </changeSet>
+
+  <!-- The premises must be identifiable, but not every address has a number: a named building, a unit or a
+       PO box will do. Blank values do not count -->
+  <changeSet id="1.1-ck-address-premises" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_premises CHECK (num_nonnulls(NULLIF(btrim(building_number), ''), NULLIF(btrim(building_name), ''), NULLIF(btrim(sub_building_name), ''), NULLIF(btrim(po_box), ''), NULLIF(btrim(address_line), '')) &gt; 0);
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP CONSTRAINT ck_address_premises;
+    </rollback>
+  </changeSet>
+
   <changeSet id="1.1-ck-organisation-address-valid-to" author="waste-organisations">
     <sql>
       ALTER TABLE organisation_address ADD CONSTRAINT ck_organisation_address_valid_to CHECK (valid_to IS NULL OR valid_to > valid_from);

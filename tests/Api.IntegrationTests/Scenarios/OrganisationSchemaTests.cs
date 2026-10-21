@@ -236,7 +236,12 @@ public class OrganisationSchemaTests : IntegrationTestBase
             {
                 Id = Guid.CreateVersion7(),
                 UsageTypeId = registeredId,
-                Address = new Address { Id = Guid.CreateVersion7(), Street = "High Street" },
+                Address = new Address
+                {
+                    Id = Guid.CreateVersion7(),
+                    BuildingNumber = "1",
+                    Street = "High Street",
+                },
             }
         );
         await SaveOrganisationAsync(provider, organisation);
@@ -306,6 +311,105 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await save.Should().ThrowAsync<DbUpdateException>();
     }
+
+    // Real addresses without a building number, a street or a postcode are accepted: only a UK address
+    // needs a postcode, and any one of number, building name, unit, PO box or address line identifies
+    // the premises
+    [Theory]
+    [InlineData("named building only")]
+    [InlineData("PO box")]
+    [InlineData("overseas without postcode")]
+    public async Task Address_WithoutBuildingNumberOrPostcode_IsAccepted(string kind)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        context.Addresses.Add(AddressOfKind(kind));
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await save.Should().NotThrowAsync();
+    }
+
+    // ck_address_uk_postal_code rejects a UK address with a missing or blank postcode, and
+    // ck_address_premises rejects an address with nothing (or only blanks) to identify the premises
+    [Theory]
+    [InlineData("UK without postcode")]
+    [InlineData("UK with blank postcode")]
+    [InlineData("no premises")]
+    [InlineData("blank premises")]
+    public async Task Address_WithoutRequiredParts_IsRejectedByCheckConstraint(string kind)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        context.Addresses.Add(AddressOfKind(kind));
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await save.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    private static Address AddressOfKind(string kind) =>
+        kind switch
+        {
+            "named building only" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                BuildingName = "Rose Farm",
+                Locality = "Little Testing",
+                PostalCode = "AB1 2CD",
+                CountryIso = "GB",
+            },
+            "PO box" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                PoBox = "PO Box 99",
+                Locality = "Testville",
+                PostalCode = "AB1 9ZZ",
+                CountryIso = "GB",
+            },
+            "overseas without postcode" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                BuildingNumber = "12",
+                Street = "Harbour Road",
+                Locality = "Hong Kong",
+                CountryIso = "HK",
+            },
+            "UK without postcode" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                BuildingNumber = "1",
+                Street = "High Street",
+                CountryIso = "GB",
+            },
+            "UK with blank postcode" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                BuildingNumber = "1",
+                Street = "High Street",
+                PostalCode = "  ",
+                CountryIso = "GB",
+            },
+            "no premises" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                Street = "High Street",
+                PostalCode = "AB1 2CD",
+                CountryIso = "GB",
+            },
+            "blank premises" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                BuildingNumber = " ",
+                BuildingName = "",
+                Street = "High Street",
+                PostalCode = "AB1 2CD",
+                CountryIso = "GB",
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
 
     // is_uk_address is generated from country_iso: true for GB, false for any other country and
     // null when the country is unknown; EF reads it back after the save
