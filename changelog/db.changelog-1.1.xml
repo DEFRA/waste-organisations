@@ -398,6 +398,9 @@
       <column name="id" value="00000000-0000-0000-0001-000000000040" />
       <column name="code" value="public-body" />
     </insert>
+    <!-- Nothing to undo here: rolling back the createTable changeset above drops the table, and these rows with it.
+         A DELETE would fail once any row references a seeded one, because the foreign keys are rolled back after this -->
+    <rollback />
   </changeSet>
 
   <changeSet id="1.1-seed-address-usagetype" author="waste-organisations">
@@ -421,9 +424,9 @@
       <column name="id" value="00000000-0000-0000-0000-000000000005" />
       <column name="name" value="Correspondence" />
     </insert>
-    <rollback>
-      DELETE FROM address_usagetype WHERE usage_type IN ('Registered', 'Audit', 'ServiceOfNotice', 'Principal', 'Organisation', 'Site');
-    </rollback>
+    <!-- Nothing to undo here: rolling back the createTable changeset above drops the table, and these rows with it.
+         A DELETE would fail once any row references a seeded one, because the foreign keys are rolled back after this -->
+    <rollback />
   </changeSet>
 
   <changeSet id="1.1-tag-v1.1.0" author="waste-organisations">

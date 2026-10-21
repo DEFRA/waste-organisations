@@ -6,7 +6,7 @@ namespace Defra.WasteOrganisations.Api.Tests.Data;
 
 // The list is the published contract for organisationType: consumers build their labels from it,
 // so every code must be distinct and every meaning must tell its code apart from the others
-public class OrganisationTypeCodesTests
+public partial class OrganisationTypeCodesTests
 {
     [Fact]
     public void All_ShouldHoldTheCompaniesHouseTypesAndOurFour()
@@ -24,7 +24,7 @@ public class OrganisationTypeCodesTests
         var codes = OrganisationTypeCodes.All.Select(c => c.Code).ToList();
 
         codes.Should().OnlyHaveUniqueItems();
-        codes.Should().AllSatisfy(code => Regex.IsMatch(code, "^[a-z0-9]+(-[a-z0-9]+)*$").Should().BeTrue(code));
+        codes.Should().AllSatisfy(code => CompaniesHouseFormat().IsMatch(code).Should().BeTrue(code));
     }
 
     [Fact]
@@ -35,4 +35,8 @@ public class OrganisationTypeCodesTests
         descriptions.Should().OnlyHaveUniqueItems();
         descriptions.Should().AllSatisfy(d => d.Should().NotBeNullOrWhiteSpace());
     }
+
+    // Lower-case words joined by single hyphens, as in Companies House's company_type values
+    [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$")]
+    private static partial Regex CompaniesHouseFormat();
 }
