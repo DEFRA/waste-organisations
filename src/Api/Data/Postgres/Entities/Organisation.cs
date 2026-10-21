@@ -12,9 +12,7 @@ public class Organisation : IValidFrom, ITimestamped
     public string HomeNationCode { get; set; } = null!;
     public string? NationCode { get; set; }
     public string? MainActivitySic { get; set; }
-    public string? OrganisationTypeCode { get; set; }
-    public string? OrganisationSubTypeCode { get; set; }
-    public string? OrganisationTypeName { get; set; }
+    public Guid? OrganisationTypeId { get; set; }
     public DateTime ValidFrom { get; set; }
     public DateTime? ValidTo { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -37,12 +35,16 @@ public class OrganisationConfiguration : IEntityTypeConfiguration<Organisation>
         builder.Property(o => o.HomeNationCode).HasColumnName("home_nation_code");
         builder.Property(o => o.NationCode).HasColumnName("nation_code");
         builder.Property(o => o.MainActivitySic).HasColumnName("main_activity_sic");
-        builder.Property(o => o.OrganisationTypeCode).HasColumnName("organisation_type_code");
-        builder.Property(o => o.OrganisationSubTypeCode).HasColumnName("organisation_sub_type_code");
-        builder.Property(o => o.OrganisationTypeName).HasColumnName("organisation_type_name");
+        builder.Property(o => o.OrganisationTypeId).HasColumnName("organisation_type_id");
         builder.Property(o => o.ValidFrom).HasColumnName("valid_from");
         builder.Property(o => o.ValidTo).HasColumnName("valid_to");
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");
+
+        builder
+            .HasOne(o => o.OrganisationType)
+            .WithMany()
+            .HasForeignKey(o => o.OrganisationTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

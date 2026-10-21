@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Data.Postgres;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -53,6 +54,22 @@ public class DatabaseChangelogTests : IntegrationTestBase
             .ToListAsync(TestContext.Current.CancellationToken);
 
         tags.Should().Contain("v1.1.0");
+    }
+
+    // The changelog seeds organisation_type with exactly the codes the API publishes, so the
+    // contract and the table cannot drift apart
+    [Fact]
+    public async Task OrganisationType_ShouldHoldThePublishedCodes()
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        var codes = await context
+            .OrganisationTypes.Select(t => t.Code)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        codes.Should().BeEquivalentTo(OrganisationTypeCodes.All.Select(c => c.Code));
     }
 
     // The changelog seeds address_usagetype with the board's six usage types and nothing else

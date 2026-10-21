@@ -19,9 +19,7 @@
       </column>
       <column name="nation_code" type="text" />
       <column name="main_activity_sic" type="text" />
-      <column name="organisation_type_code" type="text" />
-      <column name="organisation_sub_type_code" type="text" />
-      <column name="organisation_type_name" type="text" />
+      <column name="organisation_type_id" type="uuid" />
       <column name="valid_from" type="timestamptz">
         <constraints nullable="false" />
       </column>
@@ -40,13 +38,9 @@
       <column name="id" type="uuid">
         <constraints primaryKey="true" nullable="false" />
       </column>
-      <column name="organisation_id" type="uuid">
+      <column name="code" type="text">
         <constraints nullable="false" />
       </column>
-      <column name="is_a_partnership" type="boolean" defaultValueBoolean="false">
-        <constraints nullable="false" />
-      </column>
-      <column name="name" type="text" />
     </createTable>
   </changeSet>
 
@@ -110,12 +104,12 @@
     </createTable>
   </changeSet>
 
-  <changeSet id="1.1-fk-organisation-type-organisation" author="waste-organisations">
+  <changeSet id="1.1-fk-organisation-organisation-type" author="waste-organisations">
     <addForeignKeyConstraint
-      constraintName="fk_organisation_type_organisation"
-      baseTableName="organisation_type"
-      baseColumnNames="organisation_id"
-      referencedTableName="organisation"
+      constraintName="fk_organisation_organisation_type"
+      baseTableName="organisation"
+      baseColumnNames="organisation_type_id"
+      referencedTableName="organisation_type"
       referencedColumnNames="id"
       onDelete="RESTRICT"
     />
@@ -154,6 +148,12 @@
     />
   </changeSet>
 
+  <changeSet id="1.1-ix-organisation-organisation-type-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_organisation_type_id" tableName="organisation">
+      <column name="organisation_type_id" />
+    </createIndex>
+  </changeSet>
+
   <changeSet id="1.1-ix-organisation-address-organisation-id" author="waste-organisations">
     <createIndex indexName="ix_organisation_address_organisation_id" tableName="organisation_address">
       <column name="organisation_id" />
@@ -183,12 +183,8 @@
     <addUniqueConstraint constraintName="uq_address_usagetype_name" tableName="address_usagetype" columnNames="name" />
   </changeSet>
 
-  <changeSet id="1.1-uq-organisation-type-organisation-id" author="waste-organisations">
-    <addUniqueConstraint
-      constraintName="uq_organisation_type_organisation_id"
-      tableName="organisation_type"
-      columnNames="organisation_id"
-    />
+  <changeSet id="1.1-uq-organisation-type-code" author="waste-organisations">
+    <addUniqueConstraint constraintName="uq_organisation_type_code" tableName="organisation_type" columnNames="code" />
   </changeSet>
 
   <changeSet id="1.1-ck-organisation-valid-to" author="waste-organisations">
@@ -216,6 +212,170 @@
     <rollback>
       DROP INDEX ux_organisation_address_current;
     </rollback>
+  </changeSet>
+
+  <!-- The codes and their order follow OrganisationTypeCodes.All in src/Api/Data/Postgres -->
+  <changeSet id="1.1-seed-organisation-type" author="waste-organisations">
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000001" />
+      <column name="code" value="private-unlimited" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000002" />
+      <column name="code" value="ltd" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000003" />
+      <column name="code" value="plc" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000004" />
+      <column name="code" value="old-public-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000005" />
+      <column name="code" value="private-limited-guarant-nsc-limited-exemption" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000006" />
+      <column name="code" value="limited-partnership" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000007" />
+      <column name="code" value="private-limited-guarant-nsc" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000008" />
+      <column name="code" value="converted-or-closed" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000009" />
+      <column name="code" value="private-unlimited-nsc" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000010" />
+      <column name="code" value="private-limited-shares-section-30-exemption" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000011" />
+      <column name="code" value="protected-cell-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000012" />
+      <column name="code" value="assurance-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000013" />
+      <column name="code" value="oversea-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000014" />
+      <column name="code" value="eeig-establishment" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000015" />
+      <column name="code" value="icvc-securities" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000016" />
+      <column name="code" value="icvc-warrant" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000017" />
+      <column name="code" value="icvc-umbrella" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000018" />
+      <column name="code" value="registered-society-non-jurisdictional" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000019" />
+      <column name="code" value="industrial-and-provident-society" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000020" />
+      <column name="code" value="northern-ireland" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000021" />
+      <column name="code" value="northern-ireland-other" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000022" />
+      <column name="code" value="llp" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000023" />
+      <column name="code" value="royal-charter" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000024" />
+      <column name="code" value="investment-company-with-variable-capital" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000025" />
+      <column name="code" value="unregistered-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000026" />
+      <column name="code" value="other" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000027" />
+      <column name="code" value="european-public-limited-liability-company-se" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000028" />
+      <column name="code" value="united-kingdom-societas" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000029" />
+      <column name="code" value="uk-establishment" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000030" />
+      <column name="code" value="scottish-partnership" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000031" />
+      <column name="code" value="charitable-incorporated-organisation" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000032" />
+      <column name="code" value="scottish-charitable-incorporated-organisation" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000033" />
+      <column name="code" value="further-education-or-sixth-form-college-corporation" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000034" />
+      <column name="code" value="eeig" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000035" />
+      <column name="code" value="ukeig" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000036" />
+      <column name="code" value="registered-overseas-entity" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000037" />
+      <column name="code" value="sole-trader" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000038" />
+      <column name="code" value="partnership" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000039" />
+      <column name="code" value="unincorporated-association" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000040" />
+      <column name="code" value="public-body" />
+    </insert>
   </changeSet>
 
   <changeSet id="1.1-seed-address-usagetype" author="waste-organisations">

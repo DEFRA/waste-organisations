@@ -6,7 +6,7 @@
 | Priority | P1 (High): a pre-task of REGEN-141 (Create an Organisation), which is in progress and cannot persist anything without these tables |
 | Parent | REGEN-141 Create an Organisation, under REGEN-125 Access to org data via Org API |
 | Risk | Medium (see Risks) |
-| Source | Jira story REGEN-141 and its comments (stand-up notes of 16 October 2026, Ogonna Iwunze's questions), the "Data payloads" table on the Confluence page "Access to org data via Org API", the domain model on the Miro board (`uXjVHUfA4ZE=`, as a screenshot on 16 October 2026), and the refinement answers of 16 October 2026 |
+| Source | Jira story REGEN-141 and its comments (stand-up notes of 16 October 2026, Ogonna Iwunze's questions), the "Data payloads" table on the Confluence page "Access to org data via Org API", the domain model on the Miro board (`uXjVHUfA4ZE=`, as a screenshot on 16 October 2026), and the refinement answers of 16 October 2026, and the team decisions on organisation type of 20 October 2026 (REGEN-141 comment) |
 
 ## Problem/Opportunity
 
@@ -51,7 +51,7 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 - `created_at` and `updated_at` are `timestamptz NOT NULL` with no default. A database default would never apply: EF Core sends every mapped column in an `INSERT`, so an unset `DateTime` would be stored as `-infinity` (PR review). Only the service sets them: `TimestampInterceptor` (EF Core entities) writes them from `TimeProvider`, ignoring any value on the entity; there is no trigger.
 - Where a table has `valid_from` and `valid_to`: `valid_from` is `timestamptz NOT NULL` with no default, set by `TimestampInterceptor` when the caller leaves it unset; `valid_to` is nullable, and `NULL` means "current". A check constraint enforces `valid_to IS NULL OR valid_to > valid_from`.
 - Every foreign key is `ON DELETE RESTRICT`. History is closed with `valid_to`, never removed by a cascade.
-- Every foreign key column has an index; Postgres does not create one for a foreign key. Where a unique constraint already covers the column (`organisation_type.organisation_id`), its index serves and no second one is added.
+- Every foreign key column has an index; Postgres does not create one for a foreign key. Where a unique constraint already covers the column, its index serves and no second one is added.
 - The tables live in the `public` schema, like `databasechangelog`.
 
 ### Tables
@@ -67,15 +67,13 @@ Add a `db.changelog-1.1.xml` that creates the five tables and seeds the address 
 | `home_nation_code` | `text` | NOT NULL | |
 | `nation_code` | `text` | NULL | See Open Questions |
 | `main_activity_sic` | `text` | NULL | |
-| `organisation_type_code` | `text` | NULL | Overlaps the `organisation_type` table: see Open Questions |
-| `organisation_sub_type_code` | `text` | NULL | |
-| `organisation_type_name` | `text` | NULL | The board's `OrganisationType`. Prefixed because it describes the organisation's type, not the organisation (Decisions) |
+| `organisation_type_id` | `uuid` | NULL | FK to `organisation_type`; index `ix_organisation_organisation_type_id`. The API's `organisationType` carries that row's `code` |
 | `valid_from` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `valid_to` | `timestamptz` | NULL | |
 | `created_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 | `updated_at` | `timestamptz` | NOT NULL | Set by `TimestampInterceptor` |
 
-The board's `OrganisationSize` and `Turnover` are not built (Decisions).
+The board's `OrganisationSize` and `Turnover` are not built, nor its `OrganisationTypeCode`, `OrganisationSubTypeCode` and `OrganisationType` columns, which `organisation_type_id` replaces (Decisions).
 
 `name` and `home_nation_code` are the only business columns that are `NOT NULL`. The Jira questions also list "address" as mandatory; a row cannot require a child row, so the create endpoint enforces that.
 
@@ -83,16 +81,32 @@ No unique constraint on name, Companies House number or any combination: how dup
 
 #### `organisation_type`
 
-As drawn on the board: a child of `organisation`, not a reference list.
+A seeded reference list of legal forms: one row per form, shared by every organisation of that form (team decisions, 20 October 2026). Unlike the board, it is not a child of `organisation`: `organisation` points at it through `organisation_type_id`, so an organisation has at most one type.
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
 | `id` | `uuid` | NOT NULL | PK |
-| `organisation_id` | `uuid` | NOT NULL | FK to `organisation`. Unique (`uq_organisation_type_organisation_id`, whose index is also the FK's index): the board says an organisation "has an" organisation type |
-| `is_a_partnership` | `boolean` | NOT NULL | Default `false` |
-| `name` | `text` | NULL | The legal form, for example "Partnership" or "Limited liability" |
+| `code` | `text` | NOT NULL | Unique (`uq_organisation_type_code`) |
 
-`organisationType` is the type in the legal sense, for example what Companies House returns (stand-up, 16 October 2026). Why both this table and the type columns on `organisation` exist is an open question for Michael Asante (Open Questions); this story builds both and leaves both nullable so either can be dropped later without a data migration.
+`organisationType` is the type in the legal sense, for example what Companies House returns (stand-up, 16 October 2026). The table is seeded with 40 codes:
+
+- All 36 Companies House `company_type` values, as published in [`companieshouse/api-enumerations` `constants.yml`](https://github.com/companieshouse/api-enumerations/blob/master/constants.yml) (commit `98b9594`, 10 September 2026), legacy ones included, so any value a Companies House lookup or an RPD migration returns can be stored as it is.
+- Four of our own, for forms Companies House does not register: `sole-trader`, `partnership` (unregistered, England and Wales), `unincorporated-association` and `public-body`. They must not be confused with Companies House's own `other` and `unregistered-company`.
+
+Every code is equally valid; there is no "common" subset. Which codes a UI offers, and how it labels them, is up to the UI.
+
+There is no `name` column. The API carries only the code, and each consumer owns its labels, English and Welsh, so a UI can handle Welsh as it sees fit (team decisions, 20 October 2026). A `name` can be added later as a nullable column and a changeset that fills it.
+
+So that consumers can build their labels from one source, the codes and their meanings are published in the API contract:
+
+- `OrganisationTypeCodes.All` (`src/Api/Data/Postgres/OrganisationTypeCodes.cs`), one entry per code with its description, is the source of truth. The v2 create and read endpoints, which are REGEN-141's own work and not this story's, publish it: the OpenAPI (Swagger) document lists the allowed `organisationType` values with those descriptions.
+- Descriptions are Companies House's own, except where Companies House repeats one: `investment-company-with-variable-capital`, `icvc-securities`, `icvc-warrant` and `icvc-umbrella` all read "Investment company with variable capital", so each gets a description that tells them apart.
+- An integration test fails if the codes in `organisation_type` differ from the C# list, so the seed and the published contract cannot drift.
+- A new code is an `insert` changeset plus an entry in the C# list. A published code is never renamed or deleted; Companies House keeps its legacy values, and so does this table.
+
+On create, an `organisationType` that is not in the list is rejected with `400`, naming the field (REGEN-141 scenario 3). Each consumer should agree a fallback for a code it does not yet know, for example showing "Other" and logging it, so that adding a code never breaks a UI.
+
+Not built: a `name` (above), `is_a_partnership` (derivable from the partnership codes: `llp`, `limited-partnership`, `scottish-partnership`, `partnership`) and an organisation sub-type (not an MVP field) (team decisions, 20 October 2026).
 
 #### `address_usagetype`
 
@@ -161,7 +175,7 @@ One address may carry several usage types for the same organisation only as sepa
 
 | Path | Content |
 |---|---|
-| `changelog/db.changelog-1.1.xml` | New. One changeset per table, in dependency order (`organisation`, `organisation_type`, `address_usagetype`, `address`, `organisation_address`), a changeset that inserts the usage types, and a last changeset that tags the database `v1.1.0` |
+| `changelog/db.changelog-1.1.xml` | New. One changeset per table, in dependency order (`organisation`, `organisation_type`, `address_usagetype`, `address`, `organisation_address`), changesets that insert the organisation types and the usage types, and a last changeset that tags the database `v1.1.0` |
 | `changelog/db.changelog.xml` | Includes `db.changelog-1.1.xml` after `db.changelog-1.0.xml` |
 
 Changesets use Liquibase's XML change types (`createTable`, `addForeignKeyConstraint`, `createIndex`, `insert`, `tagDatabase`). The partial unique index and the check constraints have no XML change type that expresses them, so they are `sql` changes with an explicit `rollback`. `db.changelog-1.0.xml` is not edited (README: a published changeset is never changed).
@@ -174,8 +188,8 @@ In `src/Api/Data/Postgres/Entities/`, namespace `Defra.WasteOrganisations.Api.Da
 
 | Entity | Table | Navigations |
 |---|---|---|
-| `Organisation` | `organisation` | `OrganisationType?` (one-to-one), `Addresses` (`List<OrganisationAddress>`) |
-| `OrganisationType` | `organisation_type` | `Organisation` |
+| `Organisation` | `organisation` | `OrganisationType?` (many-to-one, through `OrganisationTypeId`), `Addresses` (`List<OrganisationAddress>`) |
+| `OrganisationType` | `organisation_type` | none |
 | `AddressUsageType` | `address_usagetype` | none |
 | `Address` | `address` | none |
 | `OrganisationAddress` | `organisation_address` | `Organisation`, `Address`, `UsageType` |
@@ -194,13 +208,16 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 
 - The `v1.1.0` tag is in `databasechangelog`.
 - `address_usagetype` holds exactly the six seeded values.
-- An organisation with an organisation type and two addresses (`Registered`, `Principal`) saved through `PostgresDbContext` reads back with every column and navigation equal, including `timestamptz` values as UTC.
+- An organisation with an organisation type (by code) and two addresses (`Registered`, `Principal`) saved through `PostgresDbContext` reads back with every column and navigation equal, including `timestamptz` values as UTC.
 - A second current `Registered` address for the same organisation is rejected by `ux_organisation_address_current`; after `valid_to` is set on the first, the second is accepted.
 - An `organisation_address` with an unknown `usage_type_id` or `organisation_id` is rejected by its foreign key.
 - Deleting an organisation that has addresses is rejected (`RESTRICT`).
 - `valid_to` earlier than `valid_from` on `organisation_address` is rejected by the check constraint.
 - An organisation saved with `created_at` and `updated_at` already set stores the clock's time instead, gets `valid_from` from the clock when unset, and an update that also changes `created_at` moves only `updated_at`.
-- A second `organisation_type` row for the same organisation is rejected.
+- `organisation_type` holds exactly the 40 seeded codes, equal to `OrganisationTypeCodes.All`.
+- An `organisation` with an unknown `organisation_type_id` is rejected by its foreign key.
+
+In `Api.Tests`, `OrganisationTypeCodesTests` checks that the list has 40 entries, that every code is unique and in the Companies House kebab-case format, and that every description is unique, so no two codes share a meaning.
 
 `PostgresDbContext_ShouldConnectAndHaveNoEntities` changes to assert the five entity types instead of none. It is an integration test, not a v1 test. Tests create their own organisations with fresh ids and do not depend on each other's rows; the Mongo clean-up in the integration tests does not touch Postgres.
 
@@ -231,7 +248,8 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 - Duplicate detection and any unique constraint for it.
 - `subsidiary`, `organisation_lifecycle` and the scheme tables (`scheme_operator`, `scheme_member`, `compliance_scheme`, `compliance_scheme_lifecycle`).
 - External ids from RPD (`externalOrganisationId`, `externalSubsidiaryId`, the six-digit public organisation id): they are in the Confluence payloads but not on the board.
-- `sicCode` beyond the board's `main_activity_sic`, and any reference list of SIC codes, nations or organisation types.
+- `sicCode` beyond the board's `main_activity_sic`, and any reference list of SIC codes or nations.
+- A `name` on `organisation_type`, `is_a_partnership`, and an organisation sub-type.
 - Migrating organisation data from MongoDB or from RPD.
 - Triggers for `updated_at`, audit or change-delta tables.
 - A read-only data source (`Postgres:ReadOnlyHost`).
@@ -240,13 +258,14 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 
 | Decision | Why |
 |---|---|
-| Build `organisation_type` as drawn: a child of `organisation`, alongside the type columns on `organisation` | Stay close to Michael's design; the overlap is recorded as an open question rather than resolved here |
+| `organisation_type` is a seeded reference list of codes (`id`, `code`), pointed at by `organisation.organisation_type_id`; no `name`, `is_a_partnership` or sub-type | Team decisions, 20 October 2026. The code makes Welsh, and labels generally, the UI's concern; the foreign key keeps every stored type valid. A `name` is cheap to add later |
+| Seed all 36 Companies House `company_type` codes plus four of our own, with no common subset | Anything a Companies House lookup or an RPD migration returns can be stored as it is; one flat list keeps it simple |
+| The codes and their meanings are published in the API contract, from a C# list the seed is tested against | Consumers build their labels from one source rather than guessing; the test stops the published list and the table drifting apart |
 | `address_usagetype` is a reference list with no foreign key back to `organisation_address` | The board's two-way foreign keys are circular: neither row could be inserted first |
 | Seed the board's six usage types only | The board is the agreed model; `Correspondence` waits for refinement |
 | Keep history with `valid_from`/`valid_to`; one current address per organisation and usage type; addresses not shared | Matches the board's columns and the "records change deltas and timestamps" success metric, without the update anomalies of shared address rows |
-| A table's own attributes are not prefixed with the table's name: `organisation.name`, `organisation_type.name`, `address_usagetype.name` (properties `Name`) | The same rule as `id`: the table already says whose name it is. It matches `name` in the Confluence payloads, and it avoids `OrganisationType.OrganisationType`, which C# does not allow (PR review) |
+| A table's own attributes are not prefixed with the table's name: `organisation.name`, `address_usagetype.name`, `organisation_type.code` (properties `Name`, `Code`) | The same rule as `id`: the table already says whose attribute it is. It matches `name` in the Confluence payloads (PR review) |
 | No `organisation_size` or `turnover` on `organisation`, unlike the board | Producer size (large or small) is RPD's packaging classification, decided per registration year from thresholds such as turnover; the v1 API already holds it as a registration type, and registration data is moving to an RPD-owned Registrations service. This service stays agnostic of any one service's rules. Turnover means nothing without a financial year, and no Confluence payload has either field. (PR review) |
-| `organisation.organisation_type_name` / `Organisation.OrganisationTypeName` keeps its prefix | It describes the organisation's type, not the organisation, so `organisation.name` would mean the wrong thing; `Organisation.OrganisationType` is already the navigation |
 | Each table's own key is `id` / `Id`; references are `<thing>_id` / `<Thing>Id` | One convention across the Mongo entity, the DTOs and the documented API, where every object's identifier is `Id` (PR review) |
 | Natural key (`address_line1` + `postcode`) is an index, not a constraint | Not shared means two organisations at one address need two rows |
 | No `valid_from`/`valid_to` on `address` | Not shared, so `organisation_address` already holds the period; one place to close history (PR review) |
@@ -263,8 +282,8 @@ In `Api.IntegrationTests`, against the Compose Postgres (`docker compose up --bu
 
 To raise on REGEN-141 and with Michael Asante:
 
-1. **Organisation type, twice.** `organisation_type` (with `organisation_id`, `is_a_partnership`, `name`) and the `organisation_type_code`, `organisation_sub_type_code` and `organisation_type_name` columns on `organisation` overlap. Is `organisation_type` needed (the Jira thread already asks), should it be a reference list instead of a child table, and which column is the source of truth for the Confluence `organisationType` and `organisationSubType`?
-2. **One type per organisation?** This spec makes `organisation_type.organisation_id` unique, reading "has an" on the board. Confirm.
+1. ~~**Organisation type, twice.**~~ Answered 20 October 2026: `organisation_type` is a reference list of codes, and `organisation.organisation_type_id` is the only link (`organisation_type`, Decisions).
+2. ~~**One type per organisation?**~~ Answered 20 October 2026: yes, as a single foreign key on `organisation`.
 3. **Usage type values.** The board has `Organisation` and `Site`; the Confluence `POST /organisations` payload has `correspondenceAddress`, which the board does not. Add `Correspondence`? What are `Organisation` and `Site` addresses?
 4. **`nation_code` and `home_nation_code`.** What is the difference, and is `homeNation` in the payload `home_nation_code`?
 5. **Mandatory fields.** Are `name` and `home_nation_code` on `organisation` (plus at least one address, enforced by the endpoint) the right set?

@@ -25,16 +25,14 @@ public class PostgresDbContextModelTests
                     "home_nation_code",
                     "nation_code",
                     "main_activity_sic",
-                    "organisation_type_code",
-                    "organisation_sub_type_code",
-                    "organisation_type_name",
+                    "organisation_type_id",
                     "valid_from",
                     "valid_to",
                     "created_at",
                     "updated_at",
                 ]
             },
-            { typeof(OrganisationType), "organisation_type", ["id", "organisation_id", "is_a_partnership", "name"] },
+            { typeof(OrganisationType), "organisation_type", ["id", "code"] },
             { typeof(AddressUsageType), "address_usagetype", ["id", "name"] },
             {
                 typeof(Address),
@@ -114,7 +112,7 @@ public class PostgresDbContextModelTests
             Id = Guid.CreateVersion7(),
             Name = "Organisation",
             HomeNationCode = "ENG",
-            OrganisationType = new OrganisationType { Id = Guid.CreateVersion7() },
+            OrganisationType = new OrganisationType { Id = Guid.CreateVersion7(), Code = "ltd" },
         };
         var address = new Address { Id = Guid.CreateVersion7() };
         organisation.Addresses.Add(
@@ -128,7 +126,7 @@ public class PostgresDbContextModelTests
 
         context.Organisations.Add(organisation);
 
-        organisation.OrganisationType.OrganisationId.Should().Be(organisation.Id);
+        organisation.OrganisationTypeId.Should().Be(organisation.OrganisationType.Id);
         var organisationAddress = organisation.Addresses.Single();
         organisationAddress.OrganisationId.Should().Be(organisation.Id);
         organisationAddress.AddressId.Should().Be(address.Id);

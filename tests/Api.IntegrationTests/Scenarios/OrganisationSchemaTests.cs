@@ -9,7 +9,7 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
 public class OrganisationSchemaTests : IntegrationTestBase
 {
-    // An organisation with its type and a Registered plus a Principal address saved through
+    // An organisation with a seeded type and a Registered plus a Principal address saved through
     // PostgresDbContext must read back with every column and navigation equal, timestamps as UTC
     [Fact]
     public async Task Organisation_WithTypeAndTwoAddresses_RoundTrips()
@@ -19,13 +19,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var principalId = await UsageTypeIdAsync(provider, "Principal");
 
         var organisation = NewOrganisation();
-        organisation.OrganisationType = new OrganisationType
-        {
-            Id = Guid.CreateVersion7(),
-            OrganisationId = organisation.Id,
-            IsAPartnership = true,
-            Name = "Partnership",
-        };
+        organisation.OrganisationTypeId = await OrganisationTypeIdAsync(provider, "llp");
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, principalId, "2 Mill Lane"));
 
@@ -47,9 +41,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         read.HomeNationCode.Should().Be(organisation.HomeNationCode);
         read.NationCode.Should().Be(organisation.NationCode);
         read.MainActivitySic.Should().Be(organisation.MainActivitySic);
-        read.OrganisationTypeCode.Should().Be(organisation.OrganisationTypeCode);
-        read.OrganisationSubTypeCode.Should().Be(organisation.OrganisationSubTypeCode);
-        read.OrganisationTypeName.Should().Be(organisation.OrganisationTypeName);
+        read.OrganisationTypeId.Should().Be(organisation.OrganisationTypeId);
         read.ValidFrom.Should().Be(organisation.ValidFrom);
         read.ValidTo.Should().BeNull();
         read.CreatedAt.Should().Be(organisation.CreatedAt);
@@ -59,8 +51,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         read.UpdatedAt.Kind.Should().Be(DateTimeKind.Utc);
 
         read.OrganisationType.Should().NotBeNull();
-        read.OrganisationType.IsAPartnership.Should().BeTrue();
-        read.OrganisationType.Name.Should().Be("Partnership");
+        read.OrganisationType.Code.Should().Be("llp");
 
         read.Addresses.Should().HaveCount(2);
         read.Addresses.Select(a => a.UsageType.Name).Should().BeEquivalentTo("Registered", "Principal");
@@ -202,33 +193,17 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await save.Should().ThrowAsync<DbUpdateException>();
     }
 
-    // The unique constraint on organisation_type.organisation_id allows one type per organisation
+    // The organisation_type_id foreign key rejects an organisation whose type is not a seeded row
     [Fact]
-    public async Task SecondOrganisationTypeForSameOrganisation_IsRejected()
+    public async Task Organisation_WithUnknownOrganisationType_IsRejectedByForeignKey()
     {
         await using var provider = BuildServiceProvider();
 
-        var organisation = NewOrganisation();
-        organisation.OrganisationType = new OrganisationType
-        {
-            Id = Guid.CreateVersion7(),
-            OrganisationId = organisation.Id,
-            IsAPartnership = false,
-            Name = "Limited",
-        };
-        await SaveOrganisationAsync(provider, organisation);
-
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        context.OrganisationTypes.Add(
-            new OrganisationType
-            {
-                Id = Guid.CreateVersion7(),
-                OrganisationId = organisation.Id,
-                IsAPartnership = true,
-                Name = "Partnership",
-            }
-        );
+        var organisation = NewOrganisation();
+        organisation.OrganisationTypeId = Guid.CreateVersion7();
+        context.Organisations.Add(organisation);
 
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await save.Should().ThrowAsync<DbUpdateException>();
@@ -314,6 +289,16 @@ public class OrganisationSchemaTests : IntegrationTestBase
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 
+    private static async Task<Guid> OrganisationTypeIdAsync(ServiceProvider provider, string code)
+    {
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        return await context
+            .OrganisationTypes.Where(t => t.Code == code)
+            .Select(t => t.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
     private static Organisation NewOrganisation()
     {
         var now = UtcNowMicroseconds();
@@ -326,9 +311,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
             HomeNationCode = "ENG",
             NationCode = "GB-ENG",
             MainActivitySic = "38110",
-            OrganisationTypeCode = "LTD",
-            OrganisationSubTypeCode = "PLC",
-            OrganisationTypeName = "Limited",
             ValidFrom = now,
         };
     }
