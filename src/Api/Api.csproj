@@ -26,7 +26,7 @@
     <PackageReference Include="MongoDB.Driver.Authentication.AWS" Version="3.12.0" />
     <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-    <PackageReference Include="AWSSDK.RDS" Version="4.0.106.4" />
+    <PackageReference Include="AWSSDK.RDS" Version="4.0.107" />
     <!--
       Pinned so that AWSSDK.RDS 4.x can restore. MongoDB.Driver.Authentication.AWS 3.12.0 depends on
       AWSSDK.SecurityToken 3.7, which requires AWSSDK.Core < 4.0; this direct 4.x reference wins that
