@@ -60,6 +60,87 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateOrganisationRequest'
+      responses:
+        '201':
+          description: >-
+            The organisation is stored. The body holds the organisation, including the
+            identifier the server generated, and the `Location` header holds its path.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+            Api-Version:
+              $ref: '#/components/headers/ApiVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organisation'
+        '400':
+          description: >-
+            The request is rejected. The body names every field or header that failed, by
+            path, in `errors`. Causes are malformed JSON, a missing or unsupported
+            `Api-Version`, a missing required field, a missing `registeredAddress`, an
+            unknown `organisationType`, a `companiesHouseNumber` that is missing for a
+            Companies House type or in the wrong format, and any other enum or pattern
+            failure.
+          headers:
+            Api-Version:
+              $ref: '#/components/headers/ApiVersion'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '401':
+          description: >-
+            The request carries no credentials, or the credentials are invalid. The
+            response has no body.
+          headers:
+            WWW-Authenticate:
+              description: >-
+                The authentication schemes the API accepts, so a client knows how to
+                authenticate.
+              required: true
+              schema:
+                type: string
+                examples:
+                  - Basic realm="waste-organisations"
+        '403':
+          description: >-
+            The credentials are valid but do not carry the `write` scope, so the caller
+            cannot create an organisation. The response has no body.
+        '409':
+          description: >-
+            The organisation duplicates one the API already holds. The body holds
+            `existingOrganisationId` and the `Location` header holds the path of that
+            organisation, so a client fetches it instead of retrying. The rule that
+            decides what counts as a duplicate is not yet agreed, so this contract does
+            not state it.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+            Api-Version:
+              $ref: '#/components/headers/ApiVersion'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/DuplicateOrganisationProblem'
+        '415':
+          description: >-
+            The request body is not `application/json`, so the API did not read it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: >-
+            The API failed unexpectedly. The request may or may not have stored the
+            organisation, so a client checks before it retries.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      security:
+        - basicAuth: []
+        - bearerAuth: []
 
 components:
   schemas:
