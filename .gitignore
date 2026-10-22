@@ -279,3 +279,5 @@ PROGRESS.md
 .ralph/
 PROMPT_plan.md
 PROMPT_build.md
+PROMPT_review.md
+ralph.yaml
