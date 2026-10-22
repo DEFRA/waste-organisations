@@ -506,6 +506,85 @@ components:
         required:
           - companiesHouseNumber
 
+    Organisation:
+      type: object
+      description: >-
+        An organisation as the API returns it. Further optional fields may appear in a
+        later release, so a client must ignore a field it does not know.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: >-
+            The identifier of the organisation. The server generates it, and returns it in
+            the body and in the `Location` header.
+          examples:
+            - 0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+        name:
+          type: string
+          description: The registered or trading legal name of the organisation.
+          examples:
+            - Green Valley Waste Services Ltd
+        tradingName:
+          type: string
+          description: >-
+            The name the organisation trades under, when it differs from `name`.
+          examples:
+            - Green Valley Skips
+        companiesHouseNumber:
+          $ref: '#/components/schemas/CompaniesHouseNumber'
+          description: >-
+            The Companies House registration number of the organisation. It is absent when
+            the organisation has none.
+        homeNation:
+          $ref: '#/components/schemas/HomeNation'
+          description: The nation of the United Kingdom the organisation is based in.
+        organisationType:
+          $ref: '#/components/schemas/OrganisationType'
+          description: >-
+            The legal form of the organisation. It is absent when the organisation was
+            created without a type.
+        validFrom:
+          type: string
+          format: date-time
+          description: The UTC instant the organisation record starts from.
+          examples:
+            - '2026-10-22T09:30:00Z'
+        validTo:
+          type: string
+          format: date-time
+          readOnly: true
+          description: >-
+            The UTC instant the organisation record ends at. It is absent while the record
+            is current, and a client cannot set it.
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: The UTC instant the API created the organisation record.
+          examples:
+            - '2026-10-22T09:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: The UTC instant the API last changed the organisation record.
+          examples:
+            - '2026-10-22T09:30:00Z'
+        addresses:
+          $ref: '#/components/schemas/AddressesResponse'
+          description: >-
+            The current addresses of the organisation, keyed by address kind.
+      required:
+        - id
+        - name
+        - homeNation
+        - validFrom
+        - createdAt
+        - updatedAt
+        - addresses
+
   securitySchemes:
     basicAuth:
       type: http
