@@ -225,9 +225,37 @@ info:
 
     Do not retry a `400`, a `401`, a `403`, a `409` or a `415`: the same request fails the
     same way until you change it.
+
+    ## More information
+
+    This contract carries everything about the HTTP interface. The material that is not
+    about the interface, or that is not for every consumer, lives on Confluence, in the
+    space of the parent epic REGEN-125 **Access to org data via Org API**. The Waste
+    Organisations team holds the Confluence URLs and must add them here before the
+    contract is published, in the same way as the CDP server URLs under `servers`.
+
+    Pages to read alongside this contract, by title:
+
+    | Page | Read it when |
+    |---|---|
+    | Access to org data via Org API | You want the programme view: who the API is for, what it replaces and the roadmap. The index page for everything below |
+    | Version 1 to version 2 mapping | You are moving a client off version 1. It maps each field, including `town` to `locality` and the version 1 Mongo address to the Defra address model, and names what version 2 does not carry, such as registrations |
+    | Data protection and the DPIA | You handle the data you send or receive. A sole trader's name and address are personal data. It records the lawful basis, the retention period and who may call the API |
+    | Non-functional expectations | You need the availability hours, the support hours, the timeouts and the rate limits. The retry rules are in "Using the API safely" above |
+    | Ownership and support | You want to raise an issue, request a change or check environment status |
+
+    The contract changelog is in the repository, next to this document, at
+    [`openapi/CHANGELOG.md`](https://github.com/DEFRA/waste-organisations/blob/main/openapi/CHANGELOG.md).
+    It holds one entry per contract version, from `2.0.0-draft`, and says whether that
+    version is breaking.
+
+    To raise an issue with the contract itself, or to request a change, open an issue at
+    <https://github.com/DEFRA/waste-organisations/issues> or contact the team at the
+    address in `info.contact`.
   contact:
     name: Waste Organisations team
     email: waste-organisations@defra.gov.uk
+    url: https://github.com/DEFRA/waste-organisations/issues
   license:
     name: Open Government Licence v3.0
     url: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
