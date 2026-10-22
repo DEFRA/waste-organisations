@@ -585,6 +585,89 @@ components:
         - updatedAt
         - addresses
 
+    ProblemDetails:
+      type: object
+      description: >-
+        An error as RFC 9457 problem details. The API returns it as
+        `application/problem+json` for every failure that carries a body.
+      properties:
+        type:
+          type: string
+          format: uri
+          description: >-
+            A URI that identifies the kind of problem. A client matches on this value
+            rather than on `title`, which may be reworded.
+          examples:
+            - https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title:
+          type: string
+          description: >-
+            A short summary of the kind of problem, for a person to read.
+          examples:
+            - Bad Request
+        status:
+          type: integer
+          description: The HTTP status code of the response, repeated in the body.
+          examples:
+            - 400
+        detail:
+          type: string
+          description: >-
+            An explanation of this occurrence of the problem. It may name the field or
+            header that failed.
+          examples:
+            - The request body failed validation.
+        instance:
+          type: string
+          format: uri
+          description: >-
+            A URI that identifies this occurrence of the problem, usually the path of the
+            request that failed.
+          examples:
+            - /organisations
+
+    ValidationProblemDetails:
+      description: >-
+        A problem detail that reports which fields of the request failed validation. The
+        API returns it for every `400`.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            errors:
+              type: object
+              description: >-
+                The validation messages, keyed by the path of the field or header that
+                failed, for example `addresses.registeredAddress.postalCode` or
+                `Api-Version`.
+              additionalProperties:
+                type: array
+                description: The validation messages for one field or header.
+                items:
+                  type: string
+                  description: One validation message.
+              examples:
+                - addresses.registeredAddress.postalCode:
+                    - The postalCode field is required.
+
+    DuplicateOrganisationProblem:
+      description: >-
+        A problem detail that reports the request duplicates an organisation the API
+        already holds. The API returns it for a `409`, with the existing organisation in
+        the `Location` header as well.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            existingOrganisationId:
+              type: string
+              format: uuid
+              description: >-
+                The identifier of the organisation the request duplicates. A client
+                fetches that organisation instead of retrying the request.
+              examples:
+                - 0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+
   securitySchemes:
     basicAuth:
       type: http
