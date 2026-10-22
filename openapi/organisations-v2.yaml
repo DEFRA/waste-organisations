@@ -60,6 +60,15 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateOrganisationRequest'
+            examples:
+              minimal:
+                $ref: '#/components/examples/minimal'
+              fullLimitedCompany:
+                $ref: '#/components/examples/fullLimitedCompany'
+              soleTraderNoCompaniesHouse:
+                $ref: '#/components/examples/soleTraderNoCompaniesHouse'
+              nonUkCorrespondenceAddress:
+                $ref: '#/components/examples/nonUkCorrespondenceAddress'
       responses:
         '201':
           description: >-
@@ -74,6 +83,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Organisation'
+              examples:
+                created:
+                  $ref: '#/components/examples/created'
         '400':
           description: >-
             The request is rejected. The body names every field or header that failed, by
@@ -89,6 +101,19 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ValidationProblemDetails'
+              examples:
+                unknownOrganisationType:
+                  $ref: '#/components/examples/unknownOrganisationType'
+                missingRegisteredAddress:
+                  $ref: '#/components/examples/missingRegisteredAddress'
+                companiesHouseNumberRequired:
+                  $ref: '#/components/examples/companiesHouseNumberRequired'
+                missingPostalCode:
+                  $ref: '#/components/examples/missingPostalCode'
+                invalidCompaniesHouseNumber:
+                  $ref: '#/components/examples/invalidCompaniesHouseNumber'
+                missingApiVersion:
+                  $ref: '#/components/examples/missingApiVersion'
         '401':
           description: >-
             The request carries no credentials, or the credentials are invalid. The
@@ -123,6 +148,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/DuplicateOrganisationProblem'
+              examples:
+                duplicateOrganisation:
+                  $ref: '#/components/examples/duplicateOrganisation'
         '415':
           description: >-
             The request body is not `application/json`, so the API did not read it.
@@ -130,6 +158,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                unsupportedMediaType:
+                  $ref: '#/components/examples/unsupportedMediaType'
         '500':
           description: >-
             The API failed unexpectedly. The request may or may not have stored the
@@ -138,6 +169,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                internalServerError:
+                  $ref: '#/components/examples/internalServerError'
       security:
         - basicAuth: []
         - bearerAuth: []
@@ -793,3 +827,275 @@ components:
         format: uri-reference
         examples:
           - /organisations/0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+
+  examples:
+    minimal:
+      summary: The smallest request the API accepts
+      description: >-
+        Only the mandatory fields: a name, a home nation and a registered address with its
+        three mandatory parts.
+      value:
+        name: Green Valley Waste Services Ltd
+        homeNation: GB-ENG
+        addresses:
+          registeredAddress:
+            addressLine: Horizon House, Deanery Road
+            locality: Bristol
+            postalCode: BS1 5AH
+            country:
+              iso: GB
+              name: United Kingdom
+
+    fullLimitedCompany:
+      summary: A private limited company with all five addresses
+      description: >-
+        A Companies House type, so `companiesHouseNumber` is required, with every optional
+        field and all five address kinds.
+      value:
+        name: Green Valley Waste Services Ltd
+        tradingName: Green Valley Skips
+        companiesHouseNumber: '01234567'
+        homeNation: GB-ENG
+        organisationType: ltd
+        validFrom: '2026-10-22T09:30:00Z'
+        addresses:
+          registeredAddress:
+            addressLine: Horizon House, Deanery Road
+            buildingName: Horizon House
+            street: Deanery Road
+            locality: Bristol
+            region: Avon
+            postalCode: BS1 5AH
+            country:
+              iso: GB
+              name: United Kingdom
+          auditAddress:
+            addressLine: 12A Temple Quay
+            buildingNumber: 12A
+            street: Temple Quay
+            locality: Bristol
+            postalCode: BS1 6EB
+            country:
+              iso: GB
+              name: United Kingdom
+          serviceOfNoticeAddress:
+            addressLine: Flat 2, 30 Park Street
+            subBuildingName: Flat 2
+            buildingNumber: '30'
+            street: Park Street
+            locality: Bristol
+            postalCode: BS1 5JA
+            country:
+              iso: GB
+              name: United Kingdom
+          principalAddress:
+            addressLine: Unit 7, Avonmouth Industrial Estate
+            subBuildingName: Unit 7
+            street: Avonmouth Way
+            locality: Bristol
+            postalCode: BS11 9YA
+            country:
+              iso: GB
+              name: United Kingdom
+          correspondenceAddress:
+            addressLine: PO Box 400, Deanery Road
+            poBox: PO Box 400
+            street: Deanery Road
+            locality: Bristol
+            postalCode: BS1 5AH
+            country:
+              iso: GB
+              name: United Kingdom
+
+    soleTraderNoCompaniesHouse:
+      summary: A sole trader with no Companies House number
+      description: >-
+        `sole-trader` is a code Defra owns, so the request is accepted without a
+        `companiesHouseNumber`.
+      value:
+        name: Dylan Hughes Waste Collection
+        homeNation: GB-WLS
+        organisationType: sole-trader
+        addresses:
+          registeredAddress:
+            addressLine: 4 Cathedral Road
+            buildingNumber: '4'
+            street: Cathedral Road
+            locality: Cardiff
+            postalCode: CF11 9LJ
+            country:
+              iso: GB
+              name: United Kingdom
+
+    nonUkCorrespondenceAddress:
+      summary: A UK organisation with a correspondence address abroad
+      description: >-
+        The registered address is in the United Kingdom and the correspondence address is
+        in Ireland, so `isUkAddress` differs between the two in the response.
+      value:
+        name: Northern Reclaim Partnership
+        homeNation: GB-NIR
+        organisationType: partnership
+        addresses:
+          registeredAddress:
+            addressLine: 9 Donegall Square North
+            buildingNumber: '9'
+            street: Donegall Square North
+            locality: Belfast
+            postalCode: BT1 5GB
+            country:
+              iso: GB
+              name: United Kingdom
+          correspondenceAddress:
+            addressLine: 15 Merrion Square
+            buildingNumber: '15'
+            street: Merrion Square
+            locality: Dublin
+            postalCode: D02 WN42
+            country:
+              iso: IE
+              name: Ireland
+
+    created:
+      summary: The organisation the API stored
+      description: >-
+        The response to the `minimal` request, with the identifier the server generated,
+        the timestamps and the derived `isUkAddress`.
+      value:
+        id: 0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+        name: Green Valley Waste Services Ltd
+        homeNation: GB-ENG
+        validFrom: '2026-10-22T09:30:00Z'
+        createdAt: '2026-10-22T09:30:00Z'
+        updatedAt: '2026-10-22T09:30:00Z'
+        addresses:
+          registeredAddress:
+            addressLine: Horizon House, Deanery Road
+            locality: Bristol
+            postalCode: BS1 5AH
+            country:
+              iso: GB
+              name: United Kingdom
+            isUkAddress: true
+
+    duplicateOrganisation:
+      summary: The organisation already exists
+      description: >-
+        A client reads `existingOrganisationId`, or follows the `Location` header, instead
+        of retrying the request.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.10
+        title: Conflict
+        status: 409
+        detail: An organisation with these details already exists.
+        instance: /organisations
+        existingOrganisationId: 0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+
+    unknownOrganisationType:
+      summary: The organisationType is not a known code
+      description: >-
+        `organisationType` holds one of the 40 codes. This request sent
+        `limited-company`, which is not one of them.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          organisationType:
+            - The organisationType field holds an unknown code.
+
+    missingRegisteredAddress:
+      summary: The addresses hold no registeredAddress
+      description: A registered address is required on every organisation.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          addresses.registeredAddress:
+            - The registeredAddress field is required.
+
+    companiesHouseNumberRequired:
+      summary: A Companies House type without a companiesHouseNumber
+      description: >-
+        The request sent `organisationType: ltd`, which Companies House registers, so
+        `companiesHouseNumber` is required as well.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          companiesHouseNumber:
+            - The companiesHouseNumber field is required for this organisationType.
+
+    missingPostalCode:
+      summary: An address without a postalCode
+      description: >-
+        `addressLine`, `locality` and `postalCode` are required on every address kind.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          addresses.registeredAddress.postalCode:
+            - The postalCode field is required.
+
+    invalidCompaniesHouseNumber:
+      summary: The companiesHouseNumber is in the wrong format
+      description: >-
+        The number holds a two-character prefix followed by six digits. This request sent
+        `1234`.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          companiesHouseNumber:
+            - The companiesHouseNumber field is not in the required format.
+
+    missingApiVersion:
+      summary: The Api-Version header is missing or unsupported
+      description: >-
+        Version 2 is selected by the `Api-Version` header, so a request without it, or
+        with a value other than `2`, is rejected.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The Api-Version header is missing or unsupported.
+        instance: /organisations
+        errors:
+          Api-Version:
+            - The Api-Version header is required and holds the value 2.
+
+    unsupportedMediaType:
+      summary: The request body is not application/json
+      description: The API reads `application/json` only, so it did not read the body.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.16
+        title: Unsupported Media Type
+        status: 415
+        detail: The request Content-Type is not application/json.
+        instance: /organisations
+
+    internalServerError:
+      summary: The API failed unexpectedly
+      description: >-
+        The request may or may not have stored the organisation, so a client checks before
+        it retries.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.6.1
+        title: Internal Server Error
+        status: 500
+        detail: The API could not handle the request. Try again later.
+        instance: /organisations
