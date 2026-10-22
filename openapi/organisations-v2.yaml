@@ -46,6 +46,144 @@ paths:
         - Organisations
 
 components:
+  schemas:
+    Country:
+      type: object
+      description: >-
+        The country of an address, as the ISO 3166-1 alpha-2 code and the country name.
+      additionalProperties: false
+      properties:
+        iso:
+          type: string
+          pattern: ^[A-Z]{2}$
+          description: >-
+            The ISO 3166-1 alpha-2 code of the country, upper case, such as `GB` or `IE`.
+          examples:
+            - GB
+        name:
+          type: string
+          description: The name of the country, such as `United Kingdom`.
+          examples:
+            - United Kingdom
+
+    Address:
+      type: object
+      description: >-
+        An address of an organisation, in the Defra standard address model. `addressLine`,
+        `locality` and `postalCode` are required on every address kind.
+      additionalProperties: false
+      required:
+        - addressLine
+        - locality
+        - postalCode
+      properties:
+        addressLine:
+          type: string
+          minLength: 1
+          description: >-
+            The single-line form of the address, without the locality, postal code or
+            country.
+          examples:
+            - Horizon House, Deanery Road
+        subBuildingName:
+          type: string
+          description: The flat, suite or unit within the building, such as `Flat 2`.
+        buildingName:
+          type: string
+          description: The name of the building, such as `Horizon House`.
+        buildingNumber:
+          type: string
+          description: >-
+            The number of the building. It is a string, not a number, because it holds
+            values such as `12A` and `3-5`.
+          examples:
+            - 12A
+        street:
+          type: string
+          description: The street the address is on, such as `Deanery Road`.
+        locality:
+          type: string
+          minLength: 1
+          description: The town or city of the address.
+          examples:
+            - Bristol
+        region:
+          type: string
+          description: The county, state or region of the address, such as `Avon`.
+        postalCode:
+          type: string
+          minLength: 1
+          description: >-
+            The postal code of the address. It is a non-empty string with no format check,
+            because it also holds non-UK postal codes.
+          examples:
+            - BS1 5AH
+        poBox:
+          type: string
+          description: The PO box of the address, when the address has one.
+        country:
+          $ref: '#/components/schemas/Country'
+          description: The country of the address.
+
+    AddressResponse:
+      type: object
+      description: >-
+        An address of an organisation as the API returns it. It holds the fields of
+        `Address` plus the derived `isUkAddress`.
+      properties:
+        addressLine:
+          type: string
+          description: >-
+            The single-line form of the address, without the locality, postal code or
+            country.
+          examples:
+            - Horizon House, Deanery Road
+        subBuildingName:
+          type: string
+          description: The flat, suite or unit within the building, such as `Flat 2`.
+        buildingName:
+          type: string
+          description: The name of the building, such as `Horizon House`.
+        buildingNumber:
+          type: string
+          description: >-
+            The number of the building. It is a string, not a number, because it holds
+            values such as `12A` and `3-5`.
+          examples:
+            - 12A
+        street:
+          type: string
+          description: The street the address is on, such as `Deanery Road`.
+        locality:
+          type: string
+          description: The town or city of the address.
+          examples:
+            - Bristol
+        region:
+          type: string
+          description: The county, state or region of the address, such as `Avon`.
+        postalCode:
+          type: string
+          description: >-
+            The postal code of the address. It is a non-empty string with no format check,
+            because it also holds non-UK postal codes.
+          examples:
+            - BS1 5AH
+        poBox:
+          type: string
+          description: The PO box of the address, when the address has one.
+        country:
+          $ref: '#/components/schemas/Country'
+          description: The country of the address.
+        isUkAddress:
+          type:
+            - boolean
+            - 'null'
+          readOnly: true
+          description: >-
+            Whether the address is in the United Kingdom. The API derives it from
+            `country.iso`, and returns `null` when the country is unknown.
+
   securitySchemes:
     basicAuth:
       type: http
