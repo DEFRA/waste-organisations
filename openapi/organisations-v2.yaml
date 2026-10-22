@@ -42,8 +42,24 @@ paths:
     post:
       operationId: createOrganisation
       summary: Create an organisation
+      description: >-
+        Creates an organisation and its addresses. The organisation needs a name, a home
+        nation and a registered address. The server generates the id and returns it in
+        the body and in the `Location` header. Send `Api-Version: 2`, because a request
+        without the header is handled by version 1, which has no `POST /organisations`.
       tags:
         - Organisations
+      parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+      requestBody:
+        required: true
+        description: >-
+          The organisation to create, with its addresses. Unknown fields are rejected
+          rather than ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganisationRequest'
 
 components:
   schemas:
