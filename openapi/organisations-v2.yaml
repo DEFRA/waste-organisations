@@ -978,10 +978,10 @@ components:
             - The request body failed validation.
         instance:
           type: string
-          format: uri
+          format: uri-reference
           description: >-
-            A URI that identifies this occurrence of the problem, usually the path of the
-            request that failed.
+            A URI reference that identifies this occurrence of the problem, usually the
+            path of the request that failed.
           examples:
             - /organisations
 
