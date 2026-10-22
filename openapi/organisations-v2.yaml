@@ -420,6 +420,76 @@ components:
         GB-WLS: "Wales"
         GB-NIR: "Northern Ireland"
 
+    CompaniesHouseNumber:
+      type: string
+      pattern: ^[A-Z0-9]{2}[0-9]{6}$
+      description: >-
+        A Companies House registration number: eight upper case characters, a
+        two-character prefix such as `00`, `SC`, `NI`, `OC`, `SO` or `R0`, followed by six
+        digits.
+      examples:
+        - '01234567'
+        - SC123456
+
+    CreateOrganisationRequest:
+      type: object
+      description: >-
+        The organisation to create. The API sets the identifier, the timestamps and
+        `isUkAddress`, so a request cannot carry them.
+      additionalProperties: false
+      required:
+        - name
+        - homeNation
+        - addresses
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: The registered or trading legal name of the organisation.
+          examples:
+            - Green Valley Waste Services Ltd
+        tradingName:
+          type: string
+          description: >-
+            The name the organisation trades under, when it differs from `name`.
+          examples:
+            - Green Valley Skips
+        companiesHouseNumber:
+          $ref: '#/components/schemas/CompaniesHouseNumber'
+          description: >-
+            The Companies House registration number of the organisation. It is required
+            when `organisationType` is a Companies House code, and optional for the four
+            codes Defra owns and when `organisationType` is omitted.
+        homeNation:
+          $ref: '#/components/schemas/HomeNation'
+          description: The nation of the United Kingdom the organisation is based in.
+        organisationType:
+          $ref: '#/components/schemas/OrganisationType'
+          description: >-
+            The legal form of the organisation. When it is a Companies House code,
+            `companiesHouseNumber` is required as well.
+        validFrom:
+          type: string
+          format: date-time
+          description: >-
+            The UTC instant the organisation record starts from. It defaults to the time
+            of the request.
+          examples:
+            - '2026-10-22T09:30:00Z'
+        addresses:
+          $ref: '#/components/schemas/Addresses'
+          description: >-
+            The addresses of the organisation. A registered address is required.
+      if:
+        required:
+          - organisationType
+        properties:
+          organisationType:
+            $ref: '#/components/schemas/CompaniesHouseOrganisationType'
+      then:
+        required:
+          - companiesHouseNumber
+
   securitySchemes:
     basicAuth:
       type: http
