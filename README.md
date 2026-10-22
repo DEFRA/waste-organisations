@@ -70,6 +70,8 @@ The mock returns the documented examples and validates requests against the sche
 
 The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) changelog in `changelog/`, not by EF Core migrations. `changelog/db.changelog.xml` is the master file and includes the versioned files in order.
 
+`db.changelog-1.1.xml` adds the organisation tables: `organisation`, `organisation_type`, `address_usagetype`, `address` and `organisation_address`. The EF Core entities that map them live in `src/Api/Data/Postgres/Entities`.
+
 To change the schema:
 
 - Add a new `changelog/db.changelog-1.N.xml` file (the next number after the latest one) containing the new changesets.

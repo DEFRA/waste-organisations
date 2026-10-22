@@ -1,18 +1,18 @@
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Data.Postgres;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
 public class DatabaseChangelogTests : IntegrationTestBase
 {
-    // Nothing in the API uses PostgresDbContext yet, so this is the only test that resolves the
-    // context from AddPostgres and queries through it. It connects from the host to the Compose
-    // Postgres, the way the API does under dotnet run
+    // This resolves the context from AddPostgres and queries through it, connecting from the host
+    // to the Compose Postgres the way the API does under dotnet run. The five organisation entities
+    // are the ones PostgresDbContext maps onto the Liquibase changelog tables
     [Fact]
-    public async Task PostgresDbContext_ShouldConnectAndHaveNoEntities()
+    public async Task PostgresDbContext_ShouldConnectAndMapFiveEntities()
     {
         await using var provider = BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
@@ -21,8 +21,7 @@ public class DatabaseChangelogTests : IntegrationTestBase
         var canConnect = await context.Database.CanConnectAsync(TestContext.Current.CancellationToken);
 
         canConnect.Should().BeTrue();
-        // The schema belongs to the Liquibase changelog; entities arrive with the stories that need them
-        context.Model.GetEntityTypes().Should().BeEmpty();
+        context.Model.GetEntityTypes().Should().HaveCount(5);
     }
 
     // The v1.0.0 tag is the only thing the baseline changeset writes, so finding it proves the
@@ -41,23 +40,50 @@ public class DatabaseChangelogTests : IntegrationTestBase
         tags.Should().Contain("v1.0.0");
     }
 
-    private static ServiceProvider BuildServiceProvider()
+    // The v1.1.0 tag is the last changeset of db.changelog-1.1.xml, so finding it proves the
+    // organisation schema changelog applied in full
+    [Fact]
+    public async Task DatabaseChangelog_ShouldHoldOrganisationSchemaTag()
     {
-        // The Postgres section of src/Api/appsettings.Development.json, which compose.yml matches
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["Postgres:DefaultHost"] = "127.0.0.1",
-                    ["Postgres:Port"] = "5432",
-                    ["Postgres:DatabaseName"] = "waste_organisations",
-                    ["Postgres:User"] = "postgres",
-                    ["Postgres:Password"] = "postgres",
-                    ["Postgres:UseIamAuthentication"] = "false",
-                }
-            )
-            .Build();
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
 
-        return new ServiceCollection().AddPostgres(configuration).BuildServiceProvider();
+        var tags = await context
+            .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        tags.Should().Contain("v1.1.0");
+    }
+
+    // The changelog seeds organisation_type with exactly the codes the API publishes, so the
+    // contract and the table cannot drift apart
+    [Fact]
+    public async Task OrganisationType_ShouldHoldThePublishedCodes()
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        var codes = await context
+            .OrganisationTypes.Select(t => t.Code)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        codes.Should().BeEquivalentTo(OrganisationTypeCodes.All.Select(c => c.Code));
+    }
+
+    // The changelog seeds address_usagetype with the five kinds of address on the API page and nothing else
+    [Fact]
+    public async Task AddressUsageType_ShouldHoldTheFiveSeededValues()
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        var usageTypes = await context
+            .AddressUsageTypes.Select(u => u.Name)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        usageTypes.Should().BeEquivalentTo("Registered", "Audit", "ServiceOfNotice", "Principal", "Correspondence");
     }
 }
