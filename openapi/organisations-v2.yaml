@@ -1,0 +1,92 @@
+openapi: 3.1.0
+
+info:
+  title: Waste Organisations API (v2)
+  version: 2.0.0-draft
+  summary: Create and retrieve waste organisations and their addresses.
+  description: |
+    Hand-written contract for version 2 of the Waste Organisations API.
+
+    Version 2 is selected by the required `Api-Version: 2` request header. A request
+    without the header is handled by version 1, which has no `POST /organisations`.
+  contact:
+    name: Waste Organisations team
+    email: waste-organisations@defra.gov.uk
+  license:
+    name: Open Government Licence v3.0
+    url: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+
+servers:
+  - url: http://localhost:8080
+    description: The local Docker Compose environment.
+  - url: https://waste-organisations.{environment}.cdp-int.defra.cloud
+    description: >-
+      A CDP environment. The platform team must confirm these URLs before the contract
+      is published.
+    variables:
+      environment:
+        default: dev
+        description: The CDP environment that serves the request.
+        enum:
+          - dev
+          - test
+          - perf-test
+          - prod
+
+tags:
+  - name: Organisations
+    description: Operations on organisations and their addresses.
+
+paths:
+  /organisations:
+    post:
+      operationId: createOrganisation
+      summary: Create an organisation
+      tags:
+        - Organisations
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: >-
+        HTTP Basic credentials issued by the Waste Organisations team. The credentials
+        must carry the `write` scope to create an organisation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        A JWT bearer token. The token must carry a `scope` claim with the value `write`
+        to create an organisation.
+
+  parameters:
+    ApiVersion:
+      name: Api-Version
+      in: header
+      required: true
+      description: >-
+        Selects the version of the API that handles the request. Send `2` to use this
+        contract. A missing or unsupported value returns `400`.
+      schema:
+        type: string
+        enum:
+          - "2"
+
+  headers:
+    ApiVersion:
+      description: The version of the API that answered the request.
+      required: true
+      schema:
+        type: string
+        enum:
+          - "2"
+    Location:
+      description: The path of the organisation the response refers to.
+      required: true
+      schema:
+        type: string
+        format: uri-reference
+        examples:
+          - /organisations/0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
