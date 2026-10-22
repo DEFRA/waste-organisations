@@ -155,7 +155,7 @@ The `409` is in the first release (D4). Its body identifies the existing organis
 
   Consumers own their labels (English and Welsh). The description says so and asks them to fall back gracefully on a code they don't recognise, because new codes are added without a version bump.
 - `securitySchemes`: `basicAuth` (`http`/`basic`), `bearerAuth` (`http`/`bearer`, `bearerFormat: JWT`). The description says the token must carry `scope: write`.
-- `examples`: request examples `minimal` (name, homeNation, registered address), `fullLimitedCompany` (`ltd` with a Companies House number and all five addresses), `soleTraderNoCompaniesHouse` and `nonUkCorrespondenceAddress`. Response examples: `201`, `409` duplicate, `400` unknown organisation type, `400` missing `registeredAddress`, `400` `ltd` without `companiesHouseNumber`, `400` address without `postalCode`, `400` invalid `companiesHouseNumber`, `400` missing `Api-Version`, `401`.
+- `examples`: request examples `minimal` (name, homeNation, registered address), `fullLimitedCompany` (`ltd` with a Companies House number and all five addresses), `soleTraderNoCompaniesHouse` and `nonUkCorrespondenceAddress`. Response examples: `201`, `409` duplicate, `400` unknown organisation type, `400` missing `registeredAddress`, `400` `ltd` without `companiesHouseNumber`, `400` address without `postalCode`, `400` invalid `companiesHouseNumber`, `400` missing `Api-Version`, `415` and `500`. `401` and `403` carry no body, as in "Responses", so neither carries an example.
 - `info`: title, description (purpose, versioning, how enum values evolve, timestamps are UTC ISO 8601), contact, licence (OGL / repo licence).
 - `servers`: local `http://localhost:8080`, plus CDP environment URLs as placeholders to confirm with the platform team.
 
@@ -305,3 +305,12 @@ Agreed 21 October 2026:
 - Implement the agreed duplicate rule (Q2) behind the `409`.
 - Add an `Api.Tests` test that loads `openapi/organisations-v2.yaml` and the app's generated document, and checks that the v2 paths, schemas and the `organisationType` enum match. Once that test exists, the hand-written contract and the code can't drift. Alternatively, retire the hand-written file and publish the generated one once they match.
 - Expose the v2 document in ReDoc next to `/openapi/v1.json`.
+
+### Assumptions recorded during planning
+
+- The source of the 40 `organisationType` codes is `src/Api/Data/Postgres/OrganisationTypeCodes.cs` on branch `REGEN-141-organisation-and-address-db-schema` until PR #203 merges into `main`. Read the file with `git show origin/REGEN-141-organisation-and-address-db-schema:src/Api/Data/Postgres/OrganisationTypeCodes.cs`.
+- The CDP environment URLs are not yet confirmed. `servers` uses one templated entry, `https://waste-organisations.{environment}.cdp-int.defra.cloud`, with an `environment` variable whose `enum` is `dev`, `test`, `perf-test` and `prod`. The server `description` states that the platform team must confirm the URLs.
+- S6 to S9 are Confluence pages. An agent cannot create them. The contract carries a "More information" list in `info.description` that names each page by title and links the Confluence page "Access to org data via Org API". Writing the pages stays an acceptance criterion of this spec.
+- Recording D1 to D6 on REGEN-141, agreeing Q2, the team review and the consumer sign-off are human tasks. They stay acceptance criteria of this spec and are not plan items.
+- The `openapi/` folder holds no lint configuration file. The lint command uses the Redocly `recommended` ruleset through `--extends recommended`.
+- The request and response schemas are separate, so the address schemas are separate too. `Address` and `Addresses` are the request schemas. `AddressResponse` and `AddressesResponse` are the response schemas. `AddressResponse` adds the read-only `isUkAddress`.
