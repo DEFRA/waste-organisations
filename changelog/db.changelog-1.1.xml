@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <changeSet id="1.1-create-organisation" author="waste-organisations">
+    <createTable tableName="organisation">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="name" type="text">
+        <constraints nullable="false" />
+      </column>
+      <column name="trading_name" type="text" />
+      <column name="companies_house_number" type="text" />
+      <column name="home_nation" type="text">
+        <constraints nullable="false" />
+      </column>
+      <column name="organisation_type_id" type="uuid" />
+      <column name="valid_from" type="timestamptz">
+        <constraints nullable="false" />
+      </column>
+      <column name="valid_to" type="timestamptz" />
+      <column name="created_at" type="timestamptz">
+        <constraints nullable="false" />
+      </column>
+      <column name="updated_at" type="timestamptz">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet id="1.1-create-organisation-type" author="waste-organisations">
+    <createTable tableName="organisation_type">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="code" type="text">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet id="1.1-create-address-usagetype" author="waste-organisations">
+    <createTable tableName="address_usagetype">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="name" type="text">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet id="1.1-create-address" author="waste-organisations">
+    <createTable tableName="address">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="address_line" type="text" />
+      <column name="sub_building_name" type="text" />
+      <column name="building_name" type="text" />
+      <column name="building_number" type="text" />
+      <column name="street" type="text" />
+      <column name="locality" type="text" />
+      <column name="region" type="text" />
+      <column name="postal_code" type="text" />
+      <column name="po_box" type="text" />
+      <column name="country_iso" type="text" />
+      <column name="country_name" type="text" />
+      <column name="created_at" type="timestamptz">
+        <constraints nullable="false" />
+      </column>
+      <column name="updated_at" type="timestamptz">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <!-- A UK address is exactly one whose ISO 3166-1 alpha-2 code is GB, so is_uk_address is derived and can never contradict country_iso -->
+  <changeSet id="1.1-address-is-uk-address" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD COLUMN is_uk_address boolean GENERATED ALWAYS AS (country_iso = 'GB') STORED;
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP COLUMN is_uk_address;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-create-organisation-address" author="waste-organisations">
+    <createTable tableName="organisation_address">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="organisation_id" type="uuid">
+        <constraints nullable="false" />
+      </column>
+      <column name="address_id" type="uuid">
+        <constraints nullable="false" />
+      </column>
+      <column name="usage_type_id" type="uuid">
+        <constraints nullable="false" />
+      </column>
+      <column name="valid_from" type="timestamptz">
+        <constraints nullable="false" />
+      </column>
+      <column name="valid_to" type="timestamptz" />
+      <column name="created_at" type="timestamptz">
+        <constraints nullable="false" />
+      </column>
+      <column name="updated_at" type="timestamptz">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet id="1.1-fk-organisation-organisation-type" author="waste-organisations">
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_organisation_type"
+      baseTableName="organisation"
+      baseColumnNames="organisation_type_id"
+      referencedTableName="organisation_type"
+      referencedColumnNames="id"
+      onDelete="RESTRICT"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-fk-organisation-address-organisation" author="waste-organisations">
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_address_organisation"
+      baseTableName="organisation_address"
+      baseColumnNames="organisation_id"
+      referencedTableName="organisation"
+      referencedColumnNames="id"
+      onDelete="RESTRICT"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-fk-organisation-address-address" author="waste-organisations">
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_address_address"
+      baseTableName="organisation_address"
+      baseColumnNames="address_id"
+      referencedTableName="address"
+      referencedColumnNames="id"
+      onDelete="RESTRICT"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-fk-organisation-address-usage-type" author="waste-organisations">
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_address_usage_type"
+      baseTableName="organisation_address"
+      baseColumnNames="usage_type_id"
+      referencedTableName="address_usagetype"
+      referencedColumnNames="id"
+      onDelete="RESTRICT"
+    />
+  </changeSet>
+
+  <changeSet id="1.1-ix-organisation-organisation-type-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_organisation_type_id" tableName="organisation">
+      <column name="organisation_type_id" />
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="1.1-ix-organisation-address-organisation-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_address_organisation_id" tableName="organisation_address">
+      <column name="organisation_id" />
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="1.1-ix-organisation-address-address-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_address_address_id" tableName="organisation_address">
+      <column name="address_id" />
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="1.1-ix-organisation-address-usage-type-id" author="waste-organisations">
+    <createIndex indexName="ix_organisation_address_usage_type_id" tableName="organisation_address">
+      <column name="usage_type_id" />
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="1.1-uq-address-usagetype-name" author="waste-organisations">
+    <addUniqueConstraint constraintName="uq_address_usagetype_name" tableName="address_usagetype" columnNames="name" />
+  </changeSet>
+
+  <changeSet id="1.1-uq-organisation-type-code" author="waste-organisations">
+    <addUniqueConstraint constraintName="uq_organisation_type_code" tableName="organisation_type" columnNames="code" />
+  </changeSet>
+
+  <changeSet id="1.1-ck-organisation-valid-to" author="waste-organisations">
+    <sql>
+      ALTER TABLE organisation ADD CONSTRAINT ck_organisation_valid_to CHECK (valid_to IS NULL OR valid_to > valid_from);
+    </sql>
+    <rollback>
+      ALTER TABLE organisation DROP CONSTRAINT ck_organisation_valid_to;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ck-organisation-home-nation" author="waste-organisations">
+    <sql>
+      ALTER TABLE organisation ADD CONSTRAINT ck_organisation_home_nation CHECK (home_nation IN ('GB-ENG', 'GB-SCT', 'GB-WLS', 'GB-NIR'));
+    </sql>
+    <rollback>
+      ALTER TABLE organisation DROP CONSTRAINT ck_organisation_home_nation;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ck-address-country-iso" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_country_iso CHECK (country_iso IS NULL OR country_iso ~ '^[A-Z]{2}$');
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP CONSTRAINT ck_address_country_iso;
+    </rollback>
+  </changeSet>
+
+  <!-- A UK address needs a postcode; an overseas one may not have any. COALESCE matters: a CHECK
+       passes when its expression is NULL, so btrim(NULL) <> '' alone would let a missing postcode through -->
+  <changeSet id="1.1-ck-address-uk-postal-code" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_uk_postal_code CHECK (country_iso IS DISTINCT FROM 'GB' OR COALESCE(btrim(postal_code), '') &lt;&gt; '');
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP CONSTRAINT ck_address_uk_postal_code;
+    </rollback>
+  </changeSet>
+
+  <!-- The premises must be identifiable, but not every address has a number: a named building, a unit or a
+       PO box will do. Blank values do not count -->
+  <changeSet id="1.1-ck-address-premises" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_premises CHECK (num_nonnulls(NULLIF(btrim(building_number), ''), NULLIF(btrim(building_name), ''), NULLIF(btrim(sub_building_name), ''), NULLIF(btrim(po_box), ''), NULLIF(btrim(address_line), '')) &gt; 0);
+    </sql>
+    <rollback>
+      ALTER TABLE address DROP CONSTRAINT ck_address_premises;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ck-organisation-address-valid-to" author="waste-organisations">
+    <sql>
+      ALTER TABLE organisation_address ADD CONSTRAINT ck_organisation_address_valid_to CHECK (valid_to IS NULL OR valid_to > valid_from);
+    </sql>
+    <rollback>
+      ALTER TABLE organisation_address DROP CONSTRAINT ck_organisation_address_valid_to;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.1-ux-organisation-address-current" author="waste-organisations">
+    <sql>
+      CREATE UNIQUE INDEX ux_organisation_address_current ON organisation_address (organisation_id, usage_type_id) WHERE valid_to IS NULL;
+    </sql>
+    <rollback>
+      DROP INDEX ux_organisation_address_current;
+    </rollback>
+  </changeSet>
+
+  <!-- The codes and their order follow OrganisationTypeCodes.All in src/Api/Data/Postgres -->
+  <changeSet id="1.1-seed-organisation-type" author="waste-organisations">
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000001" />
+      <column name="code" value="private-unlimited" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000002" />
+      <column name="code" value="ltd" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000003" />
+      <column name="code" value="plc" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000004" />
+      <column name="code" value="old-public-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000005" />
+      <column name="code" value="private-limited-guarant-nsc-limited-exemption" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000006" />
+      <column name="code" value="limited-partnership" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000007" />
+      <column name="code" value="private-limited-guarant-nsc" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000008" />
+      <column name="code" value="converted-or-closed" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000009" />
+      <column name="code" value="private-unlimited-nsc" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000010" />
+      <column name="code" value="private-limited-shares-section-30-exemption" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000011" />
+      <column name="code" value="protected-cell-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000012" />
+      <column name="code" value="assurance-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000013" />
+      <column name="code" value="oversea-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000014" />
+      <column name="code" value="eeig-establishment" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000015" />
+      <column name="code" value="icvc-securities" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000016" />
+      <column name="code" value="icvc-warrant" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000017" />
+      <column name="code" value="icvc-umbrella" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000018" />
+      <column name="code" value="registered-society-non-jurisdictional" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000019" />
+      <column name="code" value="industrial-and-provident-society" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000020" />
+      <column name="code" value="northern-ireland" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000021" />
+      <column name="code" value="northern-ireland-other" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000022" />
+      <column name="code" value="llp" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000023" />
+      <column name="code" value="royal-charter" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000024" />
+      <column name="code" value="investment-company-with-variable-capital" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000025" />
+      <column name="code" value="unregistered-company" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000026" />
+      <column name="code" value="other" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000027" />
+      <column name="code" value="european-public-limited-liability-company-se" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000028" />
+      <column name="code" value="united-kingdom-societas" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000029" />
+      <column name="code" value="uk-establishment" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000030" />
+      <column name="code" value="scottish-partnership" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000031" />
+      <column name="code" value="charitable-incorporated-organisation" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000032" />
+      <column name="code" value="scottish-charitable-incorporated-organisation" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000033" />
+      <column name="code" value="further-education-or-sixth-form-college-corporation" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000034" />
+      <column name="code" value="eeig" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000035" />
+      <column name="code" value="ukeig" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000036" />
+      <column name="code" value="registered-overseas-entity" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000037" />
+      <column name="code" value="sole-trader" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000038" />
+      <column name="code" value="partnership" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000039" />
+      <column name="code" value="unincorporated-association" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000040" />
+      <column name="code" value="public-body" />
+    </insert>
+    <!-- Nothing to undo here: rolling back the createTable changeset above drops the table, and these rows with it.
+         A DELETE would fail once any row references a seeded one, because the foreign keys are rolled back after this -->
+    <rollback />
+  </changeSet>
+
+  <changeSet id="1.1-seed-address-usagetype" author="waste-organisations">
+    <insert tableName="address_usagetype">
+      <column name="id" value="00000000-0000-0000-0000-000000000001" />
+      <column name="name" value="Registered" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="id" value="00000000-0000-0000-0000-000000000002" />
+      <column name="name" value="Audit" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="id" value="00000000-0000-0000-0000-000000000003" />
+      <column name="name" value="ServiceOfNotice" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="id" value="00000000-0000-0000-0000-000000000004" />
+      <column name="name" value="Principal" />
+    </insert>
+    <insert tableName="address_usagetype">
+      <column name="id" value="00000000-0000-0000-0000-000000000005" />
+      <column name="name" value="Correspondence" />
+    </insert>
+    <!-- Nothing to undo here: rolling back the createTable changeset above drops the table, and these rows with it.
+         A DELETE would fail once any row references a seeded one, because the foreign keys are rolled back after this -->
+    <rollback />
+  </changeSet>
+
+  <changeSet id="1.1-tag-v1.1.0" author="waste-organisations">
+    <tagDatabase tag="v1.1.0" />
+  </changeSet>
+</databaseChangeLog>
