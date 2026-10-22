@@ -9,6 +9,132 @@ info:
 
     Version 2 is selected by the required `Api-Version: 2` request header. A request
     without the header is handled by version 1, which has no `POST /organisations`.
+
+    ## Getting started
+
+    ### Credentials
+
+    The Waste Organisations team issues access. Ask the team for either:
+
+    - **Basic credentials** — a client name and secret, added to the API's access control
+      list with the `write` scope. Send them in the `Authorization: Basic` header.
+    - **A JWT** — the team registers your client, and your token must carry a `scope`
+      claim with the value `write`. Send it in the `Authorization: Bearer` header.
+
+    Either scheme is accepted on every operation. Creating an organisation needs the
+    `write` scope, so a token or credential without it returns `403`.
+
+    ### Base URLs
+
+    | Environment | Base URL |
+    |---|---|
+    | Local Docker Compose | `http://localhost:8080` |
+    | CDP dev | `https://waste-organisations.dev.cdp-int.defra.cloud` |
+    | CDP test | `https://waste-organisations.test.cdp-int.defra.cloud` |
+    | CDP performance test | `https://waste-organisations.perf-test.cdp-int.defra.cloud` |
+    | CDP production | `https://waste-organisations.prod.cdp-int.defra.cloud` |
+
+    The CDP URLs are placeholders until the platform team confirms them.
+
+    ### The Api-Version header
+
+    Every v2 request must send `Api-Version: 2`. A request without the header is handled
+    by version 1, which has no `POST /organisations`, so a `POST` without the header — or
+    with any other value — returns `400` with a problem detail that names `Api-Version`.
+
+    ### Your first call
+
+    With Basic credentials:
+
+    ```bash
+    curl -i -X POST https://waste-organisations.dev.cdp-int.defra.cloud/organisations \
+      -u "$CLIENT_NAME:$CLIENT_SECRET" \
+      -H 'Api-Version: 2' \
+      -H 'Content-Type: application/json' \
+      -d '{
+            "name": "Green Valley Waste Services Ltd",
+            "homeNation": "GB-ENG",
+            "addresses": {
+              "registeredAddress": {
+                "addressLine": "Horizon House, Deanery Road",
+                "locality": "Bristol",
+                "postalCode": "BS1 5AH",
+                "country": { "iso": "GB", "name": "United Kingdom" }
+              }
+            }
+          }'
+    ```
+
+    With a JWT:
+
+    ```bash
+    curl -i -X POST https://waste-organisations.dev.cdp-int.defra.cloud/organisations \
+      -H "Authorization: Bearer $TOKEN" \
+      -H 'Api-Version: 2' \
+      -H 'Content-Type: application/json' \
+      -d '{
+            "name": "Green Valley Waste Services Ltd",
+            "homeNation": "GB-ENG",
+            "addresses": {
+              "registeredAddress": {
+                "addressLine": "Horizon House, Deanery Road",
+                "locality": "Bristol",
+                "postalCode": "BS1 5AH",
+                "country": { "iso": "GB", "name": "United Kingdom" }
+              }
+            }
+          }'
+    ```
+
+    Each call returns `201 Created`, the stored organisation in the body, and a
+    `Location` header holding the path of the new organisation.
+
+    ## Rules
+
+    ### Mandatory fields
+
+    An organisation needs `name`, `homeNation` and `addresses.registeredAddress`. Every
+    address, whichever kind it is, needs `addressLine`, `locality` and `postalCode`.
+    Request objects reject unknown fields rather than ignoring them, so a misspelled
+    field name returns `400`.
+
+    ### Companies House numbers
+
+    A `companiesHouseNumber` is 8 characters: a 2-character prefix (`00` to `99`, or
+    letters such as `SC`, `NI`, `OC`, `SO`, `R0`) followed by 6 digits, upper case —
+    `pattern: ^[A-Z0-9]{2}[0-9]{6}$`. It is **required** when `organisationType` is one of
+    the 36 Companies House codes, and optional for the four codes Defra owns
+    (`sole-trader`, `partnership`, `unincorporated-association`, `public-body`) and when
+    `organisationType` is omitted.
+
+    ### Organisation types and labels
+
+    The `OrganisationType` schema lists all 40 codes with their meanings, both as a table
+    in its description and as an `x-enumDescriptions` map. Consumers own the labels they
+    show, in English and in Welsh, so this API publishes codes and not display text. New
+    codes are added without a new API version, so fall back to the raw code rather than
+    failing on one you do not recognise.
+
+    ### Address kinds
+
+    `addresses` is keyed by the purpose of the address, and holds at most one address per
+    purpose:
+
+    | Property | Purpose |
+    |---|---|
+    | `registeredAddress` | The registered office, or the main address when there is no registered office. Required. |
+    | `auditAddress` | Where the organisation keeps the records an audit inspects. |
+    | `serviceOfNoticeAddress` | Where formal and legal notices are served. |
+    | `principalAddress` | The principal place of business, when it differs from the registered address. |
+    | `correspondenceAddress` | Where day-to-day correspondence is sent. |
+
+    ### Derived and server-owned fields
+
+    `isUkAddress` is derived from `country.iso`: it is `true` for `GB`, `false` for any
+    other value, and `null` when the country is unknown. Do not send it.
+
+    `id`, `validTo`, `createdAt` and `updatedAt` are set by the server. Timestamps are
+    UTC, in ISO 8601 date-time format, such as `2026-10-21T09:30:00Z`.
   contact:
     name: Waste Organisations team
     email: waste-organisations@defra.gov.uk
