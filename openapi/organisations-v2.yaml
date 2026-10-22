@@ -184,6 +184,74 @@ components:
             Whether the address is in the United Kingdom. The API derives it from
             `country.iso`, and returns `null` when the country is unknown.
 
+    Addresses:
+      type: object
+      description: >-
+        The addresses of an organisation, keyed by address kind. Each kind holds at most
+        one current address, so the same kind cannot be sent twice. A registered address
+        is required; the other four are optional.
+      additionalProperties: false
+      required:
+        - registeredAddress
+      properties:
+        registeredAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The official address of the organisation, as registered with Companies House
+            or with Defra. Address usage type `Registered`.
+        auditAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The address where the organisation keeps the records an auditor needs. Address
+            usage type `Audit`.
+        serviceOfNoticeAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The address where the organisation accepts legal notices. Address usage type
+            `ServiceOfNotice`.
+        principalAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The address the organisation mainly trades from. Address usage type
+            `Principal`.
+        correspondenceAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The address for day-to-day post about the organisation. It may be outside the
+            United Kingdom. Address usage type `Correspondence`.
+
+    AddressesResponse:
+      type: object
+      description: >-
+        The addresses of an organisation as the API returns it. Only the kinds the
+        organisation has are present.
+      properties:
+        registeredAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The official address of the organisation, as registered with Companies House
+            or with Defra. Address usage type `Registered`.
+        auditAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The address where the organisation keeps the records an auditor needs. Address
+            usage type `Audit`.
+        serviceOfNoticeAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The address where the organisation accepts legal notices. Address usage type
+            `ServiceOfNotice`.
+        principalAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The address the organisation mainly trades from. Address usage type
+            `Principal`.
+        correspondenceAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The address for day-to-day post about the organisation. It may be outside the
+            United Kingdom. Address usage type `Correspondence`.
+
   securitySchemes:
     basicAuth:
       type: http
