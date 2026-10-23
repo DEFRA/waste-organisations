@@ -52,10 +52,10 @@ Lint the contract:
 npx @redocly/cli@latest lint openapi/organisations-v2.yaml --extends recommended
 ```
 
-Preview the rendered reference documentation:
+Build the rendered reference documentation to an HTML file you can open:
 
 ```bash
-npx @redocly/cli@latest preview-docs openapi/organisations-v2.yaml
+npx @redocly/cli@latest build-docs openapi/organisations-v2.yaml
 ```
 
 Run a mock server, so a consumer can build against the contract before the endpoint exists:

@@ -7,8 +7,10 @@ info:
   description: |
     Hand-written contract for version 2 of the Waste Organisations API.
 
-    Version 2 is selected by the required `Api-Version: 2` request header. A request
-    without the header is handled by version 1, which has no `POST /organisations`.
+    **Draft: the versioning approach is not final.** This draft selects version 2 with the
+    `Api-Version: 2` request header, which has been agreed in principle to let the work
+    progress. It may change, for example to a path such as `/v2/organisations`, so do not
+    build on the versioning details yet.
 
     ## Getting started
 
@@ -18,11 +20,13 @@ info:
 
     - **Basic credentials** — a client name and secret, added to the API's access control
       list with the `write` scope. Send them in the `Authorization: Basic` header.
-    - **A JWT** — the team registers your client, and your token must carry a `scope`
-      claim with the value `write`. Send it in the `Authorization: Bearer` header.
+    - **A JWT** — the team registers your client ID with the `write` scope. Send a token
+      that carries your `client_id` in the `Authorization: Bearer` header.
 
-    Either scheme is accepted on every operation. Creating an organisation needs the
-    `write` scope, so a token or credential without it returns `403`.
+    Either scheme is accepted on every operation. The API takes the scopes from its access
+    control list entry for your client, not from a claim on the token. Creating an
+    organisation needs the `write` scope, so a client without it, or a client the team has
+    not registered, returns `403`.
 
     ### Base URLs
 
@@ -36,11 +40,12 @@ info:
 
     The CDP URLs are placeholders until the platform team confirms them.
 
-    ### The Api-Version header
+    ### The Api-Version header (draft)
 
     Every v2 request must send `Api-Version: 2`. A request without the header is handled
-    by version 1, which has no `POST /organisations`, so a `POST` without the header — or
-    with any other value — returns `400` with a problem detail that names `Api-Version`.
+    by version 1, which has no `POST /organisations`, so a `POST` without the header
+    returns `405 Method Not Allowed` with `Allow: GET`, as it does today. A `POST` with any
+    other value returns `400` with a problem detail that names `Api-Version`.
 
     ### Your first call
 
@@ -101,8 +106,10 @@ info:
     ### Companies House numbers
 
     A `companiesHouseNumber` is 8 characters: a 2-character prefix (`00` to `99`, or
-    letters such as `SC`, `NI`, `OC`, `SO`, `R0`) followed by 6 digits, upper case —
-    `pattern: ^[A-Z0-9]{2}[0-9]{6}$`. It is **required** when `organisationType` is one of
+    letters such as `SC`, `NI`, `OC`, `SO`, `R0`) followed by 6 digits, upper case. The
+    registered-society form, `IP` followed by 5 digits and the letter `R`, such as
+    `IP00525R`, is also accepted —
+    `pattern: ^(?:[A-Z0-9]{2}[0-9]{6}|IP[0-9]{5}R)$`. It is **required** when `organisationType` is one of
     the 36 Companies House codes, and optional for the four codes Defra owns
     (`sole-trader`, `partnership`, `unincorporated-association`, `public-body`) and when
     `organisationType` is omitted.
@@ -138,8 +145,9 @@ info:
 
     ## Errors
 
-    Every error carries an RFC 9457 problem detail in `application/problem+json`, with
-    `type`, `title`, `status`, `detail` and `instance`. A `400` body adds `errors`, a map
+    Every error that has a body carries an RFC 9457 problem detail in
+    `application/problem+json`, with `type`, `title`, `status`, `detail`, `instance` and a
+    `traceId` that the team can search the logs for. A `400` body adds `errors`, a map
     of field path to messages, so you can show the failure against the field the consumer
     filled in. A path uses the JSON property names of the request, such as
     `addresses.registeredAddress.postalCode`, or the header name for a header failure.
@@ -148,16 +156,16 @@ info:
 
     | Reason | Field path in `errors` |
     |---|---|
-    | The `Api-Version` header is missing, or holds a value other than `2` | `Api-Version` |
+    | The `Api-Version` header holds a value other than `2` (a missing header returns `405`) | `Api-Version` |
     | The body is not well-formed JSON | `$` |
-    | `name`, `homeNation` or `addresses` is missing, and `name` is empty | `name`, `homeNation`, `addresses` |
+    | `name`, `homeNation` or `addresses` is missing, or `name` is empty | `name`, `homeNation`, `addresses` |
     | `addresses.registeredAddress` is missing | `addresses.registeredAddress` |
     | An address has no `addressLine`, `locality` or `postalCode`, or one of them is empty | `addresses.<kind>.addressLine`, `addresses.<kind>.locality`, `addresses.<kind>.postalCode` |
     | `companiesHouseNumber` is missing for a Companies House `organisationType` | `companiesHouseNumber` |
-    | `companiesHouseNumber` does not match `^[A-Z0-9]{2}[0-9]{6}$` | `companiesHouseNumber` |
+    | `companiesHouseNumber` does not match the pattern above | `companiesHouseNumber` |
     | `organisationType` holds a code this version does not know | `organisationType` |
     | `homeNation` is not one of `GB-ENG`, `GB-SCT`, `GB-WLS`, `GB-NIR` | `homeNation` |
-    | `country.iso` is not two upper-case letters | `addresses.<kind>.country.iso` |
+    | `country.iso` is not two upper-case letters, or is `UK` or `XI` (use `GB`) | `addresses.<kind>.country.iso` |
     | `validFrom` is not an ISO 8601 date-time | `validFrom` |
     | The body holds a field the request schema does not declare | The unknown field |
 
@@ -168,25 +176,25 @@ info:
     A `409` means the organisation you sent duplicates one this API already holds. It is
     not a transient failure, so do not retry it unchanged. The body carries
     `existingOrganisationId`, and the `Location` header holds the path of that
-    organisation, so fetch or correct the existing record instead of creating a second
-    one. The rule that decides what counts as a duplicate is still being agreed, and this
+    organisation. Check that it is the organisation you meant, then use that record
+    instead of creating a second one. The rule that decides what counts as a duplicate is still being agreed, and this
     contract will state it here once it is.
 
     ### 401, 403, 415 and 500
 
     | Status | When |
     |---|---|
-    | `401 Unauthorized` | No credentials, or credentials the API rejects. The `WWW-Authenticate` header names the schemes it accepts. No body. |
-    | `403 Forbidden` | Valid credentials without the `write` scope. No body. |
+    | `401 Unauthorized` | No credentials, or credentials the API rejects. A request with no credentials gets `WWW-Authenticate: Bearer`. No body. |
+    | `403 Forbidden` | Valid credentials for a client without the `write` scope, or a client the team has not registered. No body. |
     | `415 Unsupported Media Type` | The request `Content-Type` is not `application/json`. |
-    | `500 Internal Server Error` | The API could not handle the request. Report it with the `instance` value and the time of the call. |
+    | `500 Internal Server Error` | The API could not handle the request. Retry as described in "Using the API safely", and if it keeps failing report the `traceId` from the body and the time of the call. |
 
-    ## Versioning
+    ## Versioning (draft)
 
     The version is selected by the `Api-Version` request header, not by the path, so the
     URL of an operation does not change between versions. Send `Api-Version: 2` for this
-    contract. A request without the header is handled by version 1. Every response echoes
-    the version that answered in its own `Api-Version` header.
+    contract. A request without the header is handled by version 1. This approach is a
+    draft and may change, so the responses do not yet carry an `Api-Version` header.
 
     Version 1 and version 2 run side by side. No retirement date for version 1 is agreed
     yet; it will be announced through the deprecation process below.
@@ -219,9 +227,11 @@ info:
     Then treat the result this way:
 
     - a `201` means the retry created the organisation;
-    - a `409` means the first call had already stored it. Take `existingOrganisationId`
-      from the body, or the path from the `Location` header, and carry on with that
-      organisation. This is a success for the consumer, not a failure.
+    - a `409` means an organisation matching the duplicate rule already exists. Check that
+      `existingOrganisationId`, or the path in the `Location` header, is the organisation
+      you meant before you carry on with it. It may be the one your first call stored, or
+      one that someone else created. The duplicate rule is not yet agreed, so this advice
+      will be revisited once it is.
 
     Do not retry a `400`, a `401`, a `403`, a `409` or a `415`: the same request fails the
     same way until you change it.
@@ -252,8 +262,16 @@ info:
     To raise an issue with the contract itself, or to request a change, open an issue at
     <https://github.com/DEFRA/waste-organisations/issues> or contact the team at the
     address in `info.contact`.
+
+    ## Response fields
+
+    An optional field with no value is absent from a v2 response. Version 1 returns such a
+    field as an explicit `null`, but the v2 endpoint uses its own serializer options, so
+    version 1 is unaffected. The one exception is `isUkAddress`, which is `null` when the
+    country is unknown.
   contact:
     name: Waste Organisations team
+    # Placeholder: replace with a confirmed mailbox before the contract is published.
     email: waste-organisations@defra.gov.uk
     url: https://github.com/DEFRA/waste-organisations/issues
   license:
@@ -289,8 +307,9 @@ paths:
       description: >-
         Creates an organisation and its addresses. The organisation needs a name, a home
         nation and a registered address. The server generates the id and returns it in
-        the body and in the `Location` header. Send `Api-Version: 2`, because a request
-        without the header is handled by version 1, which has no `POST /organisations`.
+        the body and in the `Location` header. Send `Api-Version: 2` (draft versioning),
+        because a request without the header is handled by version 1, which has no
+        `POST /organisations` and answers `405`.
       tags:
         - Organisations
       parameters:
@@ -321,8 +340,6 @@ paths:
           headers:
             Location:
               $ref: '#/components/headers/Location'
-            Api-Version:
-              $ref: '#/components/headers/ApiVersion'
           content:
             application/json:
               schema:
@@ -333,14 +350,10 @@ paths:
         '400':
           description: >-
             The request is rejected. The body names every field or header that failed, by
-            path, in `errors`. Causes are malformed JSON, a missing or unsupported
-            `Api-Version`, a missing required field, a missing `registeredAddress`, an
-            unknown `organisationType`, a `companiesHouseNumber` that is missing for a
-            Companies House type or in the wrong format, and any other enum or pattern
-            failure.
-          headers:
-            Api-Version:
-              $ref: '#/components/headers/ApiVersion'
+            path, in `errors`. Causes are malformed JSON, an unsupported `Api-Version`, a
+            missing required field, a missing `registeredAddress`, an unknown
+            `organisationType`, a `companiesHouseNumber` that is missing for a Companies
+            House type or in the wrong format, and any other enum or pattern failure.
           content:
             application/problem+json:
               schema:
@@ -356,8 +369,8 @@ paths:
                   $ref: '#/components/examples/missingPostalCode'
                 invalidCompaniesHouseNumber:
                   $ref: '#/components/examples/invalidCompaniesHouseNumber'
-                missingApiVersion:
-                  $ref: '#/components/examples/missingApiVersion'
+                unsupportedApiVersion:
+                  $ref: '#/components/examples/unsupportedApiVersion'
         '401':
           description: >-
             The request carries no credentials, or the credentials are invalid. The
@@ -365,29 +378,28 @@ paths:
           headers:
             WWW-Authenticate:
               description: >-
-                The authentication schemes the API accepts, so a client knows how to
-                authenticate.
-              required: true
+                The scheme the API challenges with when a request carries no credentials. It
+                is `Bearer` only: the Basic handler sends no challenge, so a request with
+                invalid credentials may not carry this header.
+              required: false
               schema:
                 type: string
                 examples:
-                  - Basic realm="waste-organisations"
+                  - Bearer
         '403':
           description: >-
-            The credentials are valid but do not carry the `write` scope, so the caller
-            cannot create an organisation. The response has no body.
+            The client has no `write` scope in the API's access control list, or the team has
+            not registered it, so the caller cannot create an organisation. The response has no body.
         '409':
           description: >-
             The organisation duplicates one the API already holds. The body holds
             `existingOrganisationId` and the `Location` header holds the path of that
-            organisation, so a client fetches it instead of retrying. The rule that
+            organisation, so a client checks it is the one meant instead of retrying. The rule that
             decides what counts as a duplicate is not yet agreed, so this contract does
             not state it.
           headers:
             Location:
               $ref: '#/components/headers/Location'
-            Api-Version:
-              $ref: '#/components/headers/ApiVersion'
           content:
             application/problem+json:
               schema:
@@ -408,7 +420,8 @@ paths:
         '500':
           description: >-
             The API failed unexpectedly. The request may or may not have stored the
-            organisation, so a client checks before it retries.
+            organisation. Retry as described in "Using the API safely" in the API
+            description, and report the `traceId` if it keeps failing.
           content:
             application/problem+json:
               schema:
@@ -431,8 +444,14 @@ components:
         iso:
           type: string
           pattern: ^[A-Z]{2}$
+          not:
+            enum:
+              - UK
+              - XI
           description: >-
             The ISO 3166-1 alpha-2 code of the country, upper case, such as `GB` or `IE`.
+            Use `GB` for the United Kingdom: `UK` and `XI` are rejected, because
+            `isUkAddress` is true only for `GB`.
           examples:
             - GB
         name:
@@ -505,6 +524,10 @@ components:
       description: >-
         An address of an organisation as the API returns it. It holds the fields of
         `Address` plus the derived `isUkAddress`.
+      required:
+        - addressLine
+        - locality
+        - postalCode
       properties:
         addressLine:
           type: string
@@ -600,6 +623,8 @@ components:
       description: >-
         The addresses of an organisation as the API returns it. Only the kinds the
         organisation has are present.
+      required:
+        - registeredAddress
       properties:
         registeredAddress:
           $ref: '#/components/schemas/AddressResponse'
@@ -797,14 +822,15 @@ components:
 
     CompaniesHouseNumber:
       type: string
-      pattern: ^[A-Z0-9]{2}[0-9]{6}$
+      pattern: ^(?:[A-Z0-9]{2}[0-9]{6}|IP[0-9]{5}R)$
       description: >-
         A Companies House registration number: eight upper case characters, a
         two-character prefix such as `00`, `SC`, `NI`, `OC`, `SO` or `R0`, followed by six
-        digits.
+        digits. A registered society number, `IP`, five digits and `R`, is also accepted.
       examples:
         - '01234567'
         - SC123456
+        - IP00525R
 
     CreateOrganisationRequest:
       type: object
@@ -900,10 +926,13 @@ components:
           $ref: '#/components/schemas/HomeNation'
           description: The nation of the United Kingdom the organisation is based in.
         organisationType:
-          $ref: '#/components/schemas/OrganisationType'
           description: >-
             The legal form of the organisation. It is absent when the organisation was
-            created without a type.
+            created without a type. The set of codes is open, so a code this contract does
+            not list may appear: fall back to showing the code itself.
+          anyOf:
+            - $ref: '#/components/schemas/OrganisationType'
+            - type: string
         validFrom:
           type: string
           format: date-time
@@ -949,6 +978,12 @@ components:
       description: >-
         An error as RFC 9457 problem details. The API returns it as
         `application/problem+json` for every failure that carries a body.
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - instance
       properties:
         type:
           type: string
@@ -984,6 +1019,13 @@ components:
             path of the request that failed.
           examples:
             - /organisations
+        traceId:
+          type: string
+          description: >-
+            The identifier of the request in the API's logs. Quote it when you report a
+            problem.
+          examples:
+            - 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
 
     ValidationProblemDetails:
       description: >-
@@ -992,6 +1034,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/ProblemDetails'
         - type: object
+          required:
+            - errors
           properties:
             errors:
               type: object
@@ -1017,6 +1061,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/ProblemDetails'
         - type: object
+          required:
+            - existingOrganisationId
           properties:
             existingOrganisationId:
               type: string
@@ -1032,15 +1078,17 @@ components:
       type: http
       scheme: basic
       description: >-
-        HTTP Basic credentials issued by the Waste Organisations team. The credentials
-        must carry the `write` scope to create an organisation.
+        HTTP Basic credentials issued by the Waste Organisations team. The client must have
+        the `write` scope in the API's access control list to create an organisation.
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
       description: >-
-        A JWT bearer token. The token must carry a `scope` claim with the value `write`
-        to create an organisation.
+        A JWT bearer token that carries your `client_id`. The team registers the client ID
+        with the `write` scope in the API's access control list, and the API takes the
+        scopes from there rather than from a claim on the token. An unregistered client
+        gets `403`.
 
   parameters:
     ApiVersion:
@@ -1048,21 +1096,16 @@ components:
       in: header
       required: true
       description: >-
-        Selects the version of the API that handles the request. Send `2` to use this
-        contract. A missing or unsupported value returns `400`.
+        Selects the version of the API that handles the request (draft: the versioning
+        approach may change). Send `2` to use this contract. A missing header is handled
+        by version 1 and returns `405` for this operation; an unsupported value returns
+        `400`.
       schema:
         type: string
         enum:
           - "2"
 
   headers:
-    ApiVersion:
-      description: The version of the API that answered the request.
-      required: true
-      schema:
-        type: string
-        enum:
-          - "2"
     Location:
       description: The path of the organisation the response refers to.
       required: true
@@ -1307,20 +1350,20 @@ components:
           companiesHouseNumber:
             - The companiesHouseNumber field is not in the required format.
 
-    missingApiVersion:
-      summary: The Api-Version header is missing or unsupported
+    unsupportedApiVersion:
+      summary: The Api-Version header holds an unsupported value
       description: >-
-        Version 2 is selected by the `Api-Version` header, so a request without it, or
-        with a value other than `2`, is rejected.
+        Version 2 is selected by the `Api-Version` header, so a request with a value other
+        than `2` is rejected. A request without the header returns `405` instead.
       value:
         type: https://tools.ietf.org/html/rfc9110#section-15.5.1
         title: Bad Request
         status: 400
-        detail: The Api-Version header is missing or unsupported.
+        detail: The Api-Version header is unsupported.
         instance: /organisations
         errors:
           Api-Version:
-            - The Api-Version header is required and holds the value 2.
+            - The Api-Version header must hold the value 2.
 
     unsupportedMediaType:
       summary: The request body is not application/json
@@ -1335,11 +1378,12 @@ components:
     internalServerError:
       summary: The API failed unexpectedly
       description: >-
-        The request may or may not have stored the organisation, so a client checks before
-        it retries.
+        The request may or may not have stored the organisation. Retry as described in
+        "Using the API safely", and report the `traceId` if it keeps failing.
       value:
         type: https://tools.ietf.org/html/rfc9110#section-15.6.1
         title: Internal Server Error
         status: 500
-        detail: The API could not handle the request. Try again later.
+        detail: The API could not handle the request. Retry once or twice with a short backoff.
         instance: /organisations
+        traceId: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01

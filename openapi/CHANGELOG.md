@@ -10,7 +10,7 @@ Non-breaking: this is the first draft of the v2 contract, so no published versio
 
 First draft content:
 
-- `POST /organisations` as `createOrganisation`, with the mandatory `Api-Version: 2` header and `basicAuth` or `bearerAuth` security.
+- `POST /organisations` as `createOrganisation`, with the `Api-Version: 2` header (versioning approach agreed in principle, still draft) and `basicAuth` or `bearerAuth` security.
 - `CreateOrganisationRequest`, which requires `name`, `homeNation` and `addresses`, and requires `companiesHouseNumber` when `organisationType` is a Companies House code.
 - `Organisation`, `Addresses` and `AddressesResponse`, with the five address kinds and the derived `isUkAddress`.
 - `Address`, `AddressResponse` and `Country`, which require `addressLine`, `locality` and `postalCode`.

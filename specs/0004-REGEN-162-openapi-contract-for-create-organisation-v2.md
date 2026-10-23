@@ -7,7 +7,7 @@
 | Parent | REGEN-141 Create an Organisation, under REGEN-125 Access to org data via Org API |
 | Risk | Medium (see Risks) |
 | Approach | Design-first ([OpenAPI-driven API design](https://swagger.io/blog/openapi-driven-api-design/)): agree the contract, then build to it |
-| Source | The decisions of 21 October 2026 (D1–D6), and the Postgres schema in PR [#203](https://github.com/DEFRA/waste-organisations/pull/203) (`changelog/db.changelog-1.1.xml`, `src/Api/Data/Postgres/Entities/`, `specs/0003-REGEN-141-organisation-and-address-db-schema.md`) |
+| Source | The decisions of 21 October 2026 (D2–D6; D1, versioning, is now open as Q1), and the Postgres schema in PR [#203](https://github.com/DEFRA/waste-organisations/pull/203) (`changelog/db.changelog-1.1.xml`, `src/Api/Data/Postgres/Entities/`, `specs/0003-REGEN-141-organisation-and-address-db-schema.md`) |
 
 ## Problem/Opportunity
 
@@ -123,11 +123,11 @@ security: basicAuth (scope write) OR bearerAuth (JWT, scope claim write)
 requestBody: application/json → CreateOrganisationRequest (required)
 ```
 
-Versioning uses a request header (D1), named `Api-Version` with the value `2`:
+Versioning uses a request header, agreed in principle and still open (Q1), named `Api-Version` with the value `2`:
 
 - It is a reusable `components/parameters/ApiVersion` (`in: header`, `required: true`, `schema: {type: string, enum: ["2"]}`), so the later v2 get, update and search operations reference the same parameter.
-- Responses echo it as an `Api-Version` response header, so a client can confirm which version answered.
-- v1 clients send no header and are unaffected: a request without `Api-Version` is v1. v1 has no `POST /organisations`, so a `POST` without the header, or with an unsupported value, returns `400` with a problem detail that names the header.
+- Responses do not declare an `Api-Version` response header until Q1 is settled.
+- v1 clients send no header and are unaffected: a request without `Api-Version` is v1. v1 has no `POST /organisations`, so a `POST` without the header returns `405` with `Allow: GET`, as today (pinned by the v1 route tests), and an unsupported value returns `400` with a problem detail that names the header.
 - The document's `info.description` explains the header, because a header version is less visible than a path.
 
 ### Responses
@@ -174,7 +174,7 @@ Run locally with Node (no repo dependency added):
 ```bash
 npx @redocly/cli@latest lint openapi/organisations-v2.yaml           # OpenAPI 3.1 structural + recommended rules
 npx @stoplight/spectral-cli@latest lint openapi/organisations-v2.yaml # optional second opinion (spectral:oas ruleset)
-npx @redocly/cli@latest preview-docs openapi/organisations-v2.yaml   # human review
+npx @redocly/cli@latest build-docs openapi/organisations-v2.yaml   # human review
 ```
 
 Also check:
@@ -197,7 +197,7 @@ Required for the first release:
 | S1 | Getting started | How to get credentials, and who issues them (Basic, or a JWT with the `write` scope). The base URL for each CDP environment. The `Api-Version: 2` header, and the `400` returned without it. A first `curl` call for each auth scheme, returning `201` | `info.description` (Markdown section "Getting started") |
 | S2 | Business rules and reference data | Mandatory fields (D2, D5). The Companies House number format, and when the number is required (D3, D6). The 40 `organisationType` codes with their meanings. Consumers own their English and Welsh labels and need a fallback for unknown codes. What each of the five address kinds is for. `isUkAddress` is derived from `country.iso`. Timestamps are UTC ISO 8601 | Schema and property `description`s; `x-enumDescriptions`; a "Rules" section in `info.description` |
 | S3 | Error catalogue | Every `400` reason with the field path it names (for example `addresses.registeredAddress.postalCode`, `companiesHouseNumber`, `Api-Version`). What a `409` means, and how to use `existingOrganisationId` and `Location`. When to expect `401`, `403`, `415` and `500` | Response `description`s and examples; an "Errors" table in `info.description` |
-| S4 | Versioning and change policy | Versions are selected by `Api-Version` (D1). Breaking versus non-breaking changes: new enum values and new optional response fields are non-breaking, so clients must tolerate unknown values. How long v1 and v2 run side by side. How deprecations are announced (OpenAPI `deprecated: true`, plus notice on Confluence and to known consumers) | `info.description` ("Versioning") |
+| S4 | Versioning and change policy | Versions are selected by `Api-Version` (Q1, draft). Breaking versus non-breaking changes: new enum values and new optional response fields are non-breaking, so clients must tolerate unknown values. How long v1 and v2 run side by side. How deprecations are announced (OpenAPI `deprecated: true`, plus notice on Confluence and to known consumers) | `info.description` ("Versioning") |
 | S5 | Contract changelog | One entry per contract version from `2.0.0-draft`: what changed and whether it is breaking | `openapi/CHANGELOG.md`, linked from `info.description` |
 
 Expected for a Defra service:
@@ -220,7 +220,7 @@ Optional:
 
 | # | Task | Output | Est. |
 |---|---|---|---|
-| 1 | Record decisions D1–D6 on REGEN-141; agree the duplicate rule (Q2) | Answers recorded on REGEN-141 | 0.25 d |
+| 1 | Record decisions D2–D6 on REGEN-141; settle versioning (Q1); agree the duplicate rule (Q2) | Answers recorded on REGEN-141 | 0.25 d |
 | 2 | Create `openapi/organisations-v2.yaml`: `info`, `servers`, `security`, `tags`, the `Api-Version` parameter and header, the `POST /organisations` path | Skeleton | 0.25 d |
 | 3 | Write the component schemas from "Organisation fields" and "Addresses", including the 40 `organisationType` codes copied from `OrganisationTypeCodes.All` | Schemas | 0.5 d |
 | 4 | Add the responses and problem details schemas from "Responses" | Responses | 0.25 d |
@@ -244,7 +244,7 @@ Optional:
 - [ ] Every response has a valid example; `redocly lint` passes with no errors.
 - [ ] Getting started, business rules, error catalogue and versioning policy (S1–S4) are in the contract, and `openapi/CHANGELOG.md` exists (S5).
 - [ ] The v1 → v2 mapping, data protection, non-functional and support material (S6–S9) is on Confluence and linked from `info.description`.
-- [ ] Decisions D1–D6 are recorded on REGEN-141, and the duplicate rule (Q2) is agreed before the endpoint is built.
+- [ ] Decisions D2–D6 are recorded on REGEN-141, Q1 (versioning) is settled, and the duplicate rule (Q2) is agreed before the endpoint is built.
 - [ ] The contract has been reviewed by the team and shared with consumers.
 
 ## Out of Scope
@@ -260,7 +260,6 @@ Agreed 21 October 2026:
 
 | # | Decision | Where in the contract |
 |---|---|---|
-| D1 | The version is selected by a request header named `Api-Version`, not the path | `POST /organisations` with a required `Api-Version: 2` header ("Operation") |
 | D2 | `addressLine`, `locality` and `postalCode` are mandatory on every address | `required` on `Address` ("Addresses") |
 | D3 | `companiesHouseNumber` is format-checked | `pattern: ^[A-Z0-9]{2}[0-9]{6}$`, `400` on failure ("Organisation fields") |
 | D4 | A duplicate returns `409 Conflict`, in the first release | `409` with `existingOrganisationId` ("Responses") |
@@ -271,6 +270,7 @@ Agreed 21 October 2026:
 
 | # | Question | Effect on the contract | Blocks? |
 |---|---|---|---|
+| Q1 | How is the version selected: a request header (`Api-Version: 2`, agreed in principle to progress the work) or the path (`/v2/organisations`)? | Operation shape, `Api-Version` parameter, `405`/`400` behaviour, response headers | No: the contract is drafted with the header and marks it as draft |
 | Q2 | What counts as a duplicate (Companies House number? name + home nation + registered postal code?) | `409` description; endpoint logic; perhaps a unique index in a later changeset | Yes for the endpoint, not for drafting the contract |
 | Q3 | Should a client be able to supply the `id` (idempotent `PUT /organisations/{id}` like v1) instead of the server generating it? | Operation shape | No: this spec assumes `POST` + server id |
 | Q4 | Should `organisationType` itself be mandatory? While it is optional, an organisation sent without a type skips the Companies House number rule (D6) | `required` | No: this spec keeps it optional, as in the schema |
@@ -311,6 +311,6 @@ Agreed 21 October 2026:
 - The source of the 40 `organisationType` codes is `src/Api/Data/Postgres/OrganisationTypeCodes.cs` on branch `REGEN-141-organisation-and-address-db-schema` until PR #203 merges into `main`. Read the file with `git show origin/REGEN-141-organisation-and-address-db-schema:src/Api/Data/Postgres/OrganisationTypeCodes.cs`.
 - The CDP environment URLs are not yet confirmed. `servers` uses one templated entry, `https://waste-organisations.{environment}.cdp-int.defra.cloud`, with an `environment` variable whose `enum` is `dev`, `test`, `perf-test` and `prod`. The server `description` states that the platform team must confirm the URLs.
 - S6 to S9 are Confluence pages. An agent cannot create them. The contract carries a "More information" list in `info.description` that names each page by title and links the Confluence page "Access to org data via Org API". Writing the pages stays an acceptance criterion of this spec.
-- Recording D1 to D6 on REGEN-141, agreeing Q2, the team review and the consumer sign-off are human tasks. They stay acceptance criteria of this spec and are not plan items.
+- Recording D2 to D6 on REGEN-141, agreeing Q2, the team review and the consumer sign-off are human tasks. They stay acceptance criteria of this spec and are not plan items.
 - The `openapi/` folder holds no lint configuration file. The lint command uses the Redocly `recommended` ruleset through `--extends recommended`.
 - The request and response schemas are separate, so the address schemas are separate too. `Address` and `Addresses` are the request schemas. `AddressResponse` and `AddressesResponse` are the response schemas. `AddressResponse` adds the read-only `isUkAddress`.
