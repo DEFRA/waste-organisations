@@ -40,6 +40,32 @@ The same port (8080) is used for launch profile and Docker compose configuration
 
 API documentation can be viewed at http://localhost:8080/redoc/index.html once the service is running.
 
+#### v2 API contract
+
+`openapi/organisations-v2.yaml` is the OpenAPI 3.1 contract for the v2 create organisation endpoint. The contract leads the implementation: it is agreed with consumers first, and the endpoint is built to match it. Every contract change is recorded in [openapi/CHANGELOG.md](openapi/CHANGELOG.md).
+
+The commands below need Node and add no dependency to the repository.
+
+Lint the contract:
+
+```bash
+npx @redocly/cli@latest lint openapi/organisations-v2.yaml --extends recommended
+```
+
+Build the rendered reference documentation to an HTML file you can open:
+
+```bash
+npx @redocly/cli@latest build-docs openapi/organisations-v2.yaml
+```
+
+Run a mock server, so a consumer can build against the contract before the endpoint exists:
+
+```bash
+npx @stoplight/prism-cli@latest mock openapi/organisations-v2.yaml
+```
+
+The mock returns the documented examples and validates requests against the schemas.
+
 ### Postgres schema changes
 
 The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) changelog in `changelog/`, not by EF Core migrations. `changelog/db.changelog.xml` is the master file and includes the versioned files in order.

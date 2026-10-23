@@ -1,0 +1,1389 @@
+openapi: 3.1.0
+
+info:
+  title: Waste Organisations API (v2)
+  version: 2.0.0-draft
+  summary: Create and retrieve waste organisations and their addresses.
+  description: |
+    Hand-written contract for version 2 of the Waste Organisations API.
+
+    **Draft: the versioning approach is not final.** This draft selects version 2 with the
+    `Api-Version: 2` request header, which has been agreed in principle to let the work
+    progress. It may change, for example to a path such as `/v2/organisations`, so do not
+    build on the versioning details yet.
+
+    ## Getting started
+
+    ### Credentials
+
+    The Waste Organisations team issues access. Ask the team for either:
+
+    - **Basic credentials** — a client name and secret, added to the API's access control
+      list with the `write` scope. Send them in the `Authorization: Basic` header.
+    - **A JWT** — the team registers your client ID with the `write` scope. Send a token
+      that carries your `client_id` in the `Authorization: Bearer` header.
+
+    Either scheme is accepted on every operation. The API takes the scopes from its access
+    control list entry for your client, not from a claim on the token. Creating an
+    organisation needs the `write` scope, so a client without it, or a client the team has
+    not registered, returns `403`.
+
+    ### Base URLs
+
+    | Environment | Base URL |
+    |---|---|
+    | Local Docker Compose | `http://localhost:8080` |
+    | CDP dev | `https://waste-organisations.dev.cdp-int.defra.cloud` |
+    | CDP test | `https://waste-organisations.test.cdp-int.defra.cloud` |
+    | CDP performance test | `https://waste-organisations.perf-test.cdp-int.defra.cloud` |
+    | CDP production | `https://waste-organisations.prod.cdp-int.defra.cloud` |
+
+    The CDP URLs are placeholders until the platform team confirms them.
+
+    ### The Api-Version header (draft)
+
+    Every v2 request must send `Api-Version: 2`. A request without the header is handled
+    by version 1, which has no `POST /organisations`, so a `POST` without the header
+    returns `405 Method Not Allowed` with `Allow: GET`, as it does today. A `POST` with any
+    other value returns `400` with a problem detail that names `Api-Version`.
+
+    ### Your first call
+
+    With Basic credentials:
+
+    ```bash
+    curl -i -X POST https://waste-organisations.dev.cdp-int.defra.cloud/organisations \
+      -u "$CLIENT_NAME:$CLIENT_SECRET" \
+      -H 'Api-Version: 2' \
+      -H 'Content-Type: application/json' \
+      -d '{
+            "name": "Green Valley Waste Services Ltd",
+            "homeNation": "GB-ENG",
+            "addresses": {
+              "registeredAddress": {
+                "addressLine": "Horizon House, Deanery Road",
+                "locality": "Bristol",
+                "postalCode": "BS1 5AH",
+                "country": { "iso": "GB", "name": "United Kingdom" }
+              }
+            }
+          }'
+    ```
+
+    With a JWT:
+
+    ```bash
+    curl -i -X POST https://waste-organisations.dev.cdp-int.defra.cloud/organisations \
+      -H "Authorization: Bearer $TOKEN" \
+      -H 'Api-Version: 2' \
+      -H 'Content-Type: application/json' \
+      -d '{
+            "name": "Green Valley Waste Services Ltd",
+            "homeNation": "GB-ENG",
+            "addresses": {
+              "registeredAddress": {
+                "addressLine": "Horizon House, Deanery Road",
+                "locality": "Bristol",
+                "postalCode": "BS1 5AH",
+                "country": { "iso": "GB", "name": "United Kingdom" }
+              }
+            }
+          }'
+    ```
+
+    Each call returns `201 Created`, the stored organisation in the body, and a
+    `Location` header holding the path of the new organisation.
+
+    ## Rules
+
+    ### Mandatory fields
+
+    An organisation needs `name`, `homeNation` and `addresses.registeredAddress`. Every
+    address, whichever kind it is, needs `addressLine`, `locality` and `postalCode`.
+    Request objects reject unknown fields rather than ignoring them, so a misspelled
+    field name returns `400`.
+
+    ### Companies House numbers
+
+    A `companiesHouseNumber` is 8 characters: a 2-character prefix (`00` to `99`, or
+    letters such as `SC`, `NI`, `OC`, `SO`, `R0`) followed by 6 digits, upper case. The
+    registered-society form, `IP` followed by 5 digits and the letter `R`, such as
+    `IP00525R`, is also accepted —
+    `pattern: ^(?:[A-Z0-9]{2}[0-9]{6}|IP[0-9]{5}R)$`. It is **required** when `organisationType` is one of
+    the 36 Companies House codes, and optional for the four codes Defra owns
+    (`sole-trader`, `partnership`, `unincorporated-association`, `public-body`) and when
+    `organisationType` is omitted.
+
+    ### Organisation types and labels
+
+    The `OrganisationType` schema lists all 40 codes with their meanings, both as a table
+    in its description and as an `x-enumDescriptions` map. Consumers own the labels they
+    show, in English and in Welsh, so this API publishes codes and not display text. New
+    codes are added without a new API version, so fall back to the raw code rather than
+    failing on one you do not recognise.
+
+    ### Address kinds
+
+    `addresses` is keyed by the purpose of the address, and holds at most one address per
+    purpose:
+
+    | Property | Purpose |
+    |---|---|
+    | `registeredAddress` | The registered office, or the main address when there is no registered office. Required. |
+    | `auditAddress` | Where the organisation keeps the records an audit inspects. |
+    | `serviceOfNoticeAddress` | Where formal and legal notices are served. |
+    | `principalAddress` | The principal place of business, when it differs from the registered address. |
+    | `correspondenceAddress` | Where day-to-day correspondence is sent. |
+
+    ### Derived and server-owned fields
+
+    `isUkAddress` is derived from `country.iso`: it is `true` for `GB`, `false` for any
+    other value, and `null` when the country is unknown. Do not send it.
+
+    `id`, `validTo`, `createdAt` and `updatedAt` are set by the server. Timestamps are
+    UTC, in ISO 8601 date-time format, such as `2026-10-21T09:30:00Z`.
+
+    ## Errors
+
+    Every error that has a body carries an RFC 9457 problem detail in
+    `application/problem+json`, with `type`, `title`, `status`, `detail`, `instance` and a
+    `traceId` that the team can search the logs for. A `400` body adds `errors`, a map
+    of field path to messages, so you can show the failure against the field the consumer
+    filled in. A path uses the JSON property names of the request, such as
+    `addresses.registeredAddress.postalCode`, or the header name for a header failure.
+
+    ### 400 Bad Request
+
+    | Reason | Field path in `errors` |
+    |---|---|
+    | The `Api-Version` header holds a value other than `2` (a missing header returns `405`) | `Api-Version` |
+    | The body is not well-formed JSON | `$` |
+    | `name`, `homeNation` or `addresses` is missing, or `name` is empty | `name`, `homeNation`, `addresses` |
+    | `addresses.registeredAddress` is missing | `addresses.registeredAddress` |
+    | An address has no `addressLine`, `locality` or `postalCode`, or one of them is empty | `addresses.<kind>.addressLine`, `addresses.<kind>.locality`, `addresses.<kind>.postalCode` |
+    | `companiesHouseNumber` is missing for a Companies House `organisationType` | `companiesHouseNumber` |
+    | `companiesHouseNumber` does not match the pattern above | `companiesHouseNumber` |
+    | `organisationType` holds a code this version does not know | `organisationType` |
+    | `homeNation` is not one of `GB-ENG`, `GB-SCT`, `GB-WLS`, `GB-NIR` | `homeNation` |
+    | `country.iso` is not two upper-case letters, or is `UK` or `XI` (use `GB`) | `addresses.<kind>.country.iso` |
+    | `validFrom` is not an ISO 8601 date-time | `validFrom` |
+    | The body holds a field the request schema does not declare | The unknown field |
+
+    `<kind>` is the address property that failed, such as `correspondenceAddress`.
+
+    ### 409 Conflict
+
+    A `409` means the organisation you sent duplicates one this API already holds. It is
+    not a transient failure, so do not retry it unchanged. The body carries
+    `existingOrganisationId`, and the `Location` header holds the path of that
+    organisation. Check that it is the organisation you meant, then use that record
+    instead of creating a second one. The rule that decides what counts as a duplicate is still being agreed, and this
+    contract will state it here once it is.
+
+    ### 401, 403, 415 and 500
+
+    | Status | When |
+    |---|---|
+    | `401 Unauthorized` | No credentials, or credentials the API rejects. A request with no credentials gets `WWW-Authenticate: Bearer`. No body. |
+    | `403 Forbidden` | Valid credentials for a client without the `write` scope, or a client the team has not registered. No body. |
+    | `415 Unsupported Media Type` | The request `Content-Type` is not `application/json`. |
+    | `500 Internal Server Error` | The API could not handle the request. Retry as described in "Using the API safely", and if it keeps failing report the `traceId` from the body and the time of the call. |
+
+    ## Versioning (draft)
+
+    The version is selected by the `Api-Version` request header, not by the path, so the
+    URL of an operation does not change between versions. Send `Api-Version: 2` for this
+    contract. A request without the header is handled by version 1. This approach is a
+    draft and may change, so the responses do not yet carry an `Api-Version` header.
+
+    Version 1 and version 2 run side by side. No retirement date for version 1 is agreed
+    yet; it will be announced through the deprecation process below.
+
+    These changes are **non-breaking**, and arrive without a new version, so build a
+    client that tolerates them:
+
+    - a new value in an enum, such as a new `organisationType` code or a new
+      `country.iso`;
+    - a new optional field in a response body, such as the external identifiers under
+      discussion;
+    - a new optional field in a request body;
+    - a new operation, or a new response header.
+
+    A change that removes or renames a field, makes an optional request field mandatory,
+    narrows an enum, or changes the type or meaning of a field is **breaking**, and gets a
+    new version of this contract.
+
+    A deprecation is announced before it takes effect. The operation or field is marked
+    `deprecated: true` in this document, the Confluence page records the change and the
+    date, and the team tells every known consumer directly.
+
+    ## Using the API safely
+
+    `POST /organisations` is **not idempotent**: each successful call creates one
+    organisation. A client that times out does not know whether the organisation was
+    stored, so a blind retry can create a duplicate.
+
+    Retry a `500`, a timeout or a connection failure once or twice, with a short backoff.
+    Then treat the result this way:
+
+    - a `201` means the retry created the organisation;
+    - a `409` means an organisation matching the duplicate rule already exists. Check that
+      `existingOrganisationId`, or the path in the `Location` header, is the organisation
+      you meant before you carry on with it. It may be the one your first call stored, or
+      one that someone else created. The duplicate rule is not yet agreed, so this advice
+      will be revisited once it is.
+
+    Do not retry a `400`, a `401`, a `403`, a `409` or a `415`: the same request fails the
+    same way until you change it.
+
+    ## More information
+
+    This contract carries everything about the HTTP interface. The material that is not
+    about the interface, or that is not for every consumer, lives on Confluence, in the
+    space of the parent epic REGEN-125 **Access to org data via Org API**. The Waste
+    Organisations team holds the Confluence URLs and must add them here before the
+    contract is published, in the same way as the CDP server URLs under `servers`.
+
+    Pages to read alongside this contract, by title:
+
+    | Page | Read it when |
+    |---|---|
+    | Access to org data via Org API | You want the programme view: who the API is for, what it replaces and the roadmap. The index page for everything below |
+    | Version 1 to version 2 mapping | You are moving a client off version 1. It maps each field, including `town` to `locality` and the version 1 Mongo address to the Defra address model, and names what version 2 does not carry, such as registrations |
+    | Data protection and the DPIA | You handle the data you send or receive. A sole trader's name and address are personal data. It records the lawful basis, the retention period and who may call the API |
+    | Non-functional expectations | You need the availability hours, the support hours, the timeouts and the rate limits. The retry rules are in "Using the API safely" above |
+    | Ownership and support | You want to raise an issue, request a change or check environment status |
+
+    The contract changelog is in the repository, next to this document, at
+    [`openapi/CHANGELOG.md`](https://github.com/DEFRA/waste-organisations/blob/main/openapi/CHANGELOG.md).
+    It holds one entry per contract version, from `2.0.0-draft`, and says whether that
+    version is breaking.
+
+    To raise an issue with the contract itself, or to request a change, open an issue at
+    <https://github.com/DEFRA/waste-organisations/issues> or contact the team at the
+    address in `info.contact`.
+
+    ## Response fields
+
+    An optional field with no value is absent from a v2 response. Version 1 returns such a
+    field as an explicit `null`, but the v2 endpoint uses its own serializer options, so
+    version 1 is unaffected. The one exception is `isUkAddress`, which is `null` when the
+    country is unknown.
+  contact:
+    name: Waste Organisations team
+    # Placeholder: replace with a confirmed mailbox before the contract is published.
+    email: waste-organisations@defra.gov.uk
+    url: https://github.com/DEFRA/waste-organisations/issues
+  license:
+    name: Open Government Licence v3.0
+    url: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+
+servers:
+  - url: http://localhost:8080
+    description: The local Docker Compose environment.
+  - url: https://waste-organisations.{environment}.cdp-int.defra.cloud
+    description: >-
+      A CDP environment. The platform team must confirm these URLs before the contract
+      is published.
+    variables:
+      environment:
+        default: dev
+        description: The CDP environment that serves the request.
+        enum:
+          - dev
+          - test
+          - perf-test
+          - prod
+
+tags:
+  - name: Organisations
+    description: Operations on organisations and their addresses.
+
+paths:
+  /organisations:
+    post:
+      operationId: createOrganisation
+      summary: Create an organisation
+      description: >-
+        Creates an organisation and its addresses. The organisation needs a name, a home
+        nation and a registered address. The server generates the id and returns it in
+        the body and in the `Location` header. Send `Api-Version: 2` (draft versioning),
+        because a request without the header is handled by version 1, which has no
+        `POST /organisations` and answers `405`.
+      tags:
+        - Organisations
+      parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+      requestBody:
+        required: true
+        description: >-
+          The organisation to create, with its addresses. Unknown fields are rejected
+          rather than ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganisationRequest'
+            examples:
+              minimal:
+                $ref: '#/components/examples/minimal'
+              fullLimitedCompany:
+                $ref: '#/components/examples/fullLimitedCompany'
+              soleTraderNoCompaniesHouse:
+                $ref: '#/components/examples/soleTraderNoCompaniesHouse'
+              nonUkCorrespondenceAddress:
+                $ref: '#/components/examples/nonUkCorrespondenceAddress'
+      responses:
+        '201':
+          description: >-
+            The organisation is stored. The body holds the organisation, including the
+            identifier the server generated, and the `Location` header holds its path.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organisation'
+              examples:
+                created:
+                  $ref: '#/components/examples/created'
+        '400':
+          description: >-
+            The request is rejected. The body names every field or header that failed, by
+            path, in `errors`. Causes are malformed JSON, an unsupported `Api-Version`, a
+            missing required field, a missing `registeredAddress`, an unknown
+            `organisationType`, a `companiesHouseNumber` that is missing for a Companies
+            House type or in the wrong format, and any other enum or pattern failure.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+              examples:
+                unknownOrganisationType:
+                  $ref: '#/components/examples/unknownOrganisationType'
+                missingRegisteredAddress:
+                  $ref: '#/components/examples/missingRegisteredAddress'
+                companiesHouseNumberRequired:
+                  $ref: '#/components/examples/companiesHouseNumberRequired'
+                missingPostalCode:
+                  $ref: '#/components/examples/missingPostalCode'
+                invalidCompaniesHouseNumber:
+                  $ref: '#/components/examples/invalidCompaniesHouseNumber'
+                unsupportedApiVersion:
+                  $ref: '#/components/examples/unsupportedApiVersion'
+        '401':
+          description: >-
+            The request carries no credentials, or the credentials are invalid. The
+            response has no body.
+          headers:
+            WWW-Authenticate:
+              description: >-
+                The scheme the API challenges with when a request carries no credentials. It
+                is `Bearer` only: the Basic handler sends no challenge, so a request with
+                invalid credentials may not carry this header.
+              required: false
+              schema:
+                type: string
+                examples:
+                  - Bearer
+        '403':
+          description: >-
+            The client has no `write` scope in the API's access control list, or the team has
+            not registered it, so the caller cannot create an organisation. The response has no body.
+        '409':
+          description: >-
+            The organisation duplicates one the API already holds. The body holds
+            `existingOrganisationId` and the `Location` header holds the path of that
+            organisation, so a client checks it is the one meant instead of retrying. The rule that
+            decides what counts as a duplicate is not yet agreed, so this contract does
+            not state it.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/DuplicateOrganisationProblem'
+              examples:
+                duplicateOrganisation:
+                  $ref: '#/components/examples/duplicateOrganisation'
+        '415':
+          description: >-
+            The request body is not `application/json`, so the API did not read it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                unsupportedMediaType:
+                  $ref: '#/components/examples/unsupportedMediaType'
+        '500':
+          description: >-
+            The API failed unexpectedly. The request may or may not have stored the
+            organisation. Retry as described in "Using the API safely" in the API
+            description, and report the `traceId` if it keeps failing.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                internalServerError:
+                  $ref: '#/components/examples/internalServerError'
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+
+components:
+  schemas:
+    Country:
+      type: object
+      description: >-
+        The country of an address, as the ISO 3166-1 alpha-2 code and the country name.
+      additionalProperties: false
+      properties:
+        iso:
+          type: string
+          pattern: ^[A-Z]{2}$
+          not:
+            enum:
+              - UK
+              - XI
+          description: >-
+            The ISO 3166-1 alpha-2 code of the country, upper case, such as `GB` or `IE`.
+            Use `GB` for the United Kingdom: `UK` and `XI` are rejected, because
+            `isUkAddress` is true only for `GB`.
+          examples:
+            - GB
+        name:
+          type: string
+          description: The name of the country, such as `United Kingdom`.
+          examples:
+            - United Kingdom
+
+    Address:
+      type: object
+      description: >-
+        An address of an organisation, in the Defra standard address model. `addressLine`,
+        `locality` and `postalCode` are required on every address kind.
+      additionalProperties: false
+      required:
+        - addressLine
+        - locality
+        - postalCode
+      properties:
+        addressLine:
+          type: string
+          minLength: 1
+          description: >-
+            The single-line form of the address, without the locality, postal code or
+            country.
+          examples:
+            - Horizon House, Deanery Road
+        subBuildingName:
+          type: string
+          description: The flat, suite or unit within the building, such as `Flat 2`.
+        buildingName:
+          type: string
+          description: The name of the building, such as `Horizon House`.
+        buildingNumber:
+          type: string
+          description: >-
+            The number of the building. It is a string, not a number, because it holds
+            values such as `12A` and `3-5`.
+          examples:
+            - 12A
+        street:
+          type: string
+          description: The street the address is on, such as `Deanery Road`.
+        locality:
+          type: string
+          minLength: 1
+          description: The town or city of the address.
+          examples:
+            - Bristol
+        region:
+          type: string
+          description: The county, state or region of the address, such as `Avon`.
+        postalCode:
+          type: string
+          minLength: 1
+          description: >-
+            The postal code of the address. It is a non-empty string with no format check,
+            because it also holds non-UK postal codes.
+          examples:
+            - BS1 5AH
+        poBox:
+          type: string
+          description: The PO box of the address, when the address has one.
+        country:
+          $ref: '#/components/schemas/Country'
+          description: The country of the address.
+
+    AddressResponse:
+      type: object
+      description: >-
+        An address of an organisation as the API returns it. It holds the fields of
+        `Address` plus the derived `isUkAddress`.
+      required:
+        - addressLine
+        - locality
+        - postalCode
+      properties:
+        addressLine:
+          type: string
+          description: >-
+            The single-line form of the address, without the locality, postal code or
+            country.
+          examples:
+            - Horizon House, Deanery Road
+        subBuildingName:
+          type: string
+          description: The flat, suite or unit within the building, such as `Flat 2`.
+        buildingName:
+          type: string
+          description: The name of the building, such as `Horizon House`.
+        buildingNumber:
+          type: string
+          description: >-
+            The number of the building. It is a string, not a number, because it holds
+            values such as `12A` and `3-5`.
+          examples:
+            - 12A
+        street:
+          type: string
+          description: The street the address is on, such as `Deanery Road`.
+        locality:
+          type: string
+          description: The town or city of the address.
+          examples:
+            - Bristol
+        region:
+          type: string
+          description: The county, state or region of the address, such as `Avon`.
+        postalCode:
+          type: string
+          description: >-
+            The postal code of the address. It is a non-empty string with no format check,
+            because it also holds non-UK postal codes.
+          examples:
+            - BS1 5AH
+        poBox:
+          type: string
+          description: The PO box of the address, when the address has one.
+        country:
+          $ref: '#/components/schemas/Country'
+          description: The country of the address.
+        isUkAddress:
+          type:
+            - boolean
+            - 'null'
+          readOnly: true
+          description: >-
+            Whether the address is in the United Kingdom. The API derives it from
+            `country.iso`, and returns `null` when the country is unknown.
+
+    Addresses:
+      type: object
+      description: >-
+        The addresses of an organisation, keyed by address kind. Each kind holds at most
+        one current address, so the same kind cannot be sent twice. A registered address
+        is required; the other four are optional.
+      additionalProperties: false
+      required:
+        - registeredAddress
+      properties:
+        registeredAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The official address of the organisation, as registered with Companies House
+            or with Defra. Address usage type `Registered`.
+        auditAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The address where the organisation keeps the records an auditor needs. Address
+            usage type `Audit`.
+        serviceOfNoticeAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The address where the organisation accepts legal notices. Address usage type
+            `ServiceOfNotice`.
+        principalAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The address the organisation mainly trades from. Address usage type
+            `Principal`.
+        correspondenceAddress:
+          $ref: '#/components/schemas/Address'
+          description: >-
+            The address for day-to-day post about the organisation. It may be outside the
+            United Kingdom. Address usage type `Correspondence`.
+
+    AddressesResponse:
+      type: object
+      description: >-
+        The addresses of an organisation as the API returns it. Only the kinds the
+        organisation has are present.
+      required:
+        - registeredAddress
+      properties:
+        registeredAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The official address of the organisation, as registered with Companies House
+            or with Defra. Address usage type `Registered`.
+        auditAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The address where the organisation keeps the records an auditor needs. Address
+            usage type `Audit`.
+        serviceOfNoticeAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The address where the organisation accepts legal notices. Address usage type
+            `ServiceOfNotice`.
+        principalAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The address the organisation mainly trades from. Address usage type
+            `Principal`.
+        correspondenceAddress:
+          $ref: '#/components/schemas/AddressResponse'
+          description: >-
+            The address for day-to-day post about the organisation. It may be outside the
+            United Kingdom. Address usage type `Correspondence`.
+
+    CompaniesHouseOrganisationType:
+      type: string
+      description: >-
+        A Companies House `company_type` code. An organisation with one of these codes is
+        registered with Companies House, so `companiesHouseNumber` is required.
+      enum:
+        - private-unlimited
+        - ltd
+        - plc
+        - old-public-company
+        - private-limited-guarant-nsc-limited-exemption
+        - limited-partnership
+        - private-limited-guarant-nsc
+        - converted-or-closed
+        - private-unlimited-nsc
+        - private-limited-shares-section-30-exemption
+        - protected-cell-company
+        - assurance-company
+        - oversea-company
+        - eeig-establishment
+        - icvc-securities
+        - icvc-warrant
+        - icvc-umbrella
+        - registered-society-non-jurisdictional
+        - industrial-and-provident-society
+        - northern-ireland
+        - northern-ireland-other
+        - llp
+        - royal-charter
+        - investment-company-with-variable-capital
+        - unregistered-company
+        - other
+        - european-public-limited-liability-company-se
+        - united-kingdom-societas
+        - uk-establishment
+        - scottish-partnership
+        - charitable-incorporated-organisation
+        - scottish-charitable-incorporated-organisation
+        - further-education-or-sixth-form-college-corporation
+        - eeig
+        - ukeig
+        - registered-overseas-entity
+      x-enumDescriptions:
+        private-unlimited: "Private unlimited company"
+        ltd: "Private limited company"
+        plc: "Public limited company"
+        old-public-company: "Old public company"
+        private-limited-guarant-nsc-limited-exemption: "Private Limited Company by guarantee without share capital, use of 'Limited' exemption"
+        limited-partnership: "Limited partnership"
+        private-limited-guarant-nsc: "Private limited by guarantee without share capital"
+        converted-or-closed: "Converted / closed"
+        private-unlimited-nsc: "Private unlimited company without share capital"
+        private-limited-shares-section-30-exemption: "Private Limited Company, use of 'Limited' exemption"
+        protected-cell-company: "Protected cell company"
+        assurance-company: "Assurance company"
+        oversea-company: "Overseas company"
+        eeig-establishment: "European Economic Interest Grouping Establishment (EEIG)"
+        icvc-securities: "Investment company with variable capital (securities)"
+        icvc-warrant: "Investment company with variable capital (warrant)"
+        icvc-umbrella: "Investment company with variable capital (umbrella)"
+        registered-society-non-jurisdictional: "Registered society"
+        industrial-and-provident-society: "Industrial and Provident society"
+        northern-ireland: "Northern Ireland company"
+        northern-ireland-other: "Credit union (Northern Ireland)"
+        llp: "Limited liability partnership"
+        royal-charter: "Royal charter company"
+        investment-company-with-variable-capital: "Investment company with variable capital"
+        unregistered-company: "Unregistered company"
+        other: "Other company type"
+        european-public-limited-liability-company-se: "European public limited liability company (SE)"
+        united-kingdom-societas: "United Kingdom Societas"
+        uk-establishment: "UK establishment company"
+        scottish-partnership: "Scottish qualifying partnership"
+        charitable-incorporated-organisation: "Charitable incorporated organisation"
+        scottish-charitable-incorporated-organisation: "Scottish charitable incorporated organisation"
+        further-education-or-sixth-form-college-corporation: "Further education or sixth form college corporation"
+        eeig: "European Economic Interest Grouping (EEIG)"
+        ukeig: "United Kingdom Economic Interest Grouping"
+        registered-overseas-entity: "Overseas entity"
+
+    OtherOrganisationType:
+      type: string
+      description: >-
+        A legal form that Companies House does not register. Defra owns these codes, and
+        `companiesHouseNumber` is optional for them.
+      enum:
+        - sole-trader
+        - partnership
+        - unincorporated-association
+        - public-body
+      x-enumDescriptions:
+        sole-trader: "Sole trader"
+        partnership: "Partnership not registered with Companies House"
+        unincorporated-association: "Unincorporated association"
+        public-body: "Public body"
+
+    OrganisationType:
+      description: |-
+        The legal form of the organisation: either a Companies House `company_type` code
+        or one of the four codes Defra owns for forms Companies House does not register.
+
+        The set of codes is open-ended. A new code is added without a new API version, so
+        treat an unrecognised code as valid and fall back to showing the code itself.
+        Consumers own their own labels, English and Welsh; the meanings below say what a
+        code means, not how to display it.
+
+        | Code | Meaning |
+        | --- | --- |
+        | `private-unlimited` | Private unlimited company |
+        | `ltd` | Private limited company |
+        | `plc` | Public limited company |
+        | `old-public-company` | Old public company |
+        | `private-limited-guarant-nsc-limited-exemption` | Private Limited Company by guarantee without share capital, use of 'Limited' exemption |
+        | `limited-partnership` | Limited partnership |
+        | `private-limited-guarant-nsc` | Private limited by guarantee without share capital |
+        | `converted-or-closed` | Converted / closed |
+        | `private-unlimited-nsc` | Private unlimited company without share capital |
+        | `private-limited-shares-section-30-exemption` | Private Limited Company, use of 'Limited' exemption |
+        | `protected-cell-company` | Protected cell company |
+        | `assurance-company` | Assurance company |
+        | `oversea-company` | Overseas company |
+        | `eeig-establishment` | European Economic Interest Grouping Establishment (EEIG) |
+        | `icvc-securities` | Investment company with variable capital (securities) |
+        | `icvc-warrant` | Investment company with variable capital (warrant) |
+        | `icvc-umbrella` | Investment company with variable capital (umbrella) |
+        | `registered-society-non-jurisdictional` | Registered society |
+        | `industrial-and-provident-society` | Industrial and Provident society |
+        | `northern-ireland` | Northern Ireland company |
+        | `northern-ireland-other` | Credit union (Northern Ireland) |
+        | `llp` | Limited liability partnership |
+        | `royal-charter` | Royal charter company |
+        | `investment-company-with-variable-capital` | Investment company with variable capital |
+        | `unregistered-company` | Unregistered company |
+        | `other` | Other company type |
+        | `european-public-limited-liability-company-se` | European public limited liability company (SE) |
+        | `united-kingdom-societas` | United Kingdom Societas |
+        | `uk-establishment` | UK establishment company |
+        | `scottish-partnership` | Scottish qualifying partnership |
+        | `charitable-incorporated-organisation` | Charitable incorporated organisation |
+        | `scottish-charitable-incorporated-organisation` | Scottish charitable incorporated organisation |
+        | `further-education-or-sixth-form-college-corporation` | Further education or sixth form college corporation |
+        | `eeig` | European Economic Interest Grouping (EEIG) |
+        | `ukeig` | United Kingdom Economic Interest Grouping |
+        | `registered-overseas-entity` | Overseas entity |
+        | `sole-trader` | Sole trader |
+        | `partnership` | Partnership not registered with Companies House |
+        | `unincorporated-association` | Unincorporated association |
+        | `public-body` | Public body |
+      anyOf:
+        - $ref: '#/components/schemas/CompaniesHouseOrganisationType'
+        - $ref: '#/components/schemas/OtherOrganisationType'
+
+    HomeNation:
+      type: string
+      description: >-
+        The nation of the United Kingdom the organisation is based in, as the ISO 3166-2
+        code of that nation.
+      enum:
+        - GB-ENG
+        - GB-SCT
+        - GB-WLS
+        - GB-NIR
+      x-enumDescriptions:
+        GB-ENG: "England"
+        GB-SCT: "Scotland"
+        GB-WLS: "Wales"
+        GB-NIR: "Northern Ireland"
+
+    CompaniesHouseNumber:
+      type: string
+      pattern: ^(?:[A-Z0-9]{2}[0-9]{6}|IP[0-9]{5}R)$
+      description: >-
+        A Companies House registration number: eight upper case characters, a
+        two-character prefix such as `00`, `SC`, `NI`, `OC`, `SO` or `R0`, followed by six
+        digits. A registered society number, `IP`, five digits and `R`, is also accepted.
+      examples:
+        - '01234567'
+        - SC123456
+        - IP00525R
+
+    CreateOrganisationRequest:
+      type: object
+      description: >-
+        The organisation to create. The API sets the identifier, the timestamps and
+        `isUkAddress`, so a request cannot carry them.
+      additionalProperties: false
+      required:
+        - name
+        - homeNation
+        - addresses
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: The registered or trading legal name of the organisation.
+          examples:
+            - Green Valley Waste Services Ltd
+        tradingName:
+          type: string
+          description: >-
+            The name the organisation trades under, when it differs from `name`.
+          examples:
+            - Green Valley Skips
+        companiesHouseNumber:
+          $ref: '#/components/schemas/CompaniesHouseNumber'
+          description: >-
+            The Companies House registration number of the organisation. It is required
+            when `organisationType` is a Companies House code, and optional for the four
+            codes Defra owns and when `organisationType` is omitted.
+        homeNation:
+          $ref: '#/components/schemas/HomeNation'
+          description: The nation of the United Kingdom the organisation is based in.
+        organisationType:
+          $ref: '#/components/schemas/OrganisationType'
+          description: >-
+            The legal form of the organisation. When it is a Companies House code,
+            `companiesHouseNumber` is required as well.
+        validFrom:
+          type: string
+          format: date-time
+          description: >-
+            The UTC instant the organisation record starts from. It defaults to the time
+            of the request.
+          examples:
+            - '2026-10-22T09:30:00Z'
+        addresses:
+          $ref: '#/components/schemas/Addresses'
+          description: >-
+            The addresses of the organisation. A registered address is required.
+      if:
+        required:
+          - organisationType
+        properties:
+          organisationType:
+            $ref: '#/components/schemas/CompaniesHouseOrganisationType'
+      then:
+        required:
+          - companiesHouseNumber
+
+    Organisation:
+      type: object
+      description: >-
+        An organisation as the API returns it. Further optional fields may appear in a
+        later release, so a client must ignore a field it does not know.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: >-
+            The identifier of the organisation. The server generates it, and returns it in
+            the body and in the `Location` header.
+          examples:
+            - 0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+        name:
+          type: string
+          description: The registered or trading legal name of the organisation.
+          examples:
+            - Green Valley Waste Services Ltd
+        tradingName:
+          type: string
+          description: >-
+            The name the organisation trades under, when it differs from `name`.
+          examples:
+            - Green Valley Skips
+        companiesHouseNumber:
+          $ref: '#/components/schemas/CompaniesHouseNumber'
+          description: >-
+            The Companies House registration number of the organisation. It is absent when
+            the organisation has none.
+        homeNation:
+          $ref: '#/components/schemas/HomeNation'
+          description: The nation of the United Kingdom the organisation is based in.
+        organisationType:
+          description: >-
+            The legal form of the organisation. It is absent when the organisation was
+            created without a type. The set of codes is open, so a code this contract does
+            not list may appear: fall back to showing the code itself.
+          anyOf:
+            - $ref: '#/components/schemas/OrganisationType'
+            - type: string
+        validFrom:
+          type: string
+          format: date-time
+          description: The UTC instant the organisation record starts from.
+          examples:
+            - '2026-10-22T09:30:00Z'
+        validTo:
+          type: string
+          format: date-time
+          readOnly: true
+          description: >-
+            The UTC instant the organisation record ends at. It is absent while the record
+            is current, and a client cannot set it.
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: The UTC instant the API created the organisation record.
+          examples:
+            - '2026-10-22T09:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: The UTC instant the API last changed the organisation record.
+          examples:
+            - '2026-10-22T09:30:00Z'
+        addresses:
+          $ref: '#/components/schemas/AddressesResponse'
+          description: >-
+            The current addresses of the organisation, keyed by address kind.
+      required:
+        - id
+        - name
+        - homeNation
+        - validFrom
+        - createdAt
+        - updatedAt
+        - addresses
+
+    ProblemDetails:
+      type: object
+      description: >-
+        An error as RFC 9457 problem details. The API returns it as
+        `application/problem+json` for every failure that carries a body.
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - instance
+      properties:
+        type:
+          type: string
+          format: uri
+          description: >-
+            A URI that identifies the kind of problem. A client matches on this value
+            rather than on `title`, which may be reworded.
+          examples:
+            - https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title:
+          type: string
+          description: >-
+            A short summary of the kind of problem, for a person to read.
+          examples:
+            - Bad Request
+        status:
+          type: integer
+          description: The HTTP status code of the response, repeated in the body.
+          examples:
+            - 400
+        detail:
+          type: string
+          description: >-
+            An explanation of this occurrence of the problem. It may name the field or
+            header that failed.
+          examples:
+            - The request body failed validation.
+        instance:
+          type: string
+          format: uri-reference
+          description: >-
+            A URI reference that identifies this occurrence of the problem, usually the
+            path of the request that failed.
+          examples:
+            - /organisations
+        traceId:
+          type: string
+          description: >-
+            The identifier of the request in the API's logs. Quote it when you report a
+            problem.
+          examples:
+            - 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
+
+    ValidationProblemDetails:
+      description: >-
+        A problem detail that reports which fields of the request failed validation. The
+        API returns it for every `400`.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required:
+            - errors
+          properties:
+            errors:
+              type: object
+              description: >-
+                The validation messages, keyed by the path of the field or header that
+                failed, for example `addresses.registeredAddress.postalCode` or
+                `Api-Version`.
+              additionalProperties:
+                type: array
+                description: The validation messages for one field or header.
+                items:
+                  type: string
+                  description: One validation message.
+              examples:
+                - addresses.registeredAddress.postalCode:
+                    - The postalCode field is required.
+
+    DuplicateOrganisationProblem:
+      description: >-
+        A problem detail that reports the request duplicates an organisation the API
+        already holds. The API returns it for a `409`, with the existing organisation in
+        the `Location` header as well.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required:
+            - existingOrganisationId
+          properties:
+            existingOrganisationId:
+              type: string
+              format: uuid
+              description: >-
+                The identifier of the organisation the request duplicates. A client
+                fetches that organisation instead of retrying the request.
+              examples:
+                - 0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: >-
+        HTTP Basic credentials issued by the Waste Organisations team. The client must have
+        the `write` scope in the API's access control list to create an organisation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        A JWT bearer token that carries your `client_id`. The team registers the client ID
+        with the `write` scope in the API's access control list, and the API takes the
+        scopes from there rather than from a claim on the token. An unregistered client
+        gets `403`.
+
+  parameters:
+    ApiVersion:
+      name: Api-Version
+      in: header
+      required: true
+      description: >-
+        Selects the version of the API that handles the request (draft: the versioning
+        approach may change). Send `2` to use this contract. A missing header is handled
+        by version 1 and returns `405` for this operation; an unsupported value returns
+        `400`.
+      schema:
+        type: string
+        enum:
+          - "2"
+
+  headers:
+    Location:
+      description: The path of the organisation the response refers to.
+      required: true
+      schema:
+        type: string
+        format: uri-reference
+        examples:
+          - /organisations/0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+
+  examples:
+    minimal:
+      summary: The smallest request the API accepts
+      description: >-
+        Only the mandatory fields: a name, a home nation and a registered address with its
+        three mandatory parts.
+      value:
+        name: Green Valley Waste Services Ltd
+        homeNation: GB-ENG
+        addresses:
+          registeredAddress:
+            addressLine: Horizon House, Deanery Road
+            locality: Bristol
+            postalCode: BS1 5AH
+            country:
+              iso: GB
+              name: United Kingdom
+
+    fullLimitedCompany:
+      summary: A private limited company with all five addresses
+      description: >-
+        A Companies House type, so `companiesHouseNumber` is required, with every optional
+        field and all five address kinds.
+      value:
+        name: Green Valley Waste Services Ltd
+        tradingName: Green Valley Skips
+        companiesHouseNumber: '01234567'
+        homeNation: GB-ENG
+        organisationType: ltd
+        validFrom: '2026-10-22T09:30:00Z'
+        addresses:
+          registeredAddress:
+            addressLine: Horizon House, Deanery Road
+            buildingName: Horizon House
+            street: Deanery Road
+            locality: Bristol
+            region: Avon
+            postalCode: BS1 5AH
+            country:
+              iso: GB
+              name: United Kingdom
+          auditAddress:
+            addressLine: 12A Temple Quay
+            buildingNumber: 12A
+            street: Temple Quay
+            locality: Bristol
+            postalCode: BS1 6EB
+            country:
+              iso: GB
+              name: United Kingdom
+          serviceOfNoticeAddress:
+            addressLine: Flat 2, 30 Park Street
+            subBuildingName: Flat 2
+            buildingNumber: '30'
+            street: Park Street
+            locality: Bristol
+            postalCode: BS1 5JA
+            country:
+              iso: GB
+              name: United Kingdom
+          principalAddress:
+            addressLine: Unit 7, Avonmouth Industrial Estate
+            subBuildingName: Unit 7
+            street: Avonmouth Way
+            locality: Bristol
+            postalCode: BS11 9YA
+            country:
+              iso: GB
+              name: United Kingdom
+          correspondenceAddress:
+            addressLine: PO Box 400, Deanery Road
+            poBox: PO Box 400
+            street: Deanery Road
+            locality: Bristol
+            postalCode: BS1 5AH
+            country:
+              iso: GB
+              name: United Kingdom
+
+    soleTraderNoCompaniesHouse:
+      summary: A sole trader with no Companies House number
+      description: >-
+        `sole-trader` is a code Defra owns, so the request is accepted without a
+        `companiesHouseNumber`.
+      value:
+        name: Dylan Hughes Waste Collection
+        homeNation: GB-WLS
+        organisationType: sole-trader
+        addresses:
+          registeredAddress:
+            addressLine: 4 Cathedral Road
+            buildingNumber: '4'
+            street: Cathedral Road
+            locality: Cardiff
+            postalCode: CF11 9LJ
+            country:
+              iso: GB
+              name: United Kingdom
+
+    nonUkCorrespondenceAddress:
+      summary: A UK organisation with a correspondence address abroad
+      description: >-
+        The registered address is in the United Kingdom and the correspondence address is
+        in Ireland, so `isUkAddress` differs between the two in the response.
+      value:
+        name: Northern Reclaim Partnership
+        homeNation: GB-NIR
+        organisationType: partnership
+        addresses:
+          registeredAddress:
+            addressLine: 9 Donegall Square North
+            buildingNumber: '9'
+            street: Donegall Square North
+            locality: Belfast
+            postalCode: BT1 5GB
+            country:
+              iso: GB
+              name: United Kingdom
+          correspondenceAddress:
+            addressLine: 15 Merrion Square
+            buildingNumber: '15'
+            street: Merrion Square
+            locality: Dublin
+            postalCode: D02 WN42
+            country:
+              iso: IE
+              name: Ireland
+
+    created:
+      summary: The organisation the API stored
+      description: >-
+        The response to the `minimal` request, with the identifier the server generated,
+        the timestamps and the derived `isUkAddress`.
+      value:
+        id: 0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+        name: Green Valley Waste Services Ltd
+        homeNation: GB-ENG
+        validFrom: '2026-10-22T09:30:00Z'
+        createdAt: '2026-10-22T09:30:00Z'
+        updatedAt: '2026-10-22T09:30:00Z'
+        addresses:
+          registeredAddress:
+            addressLine: Horizon House, Deanery Road
+            locality: Bristol
+            postalCode: BS1 5AH
+            country:
+              iso: GB
+              name: United Kingdom
+            isUkAddress: true
+
+    duplicateOrganisation:
+      summary: The organisation already exists
+      description: >-
+        A client reads `existingOrganisationId`, or follows the `Location` header, instead
+        of retrying the request.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.10
+        title: Conflict
+        status: 409
+        detail: An organisation with these details already exists.
+        instance: /organisations
+        existingOrganisationId: 0199c0f6-1f7a-7c8e-9f3a-5b2d8c4e7a10
+
+    unknownOrganisationType:
+      summary: The organisationType is not a known code
+      description: >-
+        `organisationType` holds one of the 40 codes. This request sent
+        `limited-company`, which is not one of them.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          organisationType:
+            - The organisationType field holds an unknown code.
+
+    missingRegisteredAddress:
+      summary: The addresses hold no registeredAddress
+      description: A registered address is required on every organisation.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          addresses.registeredAddress:
+            - The registeredAddress field is required.
+
+    companiesHouseNumberRequired:
+      summary: A Companies House type without a companiesHouseNumber
+      description: >-
+        The request sent `organisationType: ltd`, which Companies House registers, so
+        `companiesHouseNumber` is required as well.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          companiesHouseNumber:
+            - The companiesHouseNumber field is required for this organisationType.
+
+    missingPostalCode:
+      summary: An address without a postalCode
+      description: >-
+        `addressLine`, `locality` and `postalCode` are required on every address kind.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          addresses.registeredAddress.postalCode:
+            - The postalCode field is required.
+
+    invalidCompaniesHouseNumber:
+      summary: The companiesHouseNumber is in the wrong format
+      description: >-
+        The number holds a two-character prefix followed by six digits. This request sent
+        `1234`.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The request body failed validation.
+        instance: /organisations
+        errors:
+          companiesHouseNumber:
+            - The companiesHouseNumber field is not in the required format.
+
+    unsupportedApiVersion:
+      summary: The Api-Version header holds an unsupported value
+      description: >-
+        Version 2 is selected by the `Api-Version` header, so a request with a value other
+        than `2` is rejected. A request without the header returns `405` instead.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+        title: Bad Request
+        status: 400
+        detail: The Api-Version header is unsupported.
+        instance: /organisations
+        errors:
+          Api-Version:
+            - The Api-Version header must hold the value 2.
+
+    unsupportedMediaType:
+      summary: The request body is not application/json
+      description: The API reads `application/json` only, so it did not read the body.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.5.16
+        title: Unsupported Media Type
+        status: 415
+        detail: The request Content-Type is not application/json.
+        instance: /organisations
+
+    internalServerError:
+      summary: The API failed unexpectedly
+      description: >-
+        The request may or may not have stored the organisation. Retry as described in
+        "Using the API safely", and report the `traceId` if it keeps failing.
+      value:
+        type: https://tools.ietf.org/html/rfc9110#section-15.6.1
+        title: Internal Server Error
+        status: 500
+        detail: The API could not handle the request. Retry once or twice with a short backoff.
+        instance: /organisations
+        traceId: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
