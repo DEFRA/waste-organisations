@@ -1,0 +1,145 @@
+using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
+
+namespace Defra.WasteOrganisations.Api.Tests.Data;
+
+// Builds the EF model on the Npgsql provider without a database: neither building the model nor
+// adding to the change tracker opens a connection. Api.IntegrationTests prove the mapping against
+// the Liquibase schema; these pin it where Sonar measures coverage
+public class PostgresDbContextModelTests
+{
+    public static TheoryData<Type, string, string[]> Mappings =>
+        new()
+        {
+            {
+                typeof(Organisation),
+                "organisation",
+                [
+                    "id",
+                    "name",
+                    "trading_name",
+                    "companies_house_number",
+                    "home_nation",
+                    "organisation_type_id",
+                    "valid_from",
+                    "valid_to",
+                    "created_at",
+                    "updated_at",
+                ]
+            },
+            { typeof(OrganisationType), "organisation_type", ["id", "code"] },
+            { typeof(AddressUsageType), "address_usagetype", ["id", "name"] },
+            {
+                typeof(Address),
+                "address",
+                [
+                    "id",
+                    "address_line",
+                    "sub_building_name",
+                    "building_name",
+                    "building_number",
+                    "street",
+                    "locality",
+                    "region",
+                    "postal_code",
+                    "po_box",
+                    "country_iso",
+                    "country_name",
+                    "is_uk_address",
+                    "created_at",
+                    "updated_at",
+                ]
+            },
+            {
+                typeof(OrganisationAddress),
+                "organisation_address",
+                [
+                    "id",
+                    "organisation_id",
+                    "address_id",
+                    "usage_type_id",
+                    "valid_from",
+                    "valid_to",
+                    "created_at",
+                    "updated_at",
+                ]
+            },
+        };
+
+    [Theory]
+    [MemberData(nameof(Mappings))]
+    public void Entity_ShouldMapToTableAndColumns(Type clrType, string table, string[] columns)
+    {
+        using var context = CreateContext();
+        var entityType = context.Model.FindEntityType(clrType)!;
+        var storeObject = StoreObjectIdentifier.Table(table);
+
+        entityType.GetTableName().Should().Be(table);
+        entityType.GetProperties().Select(p => p.GetColumnName(storeObject)).Should().BeEquivalentTo(columns);
+    }
+
+    [Fact]
+    public void Keys_ShouldBeSetByTheApplication()
+    {
+        using var context = CreateContext();
+
+        context
+            .Model.GetEntityTypes()
+            .SelectMany(e => e.FindPrimaryKey()!.Properties)
+            .Should()
+            .AllSatisfy(p => p.ValueGenerated.Should().Be(ValueGenerated.Never));
+    }
+
+    [Fact]
+    public void ForeignKeys_ShouldRestrictDelete()
+    {
+        using var context = CreateContext();
+
+        var foreignKeys = context.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()).ToList();
+
+        foreignKeys.Should().HaveCount(4);
+        foreignKeys.Should().AllSatisfy(fk => fk.DeleteBehavior.Should().Be(DeleteBehavior.Restrict));
+    }
+
+    [Fact]
+    public void Organisation_WhenAdded_ShouldFixUpForeignKeysFromNavigations()
+    {
+        using var context = CreateContext();
+        var usageType = new AddressUsageType { Id = Guid.CreateVersion7(), Name = "Registered" };
+        var organisation = new Organisation
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "Organisation",
+            HomeNation = "GB-ENG",
+            OrganisationType = new OrganisationType { Id = Guid.CreateVersion7(), Code = "ltd" },
+        };
+        var address = new Address { Id = Guid.CreateVersion7() };
+        organisation.Addresses.Add(
+            new OrganisationAddress
+            {
+                Id = Guid.CreateVersion7(),
+                Address = address,
+                UsageType = usageType,
+            }
+        );
+
+        context.Organisations.Add(organisation);
+
+        organisation.OrganisationTypeId.Should().Be(organisation.OrganisationType.Id);
+        var organisationAddress = organisation.Addresses.Single();
+        organisationAddress.OrganisationId.Should().Be(organisation.Id);
+        organisationAddress.AddressId.Should().Be(address.Id);
+        organisationAddress.UsageTypeId.Should().Be(usageType.Id);
+        organisationAddress.Organisation.Should().BeSameAs(organisation);
+    }
+
+    private static PostgresDbContext CreateContext() =>
+        new(
+            new DbContextOptionsBuilder<PostgresDbContext>()
+                .UseNpgsql("Host=127.0.0.1;Database=waste_organisations")
+                .Options
+        );
+}
