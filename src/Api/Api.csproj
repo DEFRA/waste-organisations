@@ -23,8 +23,8 @@
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
     <PackageReference Include="Elastic.CommonSchema.Serilog" Version="9.0.0" />
     <PackageReference Include="Elastic.Serilog.Enrichers.Web" Version="9.0.0" />
-    <PackageReference Include="MongoDB.Driver.Authentication.AWS" Version="3.12.0" />
-    <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
+    <PackageReference Include="MongoDB.Driver.Authentication.AWS" Version="3.13.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.13.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="AWSSDK.RDS" Version="4.0.107.1" />
     <!--
