@@ -1,0 +1,7 @@
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.7",
+  "title": "Not Acceptable",
+  "status": 406,
+  "detail": "Unsupported API version",
+  "traceId": "{Scrubbed}"
+}

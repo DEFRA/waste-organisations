@@ -76,6 +76,14 @@ To remove local data:
 docker compose down -v --remove-orphans
 ```
 
+## API versioning
+
+Clients request a version with the `Accept` header, not the URL path: `Accept: application/vnd.defra.waste-organisations+json; version=<n>`. Any other `Accept` value - absent, `application/json`, `*/*`, or our media type without a `version` parameter - is served v1. There is one version for the whole API, and v1 is the permanent default: it stays the default even after a v2 exists.
+
+A version an endpoint does not support, or a malformed or ambiguous `version`, gets `406 Not Acceptable` with a problem details body (`detail: "Unsupported API version"`). Authentication and authorisation still run first, so an unauthenticated or unauthorised request gets `401`/`403` whatever version it asks for.
+
+An endpoint supports v1 only unless it declares otherwise. To support additional versions, add `.WithApiVersions(1, 2)` next to the endpoint's other `.With...`/`.Produces...` calls. The check itself lives in one middleware (`Defra.WasteOrganisations.Api.Versioning.ApiVersioningMiddleware`), registered straight after `app.UseAuthorization()`, and applies to every endpoint except `/health`, `/health/*`, `/openapi/*`, `/redoc` and `/redoc/*`. See [specs/0004-REGEN-167-implement-header-based-api-versioning.md](specs/0004-REGEN-167-implement-header-based-api-versioning.md) for the full design.
+
 ## Tests
 
 Tests with the `IntegrationTests` trait require additional local dependencies - either the API running in Docker, or the API running via .NET with Mongo, Postgres and Liquibase started in Docker.
