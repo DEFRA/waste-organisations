@@ -184,6 +184,9 @@ When v2 is released, every endpoint must declare v2 support explicitly, includin
 | Response `Content-Type` | Unchanged; the version is not echoed |
 | OpenAPI | The `406` is kept out of the v1 document, so the v1 contract snapshot does not change |
 | Library | Reuse ASP.NET Core's endpoint metadata, middleware and problem details. No new package |
+| Our media type without `version` next to our media type with a version | The entry without `version` counts as version 1. With `version=2` beside it the request is ambiguous and gets `406`; with `version=1` beside it the request is v1. Assumed during planning as the reading most consistent with the resolution table |
+| Writing the `406` | Through `TypedResults.Problem(...).ExecuteAsync(...)`, which tries `IProblemDetailsService.TryWriteAsync` first. The default problem details writer declines a request whose `Accept` names only our media type, so the result then writes the same problem details as `application/problem+json` itself. Calling `IProblemDetailsService.WriteAsync` directly would throw for those requests |
+| Matching exempt paths | By whole path segment, ignoring case (`PathString.StartsWithSegments`), so `/health` and `/health/all` are exempt but a future `/healthy` would not be |
 
 ## Open Questions
 
