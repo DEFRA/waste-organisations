@@ -12,7 +12,7 @@ RUN apt update && \
 
 # Build stage image
 #  - using image digest only for immutability and security (see SonarCloud rule docker:S8431)
-FROM mcr.microsoft.com/dotnet/sdk@sha256:747cbade5bfd918a175ac32f8f1d931edec2c7d0d5397a3de72eaef1ac1f66d2 AS build
+FROM mcr.microsoft.com/dotnet/sdk@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
 WORKDIR /src
 
 COPY .config/dotnet-tools.json .config/dotnet-tools.json
