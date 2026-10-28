@@ -12,7 +12,7 @@ public class VersioningTests(ApiWebApplicationFactory factory, ITestOutputHelper
     : EndpointTestBase(factory, outputHelper)
 {
     private const string MediaType = "application/vnd.defra.waste-organisations+json";
-    private static readonly Guid s_organisationId = new("b6f76437-65b6-4ed2-a7d5-c50e9af76201");
+    private static readonly Guid s_organisationId = Guid.NewGuid();
 
     private IOrganisationService MockOrganisationService { get; } = Substitute.For<IOrganisationService>();
 
@@ -29,17 +29,25 @@ public class VersioningTests(ApiWebApplicationFactory factory, ITestOutputHelper
     [InlineData("*/*")]
     [InlineData("text/html")]
     [InlineData(MediaType)]
-    [InlineData($"{MediaType}; version=1")]
-    public async Task WhenServedAsV1_ShouldBehaveAsToday(string? acceptHeaderValue)
+    public async Task WhenNoVersionRequested_ShouldReturnOk(string? acceptHeaderValue)
     {
-        MockOrganisationService
-            .Get(s_organisationId, Arg.Any<CancellationToken>())
-            .Returns(OrganisationEntityFixtures.Default().With(x => x.Id, s_organisationId).Create());
+        GivenTheOrganisationExists();
 
         var response = await SendGetOrganisation(acceptHeaderValue);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        (response.Content.Headers.ContentType?.MediaType).Should().Be("application/json");
+    }
+
+    [Fact]
+    public async Task WhenVersion1Requested_ShouldReturnOk()
+    {
+        GivenTheOrganisationExists();
+
+        var response = await SendGetOrganisation($"{MediaType}; version=1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (response.Content.Headers.ContentType?.MediaType).Should().Be("application/json");
     }
 
     [Fact]
@@ -49,7 +57,7 @@ public class VersioningTests(ApiWebApplicationFactory factory, ITestOutputHelper
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotAcceptable);
-        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        (response.Content.Headers.ContentType?.MediaType).Should().Be("application/problem+json");
         // Written directly rather than through the exception handler, so the HSTS header survives (v1 X-HDR-01).
         response.Headers.GetValues("Strict-Transport-Security").Should().Equal("max-age=31536000; includeSubDomains");
         await VerifyJson(content);
@@ -92,14 +100,12 @@ public class VersioningTests(ApiWebApplicationFactory factory, ITestOutputHelper
     }
 
     [Theory]
-    [InlineData("health")]
-    [InlineData("openapi/v1.json")]
-    [InlineData("redoc/index.html")]
-    public async Task WhenExemptPath_AndVersion2Requested_ShouldBeOk(string path)
+    [MemberData(nameof(ExemptPathsWithAnyVersion))]
+    public async Task WhenExemptPath_AndAnyVersionRequested_ShouldBeOk(string path, string version)
     {
         var client = CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, path);
-        request.Headers.TryAddWithoutValidation("Accept", $"{MediaType}; version=2");
+        request.Headers.TryAddWithoutValidation("Accept", $"{MediaType}; version={version}");
 
         var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
@@ -117,6 +123,25 @@ public class VersioningTests(ApiWebApplicationFactory factory, ITestOutputHelper
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    // The exempt paths ignore the version entirely, malformed ones included.
+    public static TheoryData<string, string> ExemptPathsWithAnyVersion()
+    {
+        var data = new TheoryData<string, string>();
+
+        foreach (var path in new[] { "health", "openapi/v1.json", "redoc/index.html" })
+        {
+            foreach (var version in new[] { "2", "42", "abc" })
+                data.Add(path, version);
+        }
+
+        return data;
+    }
+
+    private void GivenTheOrganisationExists() =>
+        MockOrganisationService
+            .Get(s_organisationId, Arg.Any<CancellationToken>())
+            .Returns(OrganisationEntityFixtures.Default().With(x => x.Id, s_organisationId).Create());
 
     private async Task<HttpResponseMessage> SendGetOrganisation(string? acceptHeaderValue)
     {

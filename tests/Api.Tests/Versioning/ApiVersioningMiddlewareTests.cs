@@ -1,6 +1,8 @@
+using System.Text.Json;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Versioning;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,44 +11,43 @@ namespace Defra.WasteOrganisations.Api.Tests.Versioning;
 
 public class ApiVersioningMiddlewareTests
 {
+    private const string MediaType = "application/vnd.defra.waste-organisations+json";
+
     private readonly ApiVersioningMiddleware _subject = new();
 
     [Theory]
-    [InlineData("/health")]
-    [InlineData("/health/all")]
-    [InlineData("/openapi/v1.json")]
-    [InlineData("/redoc")]
-    [InlineData("/redoc/index.html")]
-    public async Task WhenPathIsExempt_ShouldCallNext_RegardlessOfVersion(string path)
+    [InlineData("/health", "2")]
+    [InlineData("/health/all", "42")]
+    [InlineData("/openapi/v1.json", "abc")]
+    [InlineData("/redoc", "2")]
+    [InlineData("/redoc/index.html", "0")]
+    public async Task WhenPathIsExempt_ShouldCallNext_WhateverVersionIsRequested(string path, string version)
     {
-        var context = CreateContext(path, acceptHeader: "application/vnd.defra.waste-organisations+json; version=2");
+        var context = CreateContext(path, Accept(version));
 
         var nextCalled = await InvokeAndWasNextCalled(context);
 
         nextCalled.Should().BeTrue();
     }
 
-    [Fact]
-    public async Task WhenNoEndpointMatched_ShouldCallNext()
+    [Theory]
+    [InlineData("2")]
+    [InlineData("abc")]
+    public async Task WhenNoEndpointMatched_ShouldCallNext_WhateverVersionIsRequested(string version)
     {
-        var context = CreateContext(
-            "/unknown",
-            acceptHeader: "application/vnd.defra.waste-organisations+json; version=2"
-        );
+        var context = CreateContext("/unknown", Accept(version));
 
         var nextCalled = await InvokeAndWasNextCalled(context);
 
         nextCalled.Should().BeTrue();
     }
 
-    [Fact]
-    public async Task WhenRoutingAnswers405_ShouldCallNext_WhateverVersionIsRequested()
+    [Theory]
+    [InlineData("2")]
+    [InlineData("abc")]
+    public async Task WhenRoutingAnswers405_ShouldCallNext_WhateverVersionIsRequested(string version)
     {
-        var context = CreateContext(
-            "/organisations",
-            acceptHeader: "application/vnd.defra.waste-organisations+json; version=2",
-            endpoint: RoutingsOwn405Endpoint()
-        );
+        var context = CreateContext("/organisations", Accept(version), endpoint: RoutingsOwn405Endpoint());
 
         var nextCalled = await InvokeAndWasNextCalled(context);
 
@@ -55,7 +56,7 @@ public class ApiVersioningMiddlewareTests
 
     [Theory]
     [InlineData(null)]
-    [InlineData("application/vnd.defra.waste-organisations+json; version=1")]
+    [InlineData($"{MediaType}; version=1")]
     public async Task WhenEndpointHasNoDeclaredVersions_AndVersion1Requested_ShouldCallNext(string? acceptHeader)
     {
         var context = CreateContext("/organisations/1", acceptHeader, endpoint: EndpointWithNoDeclaredVersions());
@@ -65,14 +66,13 @@ public class ApiVersioningMiddlewareTests
         nextCalled.Should().BeTrue();
     }
 
-    [Fact]
-    public async Task WhenEndpointHasNoDeclaredVersions_AndVersion2Requested_ShouldReturn406()
+    [Theory]
+    [InlineData("2")]
+    [InlineData("3")]
+    [InlineData("42")]
+    public async Task WhenEndpointHasNoDeclaredVersions_AndAnotherVersionRequested_ShouldReturn406(string version)
     {
-        var context = CreateContext(
-            "/organisations/1",
-            "application/vnd.defra.waste-organisations+json; version=2",
-            endpoint: EndpointWithNoDeclaredVersions()
-        );
+        var context = CreateContext("/organisations/1", Accept(version), endpoint: EndpointWithNoDeclaredVersions());
 
         var nextCalled = await InvokeAndWasNextCalled(context);
 
@@ -80,28 +80,29 @@ public class ApiVersioningMiddlewareTests
         await AssertUnsupportedVersionProblem(context);
     }
 
-    [Fact]
-    public async Task WhenEndpointDeclaresVersion2_AndVersion2Requested_ShouldCallNext()
+    [Theory]
+    [InlineData("1")]
+    [InlineData("2")]
+    public async Task WhenEndpointDeclaresVersions_AndOneOfThemIsRequested_ShouldCallNext(string version)
     {
-        var context = CreateContext(
-            "/test",
-            "application/vnd.defra.waste-organisations+json; version=2",
-            endpoint: EndpointWithDeclaredVersions(1, 2)
-        );
+        var context = CreateContext("/test", Accept(version), endpoint: EndpointWithDeclaredVersions(1, 2));
 
         var nextCalled = await InvokeAndWasNextCalled(context);
 
         nextCalled.Should().BeTrue();
     }
 
-    [Fact]
-    public async Task WhenEndpointDeclaresVersions1And2_AndVersion3Requested_ShouldReturn406()
+    [Theory]
+    // A version the endpoint does not declare
+    [InlineData("3")]
+    [InlineData("42")]
+    // A malformed version
+    [InlineData("abc")]
+    [InlineData("0")]
+    [InlineData("1.1")]
+    public async Task WhenEndpointDeclaresVersions_AndAnUnsupportedVersionIsRequested_ShouldReturn406(string version)
     {
-        var context = CreateContext(
-            "/test",
-            "application/vnd.defra.waste-organisations+json; version=3",
-            endpoint: EndpointWithDeclaredVersions(1, 2)
-        );
+        var context = CreateContext("/test", Accept(version), endpoint: EndpointWithDeclaredVersions(1, 2));
 
         var nextCalled = await InvokeAndWasNextCalled(context);
 
@@ -109,20 +110,7 @@ public class ApiVersioningMiddlewareTests
         await AssertUnsupportedVersionProblem(context);
     }
 
-    [Fact]
-    public async Task WhenAcceptHeaderIsMalformed_ShouldReturn406_EvenWhenEndpointDeclaresThatVersion()
-    {
-        var context = CreateContext(
-            "/test",
-            "application/vnd.defra.waste-organisations+json; version=abc",
-            endpoint: EndpointWithDeclaredVersions(1, 2)
-        );
-
-        var nextCalled = await InvokeAndWasNextCalled(context);
-
-        nextCalled.Should().BeFalse();
-        await AssertUnsupportedVersionProblem(context);
-    }
+    private static string Accept(string version) => $"{MediaType}; version={version}";
 
     private async Task<bool> InvokeAndWasNextCalled(HttpContext context)
     {
@@ -146,16 +134,21 @@ public class ApiVersioningMiddlewareTests
         context.Response.StatusCode.Should().Be(StatusCodes.Status406NotAcceptable);
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
-        using var reader = new StreamReader(context.Response.Body);
-        var body = await reader.ReadToEndAsync(TestContext.Current.CancellationToken);
+        var problem = await JsonSerializer.DeserializeAsync<ProblemDetails>(
+            context.Response.Body,
+            JsonSerializerOptions.Web,
+            TestContext.Current.CancellationToken
+        );
 
-        body.Should().Contain("Unsupported API version");
+        problem.Should().NotBeNull();
+        problem.Status.Should().Be(StatusCodes.Status406NotAcceptable);
+        problem.Detail.Should().Be("Unsupported API version");
     }
 
-    private static Endpoint EndpointWithNoDeclaredVersions() =>
+    private static RouteEndpoint EndpointWithNoDeclaredVersions() =>
         RouteEndpoint(new EndpointMetadataCollection(), "no-declared-versions");
 
-    private static Endpoint EndpointWithDeclaredVersions(params int[] versions) =>
+    private static RouteEndpoint EndpointWithDeclaredVersions(params int[] versions) =>
         RouteEndpoint(new EndpointMetadataCollection(new ApiVersionsMetadata(versions)), "declared-versions");
 
     private static RouteEndpoint RouteEndpoint(EndpointMetadataCollection metadata, string displayName) =>
