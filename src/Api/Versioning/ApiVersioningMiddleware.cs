@@ -11,41 +11,24 @@ public class ApiVersioningMiddleware : IMiddleware
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        if (IsExemptPath(context.Request.Path))
+        // Exempt paths are not versioned. Nor is anything but a route endpoint (what MapGet and friends
+        // create): no endpoint is routing's own 404, and routing's 405 for a method no endpoint answers
+        // is a plain Endpoint, so both pass through whatever the version asks for.
+        if (IsExemptPath(context.Request.Path) || context.GetEndpoint() is not RouteEndpoint endpoint)
         {
             await next(context);
 
             return;
         }
 
-        // Only route endpoints (those mapped with MapGet and friends) carry a version. No endpoint means
-        // routing's own 404; routing's 405 for a method no endpoint answers is a plain Endpoint, not a
-        // RouteEndpoint, and stays a 405 whatever the version asks for.
-        if (context.GetEndpoint() is not RouteEndpoint endpoint)
-        {
+        var isSupported =
+            AcceptHeaderVersionResolver.TryResolve(context.Request.Headers.Accept.ToArray(), out var requestedVersion)
+            && ApiVersionsMetadata.For(endpoint).Contains(requestedVersion);
+
+        if (isSupported)
             await next(context);
-
-            return;
-        }
-
-        if (!AcceptHeaderVersionResolver.TryResolve(context.Request.Headers.Accept.ToArray(), out var requestedVersion))
-        {
+        else
             await WriteUnsupportedVersionProblem(context);
-
-            return;
-        }
-
-        var supportedVersions =
-            endpoint.Metadata.GetMetadata<ApiVersionsMetadata>()?.Versions ?? ApiVersionsMetadata.Default;
-
-        if (!supportedVersions.Contains(requestedVersion))
-        {
-            await WriteUnsupportedVersionProblem(context);
-
-            return;
-        }
-
-        await next(context);
     }
 
     private static bool IsExemptPath(PathString path) =>

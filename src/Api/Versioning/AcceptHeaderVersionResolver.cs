@@ -9,65 +9,54 @@ namespace Defra.WasteOrganisations.Api.Versioning;
 /// </summary>
 public static class AcceptHeaderVersionResolver
 {
-    public const string MediaType = "application/vnd.defra.waste-organisations+json";
+    internal const string MediaType = "application/vnd.defra.waste-organisations+json";
     public const int DefaultVersion = 1;
 
     private const string VersionParameterName = "version";
 
-    public static bool TryResolve(string? acceptHeaderValue, out int version) =>
-        TryResolve([acceptHeaderValue], out version);
-
+    /// <summary>
+    /// Resolves the version. False when a `version` is malformed or our media type is listed with
+    /// different versions; <paramref name="version"/> is then <see cref="DefaultVersion"/>.
+    /// </summary>
     public static bool TryResolve(IEnumerable<string?> acceptHeaderValues, out int version)
     {
-        version = DefaultVersion;
-
+        // Anything but our own media type is served v1, as is a header that does not parse.
         var values = acceptHeaderValues.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v!).ToArray();
+        var ourMediaTypes = MediaTypeHeaderValue.TryParseList(values, out var mediaTypes)
+            ? mediaTypes.Where(IsOurMediaType)
+            : [];
 
-        if (values.Length == 0)
-            return true;
-
-        if (!MediaTypeHeaderValue.TryParseList(values, out var mediaTypes))
-            return true;
-
-        var ourMediaTypes = mediaTypes.Where(IsOurMediaType).ToArray();
-
-        if (ourMediaTypes.Length == 0)
-            return true;
-
-        var requestedVersions = new HashSet<int>();
-
-        foreach (var mediaType in ourMediaTypes)
+        // Our entries must agree on one well-formed version. An entry without one counts as v1.
+        var requestedVersions = ourMediaTypes.Select(RequestedVersion).ToHashSet();
+        var resolved = requestedVersions.Count switch
         {
-            if (!TryGetVersion(mediaType, out var requestedVersion))
-                return false;
+            0 => DefaultVersion,
+            1 => requestedVersions.Single(),
+            _ => null,
+        };
 
-            requestedVersions.Add(requestedVersion);
-        }
+        version = resolved ?? DefaultVersion;
 
-        if (requestedVersions.Count != 1)
-            return false;
-
-        version = requestedVersions.Single();
-
-        return true;
+        return resolved is not null;
     }
 
     private static bool IsOurMediaType(MediaTypeHeaderValue mediaType) =>
         mediaType.MediaType.Equals(MediaType, StringComparison.OrdinalIgnoreCase);
 
-    private static bool TryGetVersion(MediaTypeHeaderValue mediaType, out int version)
+    /// <summary>The entry's version, <see cref="DefaultVersion"/> when it has none, null when malformed.</summary>
+    private static int? RequestedVersion(MediaTypeHeaderValue mediaType)
     {
-        version = DefaultVersion;
-
         var parameter = mediaType.Parameters.FirstOrDefault(p =>
             p.Name.Equals(VersionParameterName, StringComparison.OrdinalIgnoreCase)
         );
+        var value = parameter?.Value.ToString().Trim('"');
 
-        if (parameter is null)
-            return true;
-
-        var value = parameter.Value.ToString().Trim('"');
-
-        return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out version) && version >= 1;
+        return value switch
+        {
+            null => DefaultVersion,
+            _ when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var version)
+                    && version >= 1 => version,
+            _ => null,
+        };
     }
 }
