@@ -13,6 +13,11 @@ updates:
       - dependency-name: 'Microsoft.OpenApi'
         update-types:
           - 'version-update:semver-major'
+      # Keep Verify.XunitV3 on 32.x while allowing minor and patch updates.
+      # v33 introduces the open source maintenance fee. https://github.com/VerifyTests/Verify/blob/main/docs/maintenance-fee.md 
+      - dependency-name: 'Verify.XunitV3'
+        update-types:
+          - 'version-update:semver-major'
     groups:
       # Test-only/test-support packages can move together without mixing with runtime changes.
       nuget-test-support:
