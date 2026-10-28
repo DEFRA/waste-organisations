@@ -113,12 +113,13 @@ Endpoint routing chooses the endpoint before any middleware after routing runs, 
 | `GET` v1 only and `POST` v2 only | `POST`, no header | `405` with `Allow: GET`, as today: v1 does not see the v2 `POST` |
 | `GET` v1 only and `POST` v2 only | `POST`, `version=2` | The v2 handler |
 | `GET` v1 only and `POST` v2 only | `GET`, `version=2` | `406`: v2 falls back to the v1 `GET`, which does not support v2 |
+| `GET /x/search` v1 only beside `GET /x/{id}` v1 and v2 | `GET /x/search`, `version=2` | `406`: the literal route is v1-only and keeps its precedence over `{id}`, as in v1. The v2 `{id}` handler never sees `search` |
 | `GET` v1 and `PUT` v1 and v2 | `DELETE`, any version | `405` with `Allow: GET, PUT`: a method no version answers stays `405` |
 | `GET` v2 only (a new v2 path) | No header | `404`: the path does not exist for v1 |
 | `GET` v2 only (a new v2 path) | `version=3` | `406` |
 | Nothing declared | `version=2` | `406`, as before |
 
-The rule behind the table: the v1 branch holds exactly the endpoints that support v1. Every other version's branch holds the endpoints that support it, plus the v1 endpoints for the HTTP methods none of them answers, so an unsupported version still reaches an endpoint and gets its `406` after authentication rather than a `404` or `405`. Unknown and malformed versions take that same route.
+The rule behind the table: the v1 branch holds exactly the endpoints that support v1. Every other version's branch holds the endpoints that support it, plus the v1 endpoints for the HTTP methods none of them answers, so an unsupported version still reaches an endpoint and gets its `406` after authentication rather than a `404` or `405`. Unknown and malformed versions take that same route. Fallbacks are decided route by route, so a v2 `/x/{id}` never stands in for a v1-only `/x/search`: the literal keeps its precedence and a v2 request to it gets `406`.
 
 ### Implementation outline
 
@@ -138,10 +139,11 @@ The rule behind the table: the v1 branch holds exactly the endpoints that suppor
 | `Api.Tests` (new, for example `Endpoints/Versioning/`) | Unit tests for resolving the version from `Accept`, one case per row of the resolution table above |
 | `Api.Tests` | In-process endpoint tests against an existing endpoint, for example `GET /organisations/{id}` with valid credentials: no `Accept` header, `application/json`, `*/*`, `text/html`, our type without `version`, and `version=1` all behave as today; `version=2` returns `406` with the problem details body (Verify snapshot); `version=abc`, `version=0` and `version=1.1` return `406`; two conflicting versions return `406` |
 | `Api.Tests` | A request with no credentials and `version=2` returns `401`, not `406` |
-| `Api.Tests` | `/health`, `/openapi/v1.json` and `/redoc` with `version=2` return `200` |
+| `Api.Tests` | `/health`, `/openapi/v1.json` and `/redoc` return `200` whatever version is requested, a malformed one included |
 | `Api.Tests` | An unknown path with `version=2` returns `404`, not `406` |
-| `Api.Tests` (`Versioning/ApiVersionMatcherPolicyRoutingTests`) | A small app routed through the real matcher, the policy and the middleware, with endpoints mapped in every shape the v2 stories need: one path with a `GET` per version, a `PUT` declared `(1, 2)`, a path where v2 adds a `POST` v1 lacks, a v2-only path and a path that declares nothing. One case per row of the "Two versions on one URL" table, plus the `Allow` header of each version's `405` |
+| `Api.Tests` (`Versioning/ApiVersionMatcherPolicyRoutingTests`) | A small app routed through the real matcher, the policy and the middleware, with endpoints mapped in every shape the v2 stories need: one path with a `GET` per version, a `PUT` declared `(1, 2)`, a path where v2 adds a `POST` v1 lacks, a v1-only literal beside a parameter route with a v2, a v2-only path and a path that declares nothing. One case per row of the "Two versions on one URL" table, plus the `Allow` header of each version's `405` |
 | `Api.Tests` (`Versioning/ApiVersionMatcherPolicyTests`) | The policy's order is before the HTTP method policy; it applies only where a version is declared; the branches it builds for one path (v1 strict, other versions with fallbacks, the unknown-version branch); the branch its jump table picks for each kind of `Accept` value |
+| `Api.Tests` (`Versioning/ApiVersionsMetadataTests`) | Declaring no version, or a version below 1, throws; the versions an endpoint supports are the declared ones, or v1 only |
 | `Api.Tests` | The `406` keeps the `Strict-Transport-Security` header, because it is written directly rather than through the exception handler (v1 X-HDR-01) |
 | `Api.Tests` | The existing `OpenApiTests.OpenApi_VerifyAsExpected` snapshot passes unchanged |
 | `Api.V1.Tests` | No change. Every test and snapshot passes as it is, including X-CONTRACT-01 (the v1 OpenAPI document) |
@@ -211,6 +213,7 @@ The rule behind the table: the v1 branch holds exactly the endpoints that suppor
 | Two handlers on one URL | Allowed, and the normal way to add a v2 to an existing operation: map the v2 handler on the same path and method with `.WithApiVersions(2)`, and leave the v1 handler untouched (the ring-fencing decision of 22 October 2026) |
 | v1 is strict | The v1 branch holds only endpoints that support v1. A v1 client gets `404` for a v2-only path and `405` for a v2-only method, exactly as it does today, rather than `406`, so the v1 API never changes shape |
 | Unknown or malformed versions on a split path | Routed down the fallback branch (the v1 endpoints plus the v2-only methods), so they reach an endpoint and get `406` after authentication, like an unsupported version on any other path |
+| Declared versions | Start at 1, like the versions the resolver accepts. `WithApiVersions(0)` throws an `ArgumentException` instead of colliding with the policy's branch for unknown versions |
 | Lower layers | The version must not be passed into the application's lower layers (REGEN-167 technical notes, as corrected on 27 October 2026) |
 | Response `Content-Type` | Unchanged; the version is not echoed |
 | OpenAPI | The `406` is kept out of the v1 document, so the v1 contract snapshot does not change |

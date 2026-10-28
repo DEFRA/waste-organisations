@@ -3,6 +3,7 @@ using Defra.WasteOrganisations.Api.Versioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Matching;
+using Microsoft.AspNetCore.Routing.Patterns;
 
 namespace Defra.WasteOrganisations.Api.Tests.Versioning;
 
@@ -58,6 +59,21 @@ public class ApiVersionMatcherPolicyTests
         edges[0].Should().BeEquivalentTo("get v2");
     }
 
+    [Fact]
+    public void GetEdges_ShouldDecideFallbacksPerRoute_SoAV2ParameterRouteDoesNotSwallowAV1Literal()
+    {
+        var searchV1 = CreateRoute("/x/search", "search v1", "GET");
+        var byIdV1 = CreateRoute("/x/{id}", "by id v1", "GET");
+        var byIdV2 = CreateRoute("/x/{id}", "by id v2", "GET", 2);
+
+        var edges = Edges([searchV1, byIdV1, byIdV2]);
+
+        edges[1].Should().BeEquivalentTo("search v1", "by id v1");
+        // The v1-only literal stays beside the v2 {id}, so it wins on precedence and the middleware answers 406.
+        edges[2].Should().BeEquivalentTo("by id v2", "search v1");
+        edges[0].Should().BeEquivalentTo("search v1", "by id v1");
+    }
+
     [Theory]
     [InlineData(null, 11)]
     [InlineData("application/json", 11)]
@@ -84,13 +100,14 @@ public class ApiVersionMatcherPolicyTests
             .GetEdges(endpoints)
             .ToDictionary(e => (int)e.State, e => e.Endpoints.Select(endpoint => endpoint.DisplayName));
 
-    private static Endpoint Create(string name, string method, params int[] versions)
-    {
-        var metadata =
-            versions.Length == 0
-                ? new EndpointMetadataCollection(new HttpMethodMetadata([method]))
-                : new EndpointMetadataCollection(new HttpMethodMetadata([method]), new ApiVersionsMetadata(versions));
+    private static Endpoint Create(string name, string method, params int[] versions) =>
+        new(_ => Task.CompletedTask, Metadata(method, versions), name);
 
-        return new Endpoint(_ => Task.CompletedTask, metadata, name);
-    }
+    private static RouteEndpoint CreateRoute(string pattern, string name, string method, params int[] versions) =>
+        new(_ => Task.CompletedTask, RoutePatternFactory.Parse(pattern), order: 0, Metadata(method, versions), name);
+
+    private static EndpointMetadataCollection Metadata(string method, int[] versions) =>
+        versions.Length == 0
+            ? new EndpointMetadataCollection(new HttpMethodMetadata([method]))
+            : new EndpointMetadataCollection(new HttpMethodMetadata([method]), new ApiVersionsMetadata(versions));
 }

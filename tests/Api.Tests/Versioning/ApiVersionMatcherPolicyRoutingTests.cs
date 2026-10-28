@@ -13,7 +13,8 @@ namespace Defra.WasteOrganisations.Api.Tests.Versioning;
 /// Routes requests through the real matcher with <see cref="ApiVersionMatcherPolicy"/> and
 /// <see cref="ApiVersioningMiddleware"/>, on a small app whose endpoints cover every shape the v2
 /// stories need: one path with a handler per version, one handler serving two versions, a path
-/// where v2 adds a method v1 lacks, a v2-only path, and a path that declares nothing.
+/// where v2 adds a method v1 lacks, a v1-only literal beside a parameter route with a v2, a v2-only
+/// path, and a path that declares nothing.
 /// </summary>
 public sealed class ApiVersionMatcherPolicyRoutingTests : IAsyncLifetime
 {
@@ -40,6 +41,9 @@ public sealed class ApiVersionMatcherPolicyRoutingTests : IAsyncLifetime
         _app.MapPost("/things", () => "create v2").WithApiVersions(2);
         _app.MapGet("/v2-only", () => "v2 only").WithApiVersions(2);
         _app.MapGet("/plain", () => "plain v1");
+        _app.MapGet("/items/{slug}", (string slug) => $"item v1 {slug}");
+        _app.MapGet("/items/{slug}", (string slug) => $"item v2 {slug}").WithApiVersions(2);
+        _app.MapGet("/items/search", () => "search items v1");
 
         await _app.StartAsync(TestContext.Current.CancellationToken);
         _client = _app.GetTestClient();
@@ -72,6 +76,10 @@ public sealed class ApiVersionMatcherPolicyRoutingTests : IAsyncLifetime
     [InlineData("GET", "/v2-only", null, 404, null)]
     [InlineData("GET", "/v2-only", "2", 200, "v2 only")]
     [InlineData("GET", "/v2-only", "3", 406, null)]
+    // A v1-only literal beside a parameter route with a v2 keeps its precedence for every version
+    [InlineData("GET", "/items/abc", "2", 200, "item v2 abc")]
+    [InlineData("GET", "/items/search", null, 200, "search items v1")]
+    [InlineData("GET", "/items/search", "2", 406, null)]
     // Nothing declared: unchanged behaviour. No endpoint at all: 404 whatever the version
     [InlineData("GET", "/plain", null, 200, "plain v1")]
     [InlineData("GET", "/plain", "2", 406, null)]
@@ -93,7 +101,7 @@ public sealed class ApiVersionMatcherPolicyRoutingTests : IAsyncLifetime
             body.Should().Be(expectedBody);
 
         if (expectedStatus == StatusCodes.Status406NotAcceptable)
-            response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+            (response.Content.Headers.ContentType?.MediaType).Should().Be("application/problem+json");
     }
 
     // A method no version answers is 405 whatever the version, listing the requested version's methods.

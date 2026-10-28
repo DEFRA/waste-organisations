@@ -31,7 +31,7 @@ public sealed class ApiVersionMatcherPolicy : MatcherPolicy, INodeBuilderPolicy
     public IReadOnlyList<PolicyNodeEdge> GetEdges(IReadOnlyList<Endpoint> endpoints)
     {
         var edges = endpoints
-            .SelectMany(SupportedVersions)
+            .SelectMany(ApiVersionsMetadata.For)
             .Append(AcceptHeaderVersionResolver.DefaultVersion)
             .Distinct()
             .Order()
@@ -52,7 +52,7 @@ public sealed class ApiVersionMatcherPolicy : MatcherPolicy, INodeBuilderPolicy
         return new ApiVersionJumpTable(destinations, destinations[OtherVersions]);
     }
 
-    private static IReadOnlyList<Endpoint> EndpointsFor(int version, IReadOnlyList<Endpoint> endpoints) =>
+    private static List<Endpoint> EndpointsFor(int version, IReadOnlyList<Endpoint> endpoints) =>
         version == AcceptHeaderVersionResolver.DefaultVersion
             // v1 is strict: a v1 client must not see a v2-only endpoint, so it keeps its 404 or 405.
             ? endpoints.Where(e => Supports(e, version)).ToList()
@@ -60,20 +60,28 @@ public sealed class ApiVersionMatcherPolicy : MatcherPolicy, INodeBuilderPolicy
 
     /// <summary>
     /// The endpoints that support the version, plus those that do not but answer an HTTP method none
-    /// of the supporting ones does. The middleware turns a request to a fallback into a 406.
+    /// of the supporting ones on the same route does. The middleware turns a request to a fallback
+    /// into a 406. Fallbacks are decided route by route, so a v2 <c>/x/{id}</c> never stands in for a
+    /// v1-only <c>/x/search</c>: the literal keeps its precedence and the request gets 406, as for any
+    /// v1-only route. The input order is kept.
     /// </summary>
     private static List<Endpoint> WithFallbacks(int version, IReadOnlyList<Endpoint> endpoints)
     {
-        var supporting = endpoints.Where(e => Supports(e, version)).ToList();
-        var fallbacks = endpoints.Where(e => !Supports(e, version) && !supporting.Exists(s => SharesHttpMethod(s, e)));
+        var fallbacks = endpoints
+            .GroupBy(Route)
+            .SelectMany(route =>
+                route.Where(e =>
+                    !Supports(e, version) && !route.Any(s => Supports(s, version) && SharesHttpMethod(s, e))
+                )
+            )
+            .ToHashSet();
 
-        return supporting.Concat(fallbacks).ToList();
+        return endpoints.Where(e => Supports(e, version) || fallbacks.Contains(e)).ToList();
     }
 
-    private static bool Supports(Endpoint endpoint, int version) => SupportedVersions(endpoint).Contains(version);
+    private static bool Supports(Endpoint endpoint, int version) => ApiVersionsMetadata.For(endpoint).Contains(version);
 
-    private static IReadOnlySet<int> SupportedVersions(Endpoint endpoint) =>
-        endpoint.Metadata.GetMetadata<ApiVersionsMetadata>()?.Versions ?? ApiVersionsMetadata.Default;
+    private static string? Route(Endpoint endpoint) => (endpoint as RouteEndpoint)?.RoutePattern.RawText;
 
     private static bool SharesHttpMethod(Endpoint first, Endpoint second)
     {
