@@ -6,6 +6,9 @@ namespace Defra.WasteOrganisations.Api.Versioning;
 /// </summary>
 public sealed class ApiVersionsMetadata
 {
+    /// <summary>The versions an endpoint without this metadata supports: v1 only.</summary>
+    public static IReadOnlySet<int> Default { get; } = new HashSet<int> { AcceptHeaderVersionResolver.DefaultVersion };
+
     public ApiVersionsMetadata(params int[] versions)
     {
         if (versions.Length == 0)

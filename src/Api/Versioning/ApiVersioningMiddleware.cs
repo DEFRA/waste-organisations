@@ -9,11 +9,6 @@ public class ApiVersioningMiddleware : IMiddleware
 {
     internal static readonly string[] ExemptPathPrefixes = ["/health", "/openapi", "/redoc"];
 
-    private static readonly IReadOnlySet<int> s_defaultVersions = new HashSet<int>
-    {
-        AcceptHeaderVersionResolver.DefaultVersion,
-    };
-
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         if (IsExemptPath(context.Request.Path))
@@ -23,11 +18,11 @@ public class ApiVersioningMiddleware : IMiddleware
             return;
         }
 
-        var endpoint = context.GetEndpoint();
-
-        if (endpoint is null)
+        // Only route endpoints (those mapped with MapGet and friends) carry a version. No endpoint means
+        // routing's own 404; routing's 405 for a method no endpoint answers is a plain Endpoint, not a
+        // RouteEndpoint, and stays a 405 whatever the version asks for.
+        if (context.GetEndpoint() is not RouteEndpoint endpoint)
         {
-            // No endpoint matched: let routing produce its own 404.
             await next(context);
 
             return;
@@ -40,7 +35,8 @@ public class ApiVersioningMiddleware : IMiddleware
             return;
         }
 
-        var supportedVersions = endpoint.Metadata.GetMetadata<ApiVersionsMetadata>()?.Versions ?? s_defaultVersions;
+        var supportedVersions =
+            endpoint.Metadata.GetMetadata<ApiVersionsMetadata>()?.Versions ?? ApiVersionsMetadata.Default;
 
         if (!supportedVersions.Contains(requestedVersion))
         {

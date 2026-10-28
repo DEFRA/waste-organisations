@@ -1,6 +1,8 @@
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Versioning;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Defra.WasteOrganisations.Api.Tests.Versioning;
@@ -30,6 +32,20 @@ public class ApiVersioningMiddlewareTests
         var context = CreateContext(
             "/unknown",
             acceptHeader: "application/vnd.defra.waste-organisations+json; version=2"
+        );
+
+        var nextCalled = await InvokeAndWasNextCalled(context);
+
+        nextCalled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task WhenRoutingAnswers405_ShouldCallNext_WhateverVersionIsRequested()
+    {
+        var context = CreateContext(
+            "/organisations",
+            acceptHeader: "application/vnd.defra.waste-organisations+json; version=2",
+            endpoint: RoutingsOwn405Endpoint()
         );
 
         var nextCalled = await InvokeAndWasNextCalled(context);
@@ -137,14 +153,18 @@ public class ApiVersioningMiddlewareTests
     }
 
     private static Endpoint EndpointWithNoDeclaredVersions() =>
-        new(_ => Task.CompletedTask, new EndpointMetadataCollection(), "no-declared-versions");
+        RouteEndpoint(new EndpointMetadataCollection(), "no-declared-versions");
 
     private static Endpoint EndpointWithDeclaredVersions(params int[] versions) =>
-        new(
-            _ => Task.CompletedTask,
-            new EndpointMetadataCollection(new ApiVersionsMetadata(versions)),
-            "declared-versions"
-        );
+        RouteEndpoint(new EndpointMetadataCollection(new ApiVersionsMetadata(versions)), "declared-versions");
+
+    private static RouteEndpoint RouteEndpoint(EndpointMetadataCollection metadata, string displayName) =>
+        new(_ => Task.CompletedTask, RoutePatternFactory.Parse("/test"), order: 0, metadata, displayName);
+
+    // What routing sets when the path exists but no endpoint answers the method: a plain Endpoint
+    // with no metadata that writes the 405.
+    private static Endpoint RoutingsOwn405Endpoint() =>
+        new(_ => Task.CompletedTask, EndpointMetadataCollection.Empty, "405 HTTP Method Not Supported");
 
     private static DefaultHttpContext CreateContext(string path, string? acceptHeader, Endpoint? endpoint = null)
     {
