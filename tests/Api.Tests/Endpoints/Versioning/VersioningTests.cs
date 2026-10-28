@@ -50,6 +50,8 @@ public class VersioningTests(ApiWebApplicationFactory factory, ITestOutputHelper
 
         response.StatusCode.Should().Be(HttpStatusCode.NotAcceptable);
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        // Written directly rather than through the exception handler, so the HSTS header survives (v1 X-HDR-01).
+        response.Headers.GetValues("Strict-Transport-Security").Should().Equal("max-age=31536000; includeSubDomains");
         await VerifyJson(content);
     }
 
