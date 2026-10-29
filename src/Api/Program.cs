@@ -11,6 +11,7 @@ using Defra.WasteOrganisations.Api.Utils.Health;
 using Defra.WasteOrganisations.Api.Utils.Logging;
 using Defra.WasteOrganisations.Api.Utils.Metrics;
 using Defra.WasteOrganisations.Api.Utils.Security;
+using Defra.WasteOrganisations.Api.Versioning;
 using Elastic.CommonSchema.Serilog;
 using Microsoft.AspNetCore.Diagnostics;
 using Serilog;
@@ -45,6 +46,7 @@ try
         options.AddOperationTransformer<SearchQueryOperationTransformer>();
     });
     builder.Services.AddAuthenticationAuthorization();
+    builder.Services.AddApiVersioning();
     builder.Services.AddRequestMetrics();
     builder.Services.AddDbContext(builder.Configuration, integrationTest);
     builder.Services.AddPostgres(builder.Configuration);
@@ -93,6 +95,7 @@ try
     app.UseHeaderPropagation();
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseApiVersioning();
     app.MapHealth();
     app.UseRequestMetrics();
     app.MapOpenApi();
