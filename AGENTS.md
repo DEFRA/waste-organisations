@@ -113,3 +113,7 @@ DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test --test-modules tests/Api
 Run Api.V1.Tests after Api.IntegrationTests, never in the same `dotnet test` call or at the same time: the integration tests delete every document in the `Organisation` collection before each test, which would remove data a v1 test has just created.
 
 In the sandbox environment, Api.V1.Tests need escalation because the tests call the API running in Docker Compose.
+
+## Specs
+
+Specs live in `specs/` and are named `NNNN-TICKET-ID-slug.md`. A spec whose development is done (its story is delivered and the changes are merged, for example specs 0001 to 0004) is a record of what was built and why. Never edit such a spec, not even its Open Questions or Decisions, while doing new development or writing a new spec. When new work changes something an earlier spec decided, such as a column or a rule it introduced, record the change and its reason in the new spec, name the earlier spec it supersedes and in what, and leave the earlier spec as it is. Edit a spec only while its own story is still in progress.
