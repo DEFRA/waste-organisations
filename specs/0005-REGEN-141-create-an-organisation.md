@@ -6,7 +6,7 @@
 | Priority | P1 (High): the first endpoint of REGEN-125 Access to org data via Org API, and what Manage Account registers organisations through |
 | Parent | REGEN-125 Access to org data via Org API |
 | Risk | Medium (see Risks) |
-| Source | Jira story REGEN-141 as edited on 2 November 2026 (Scenarios 3, 4 and 5 reworded), its comments (team decisions of 20, 21 and 22 October 2026), the "Create Single Organisation" section of the Confluence page "Organisations API - waste-organisations" as updated on 3 November 2026, version 36 (addresses as an array, each item with an `addressTypes` array; one kind per item is the refinement answer of 3 November 2026, and the page is to follow), the "Defra Address Model" and "Remapping" sections of the Confluence page "Companies House - Address Cleansing" (Integration space), and the refinement answers of 2 November 2026 recorded in Decisions |
+| Source | Jira story REGEN-141 as edited on 2 November 2026 (Scenarios 3, 4 and 5 reworded), its comments (team decisions of 20, 21 and 22 October 2026, and the huddle summary of 26 October 2026 posted on 3 November 2026), the "Create Single Organisation" section of the Confluence page "Organisations API - waste-organisations" as updated on 3 November 2026, version 36 (addresses as an array, each item with an `addressTypes` array; one kind per item is the refinement answer of 3 November 2026, and the page is to follow), the "Defra Address Model" and "Remapping" sections of the Confluence page "Companies House - Address Cleansing" (Integration space), and the refinement answers of 2 November 2026 recorded in Decisions |
 
 ## Problem/Opportunity
 
@@ -24,13 +24,13 @@ Who benefits:
 
 - **Manage Account:** registers an organisation with one call and gets its id back.
 - **RPD and other W&CE services:** create organisations through the same contract (Confluence: "pEPR Submit Data - creation of a subsidiary?", "Manage Account - initial organisation registration/enrolment").
-- **The team:** the v2 contract is published as an OpenAPI document generated from the code, so the Jira acceptance criteria ("as per swagger documentation") have something to point at.
+- **The team:** the API documentation is generated from the code, so the Jira acceptance criteria ("as per swagger documentation") have something to point at. No hand-maintained OpenAPI contract file is kept: the Confluence page is where the contract is agreed with the wider W&CE teams (huddle of 26 October 2026).
 
 All v1 behaviour stays exactly as it is.
 
 ## Proposed Solution
 
-Add `POST /organisations` as a v2-only endpoint beside the v1 `GET /organisations` (search). It validates the body, maps it onto the Postgres entities, saves them in one transaction and returns `201 Created` with the stored organisation and a `Location` header. v2 code is ring-fenced from v1 in its own folder (team decision of 22 October 2026). A second OpenAPI document, `/openapi/v2.json`, describes the v2 API; the v1 document does not change.
+Add `POST /organisations` as a v2-only endpoint beside the v1 `GET /organisations` (search). It validates the body, maps it onto the Postgres entities, saves them in one transaction and returns `201 Created` with the stored organisation and a `Location` header. v2 code sits beside the v1 code in the existing folders, with no separate folder or namespace (huddle of 26 October 2026: the ring-fencing of 22 October 2026 stays lightweight). A second OpenAPI document, `/openapi/v2.json`, describes the v2 API; the v1 document does not change.
 
 ### The request
 
@@ -232,18 +232,18 @@ What does not change: `is_uk_address` stays generated from `country_iso`; `ck_ad
 
 These are integration and unit tests, not v1 tests, so changing them is allowed. No v1 test or snapshot changes.
 
-### Code layout (ring-fencing)
+### Code layout
 
-v2 code lives under `src/Api/V2/`, namespace `Defra.WasteOrganisations.Api.V2`, and shares nothing with the v1 DTOs, mapping or services, so v1 files are not touched while v2 grows (team decision, 22 October 2026). The data layer (`Data/Postgres`) is version-agnostic and shared.
+v2 code sits in the existing folders beside the v1 code, told apart by its type names and by `.WithApiVersions(2)`, not by a separate folder or namespace. The team meeting of 22 October 2026 agreed to ring-fence v1 code; the huddle of 26 October 2026 kept that lightweight: a complete isolation of v1 code into separate files or folders is not intended. This story changes no v1 endpoint, DTO, mapping or service file because a new endpoint does not need to, which is a consequence, not a rule. The data layer (`Data/Postgres`) is shared.
 
 | Path | Content |
 |---|---|
-| `src/Api/V2/Endpoints/Organisations/Post.cs` | `MapOrganisationsPostV2`: `MapPost("/organisations", Handle)` with `.WithName("CreateOrganisation")`, `.WithTags("Organisations")`, summary and description, `.Produces<CreateOrganisationResponse>(201)`, `.ProducesValidationProblem(400)`, `.ProducesProblem(500)`, `.RequireAuthorization(PolicyNames.Write)`, `.WithApiVersions(2)` |
-| `src/Api/V2/Dtos/` | `CreateOrganisationRequest` (`organisation`), `OrganisationRequest`, `AddressRequest`, `CountryRequest`; `CreateOrganisationResponse` (`organisation`), `OrganisationResponse`, `AddressResponse`, `CountryResponse`; enums `HomeNation` (the four ISO 3166-2:GB codes; v1's `BusinessCountry` is not reused) and `AddressType`, of which `AddressRequest.AddressTypes` and `AddressResponse.AddressTypes` are arrays |
-| `src/Api/V2/Mapping/` | Request to entities (ids, trimming, upper-casing, usage type and organisation type ids; one `Address` and one `OrganisationAddress` per item); entities to response, including `AddressLine` building and `addressTypes` as a one-element array from the item's `OrganisationAddress` |
-| `src/Api/V2/Services/` | `IOrganisationService`/`OrganisationService` for Postgres: `Create(Organisation, CancellationToken)` plus the two reference lookups. Named in its own namespace, so it does not collide with the v1 Mongo service |
-| `src/Api/Endpoints/Endpoints.cs` | Calls `MapOrganisationsPostV2()` after the v1 mappings |
-| `src/Api/Program.cs` | Registers the v2 service; the second OpenAPI document and ReDoc instance (below); the exception handler strips the v2 DTO namespace from JSON error messages as it strips the v1 one |
+| `src/Api/Endpoints/Organisations/Post.cs` | `MapOrganisationsPost`, beside `Get.cs`, `Put.cs` and `Search.cs`: `MapPost("/organisations", Handle)` with `.WithName("CreateOrganisation")`, `.WithTags("Organisations")`, summary and description, `.Produces<CreateOrganisationResponse>(201)`, `.ProducesValidationProblem(400)`, `.ProducesProblem(500)`, `.RequireAuthorization(PolicyNames.Write)`, `.WithApiVersions(2)` |
+| `src/Api/Dtos/` | New files in the existing `Defra.WasteOrganisations.Api.Dtos` namespace: `CreateOrganisationRequest` (`organisation`), `OrganisationRequest`, `AddressRequest`, `CountryRequest`; `CreateOrganisationResponse` (`organisation`), `OrganisationResponse`, `AddressResponse`, `CountryResponse`; enums `HomeNation` (the four ISO 3166-2:GB codes; v1's `BusinessCountry` is not reused) and `AddressType`, of which `AddressRequest.AddressTypes` and `AddressResponse.AddressTypes` are arrays. None of the names collides with v1's `Organisation`, `Address` or `BusinessCountry`, which are not reused because their fields and rules differ |
+| `src/Api/Mapping/CreateOrganisationExtensions.cs` | Beside `OrganisationExtensions.cs`. Request to entities (ids, trimming, upper-casing, usage type and organisation type ids; one `Address` and one `OrganisationAddress` per item); entities to response, including `AddressLine` building and `addressTypes` as a one-element array from the item's `OrganisationAddress` |
+| `src/Api/Services/IPostgresOrganisationService.cs`, `PostgresOrganisationService.cs` | `Create(Organisation, CancellationToken)` plus the two reference lookups. Named after its store, so it does not collide with the v1 Mongo `IOrganisationService`, which is not extended because it is Mongo-backed |
+| `src/Api/Endpoints/Endpoints.cs` | Calls `MapOrganisationsPost()` after the v1 mappings |
+| `src/Api/Program.cs` | Registers the Postgres service; the second OpenAPI document and ReDoc instance (below). The exception handler needs no change: it already strips the `Dtos` namespace, which the new DTOs share |
 
 The handler receives the validated request, maps it, calls the service, maps the stored entities and returns `TypedResults.Created($"/organisations/{id}", response)`. It never reads the version (spec 0004).
 
@@ -264,7 +264,7 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 
 | Project | Test |
 |---|---|
-| `Api.IntegrationTests` (new `Scenarios/V2/CreateOrganisationTests.cs`) | Full payload (Companies House company, a `REGISTERED` UK address with every part, a `CORRESPONDENCE` non-UK address without postcode): `201`, `Location` is `/organisations/{id}`, body matches a Verify snapshot with `id` and timestamps scrubbed; the three timestamps are equal; the `organisation` row, two `address` rows and two `organisation_address` rows exist with the sent values, `valid_from` set, `valid_to` null, `is_uk_address` true and false |
+| `Api.IntegrationTests` (new `Scenarios/CreateOrganisationTests.cs`, beside `OrganisationTests.cs`) | Full payload (Companies House company, a `REGISTERED` UK address with every part, a `CORRESPONDENCE` non-UK address without postcode): `201`, `Location` is `/organisations/{id}`, body matches a Verify snapshot with `id` and timestamps scrubbed; the three timestamps are equal; the `organisation` row, two `address` rows and two `organisation_address` rows exist with the sent values, `valid_from` set, `valid_to` null, `is_uk_address` true and false |
 | | All five kinds as five items: `201`, five `address` rows and five `organisation_address` rows. The same premises as two items with different kinds: `201`, two `address` rows |
 | | Sole trader: `tradingName` and no `companiesHouseNumber`: `201`, `name` absent from the body and null in the row |
 | | `name` and `tradingName` both present with a Companies House number: `201` with both |
@@ -278,7 +278,7 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 | | Nothing is written to MongoDB: the created id is not found by v1 `GET /organisations/{id}` (`404`) |
 | | A `GET /organisations/{id}` for the created id with `version=2`: `406`, pinning the accepted gap until REGEN-140 |
 | `Api.IntegrationTests` (changed, above) | `OrganisationSchemaTests`, `DatabaseChangelogTests` (`v1.2.0` tag, upper-case usage types) |
-| `Api.Tests` (new `V2/`) | `AddressLine` builder: full address; number and street only; named building only; PO box only; non-UK without postcode; blank parts skipped. Request validation unit tests for the `IValidatableObject` rules (the name rule; `addressTypes` empty or with two elements; a kind in two items; postcode; premises) and for the `errors` keys being JSON paths. `OpenApiTests.OpenApiV2_VerifyAsExpected` snapshot of `/openapi/v2.json`; `OpenApi_VerifyAsExpected` (v1) unchanged |
+| `Api.Tests` (new `Mapping/AddressLineTests.cs` and `Endpoints/Organisations/PostTests.cs`, beside the v1 tests) | `AddressLine` builder: full address; number and street only; named building only; PO box only; non-UK without postcode; blank parts skipped. Request validation unit tests for the `IValidatableObject` rules (the name rule; `addressTypes` empty or with two elements; a kind in two items; postcode; premises) and for the `errors` keys being JSON paths. `OpenApiTests.OpenApiV2_VerifyAsExpected` snapshot of `/openapi/v2.json`; `OpenApi_VerifyAsExpected` (v1) unchanged |
 | `Api.Tests` (changed) | `PostgresDbContextModelTests` column lists |
 | `Api.V1.Tests` | No change. Every test and snapshot passes as it is, including X-ROUTE-01 (`POST /organisations` is `405` for v1), X-BODY-01 and X-CONTRACT-01 |
 
@@ -313,7 +313,7 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 - [ ] `addressLine` is built in postal order from the stored parts and is not stored.
 - [ ] `db.changelog-1.2.xml` makes `organisation.name` nullable with `ck_organisation_name`, drops `address.address_line` and `address.country_name`, recreates `ck_address_premises` without `address_line`, renames the five usage types to `REGISTERED`, `PRINCIPAL`, `AUDIT`, `SERVICE_OF_NOTICE` and `CORRESPONDENCE`, and tags `v1.2.0`; 1.0 and 1.1 are unchanged; no EF Core migration exists.
 - [ ] `/openapi/v2.json` describes the v2 API with `POST /organisations`, the `Accept` header, the `406`, and the 40 `organisationType` codes with descriptions; `/redoc/v2` renders it; `/openapi/v1.json` is unchanged (both v1 snapshots pass).
-- [ ] v2 code is under `src/Api/V2/` and no v1 endpoint, DTO, mapping or service file changes.
+- [ ] v2 code sits in the existing `Endpoints`, `Dtos`, `Mapping` and `Services` folders with no separate v2 folder or namespace; no v1 endpoint, DTO, mapping or service file changes, because none needs to.
 - [ ] Nothing is written to MongoDB; no `409` or duplicate check exists.
 - [ ] `Api.Tests`, `Api.IntegrationTests` and `Api.V1.Tests` pass locally and in `check-pull-request.yml`; no v1 test or snapshot is edited; `dotnet csharpier check .` (including `changelog/*.xml`) and a warnings-as-errors build pass.
 - [ ] No NuGet package is added.
@@ -348,7 +348,7 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 | `postalCode` | Required only when `country.iso` is `GB`, matching `ck_address_uk_postal_code` |
 | Mandatory address fields | `street`, `locality`, `country.iso` on every address (refinement answer, 2 November 2026), plus the premises rule; `region` optional; no kind mandatory yet |
 | `organisationType` | Optional; validated against `OrganisationTypeCodes.All`; not cross-checked with the Companies House number |
-| `companiesHouseNumber` | Pattern `^(?:[A-Z0-9]{2}[0-9]{6}\|IP[0-9]{5}R)$` after upper-casing, taken from the closed contract draft (PR 211) |
+| `companiesHouseNumber` | Pattern `^(?:[A-Z0-9]{2}[0-9]{6}\|IP[0-9]{5}R)$` after upper-casing, taken from the OpenAPI contract draft of PR 211, which was closed after the huddle of 26 October 2026 decided against a hand-maintained contract file |
 | Normalisation | Trim every string; upper-case `companiesHouseNumber` and `country.iso`; nothing else; no length caps |
 | Unknown members | Ignored, as `System.Text.Json` and v1 do; never a `400` |
 | Server-set fields | `id`, `validFrom`, `validTo`, `createdAt`, `updatedAt`, `isUkAddress`, `addressLine` (refinement answer, 2 November 2026) |
@@ -357,16 +357,17 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 | `400` shape | Validation problem details with `errors` keyed by JSON path for field failures; the existing `detail` problem details for unreadable bodies. v1's single-`detail` shape is not copied for field errors because Jira Scenario 2 asks for each missing field |
 | `401`/`403` | Empty bodies, as v1 (refinement answer, 2 November 2026) |
 | Duplicates | Out of scope; no `409` (refinement answer, 2 November 2026) |
-| OpenAPI | A second document `v2` filtered by `ApiVersionsMetadata`, and `ShouldInclude` on `v1` so the v2-only operation stays out of it; ReDoc at `/redoc/v2` (refinement answer, 2 November 2026) |
-| Code layout | `src/Api/V2/` with its own DTOs, mapping and service; no v1 file edited (team decision, 22 October 2026) |
+| OpenAPI | A second document `v2` filtered by `ApiVersionsMetadata`, and `ShouldInclude` on `v1` so the v2-only operation stays out of it; ReDoc at `/redoc/v2` (refinement answer, 2 November 2026). Both documents are generated from the code, with summaries and descriptions in the endpoint and DTO declarations; no hand-written OpenAPI file is kept, and the Confluence page remains the contract agreed with the wider teams (huddle of 26 October 2026) |
+| Code layout | v2 code in the existing folders, told apart by type names and `.WithApiVersions(2)`; no separate folder or namespace. The ring-fencing of 22 October 2026 was kept lightweight on 26 October 2026: a complete isolation of v1 code into separate files or folders is not intended. v1 files stay as they are only because nothing in them needs to change |
 | Tests | Endpoint tests in `Api.IntegrationTests`, against Compose (refinement answer, 2 November 2026); pure logic unit-tested in `Api.Tests` |
 | Schema spec | Spec 0003 is not amended; the 1.2 changes are recorded here (refinement answer, 2 November 2026) |
+| Schema change in this story | The 1.2 changelog is a hidden task of this story, not a separate ticket: tasks that support the delivery of a story stay in it (huddle of 26 October 2026) |
 | Reference lookups | Queried per request, not cached; two tiny tables |
 | Transaction | One `SaveChangesAsync`, so a partial organisation is never stored |
 
 ## Open Questions
 
-To track on REGEN-141 or its follow-up stories; none blocks this story:
+To close with the wider team during implementation or on follow-up stories (huddle of 26 October 2026: a story is not expected to have every answer up front, and gaps are closed while implementing); none blocks this story:
 
 1. **Mandatory address kinds.** Must a create carry a `REGISTERED` address, or any particular kinds per organisation type? Decided later (2 November 2026); for now one to five kinds, any of them.
 2. **Companies House number and type.** Should an `ltd` without a `companiesHouseNumber` be rejected once the type list is settled?
@@ -391,6 +392,7 @@ To track on REGEN-141 or its follow-up stories; none blocks this story:
 | Renaming the usage types breaks code that looks them up by the old names | Low | No production code looks a usage type up yet. `OrganisationSchemaTests` and `DatabaseChangelogTests` query by the names and change in slice 1; two `Api.Tests` files only name an in-memory row |
 | Several kinds per address are wanted later | Low | `addressTypes` is already an array; relaxing `maxItems` and storing one `address` row with several `organisation_address` rows is a non-breaking change the 1.1 schema already supports |
 | The mandatory address kinds change after clients integrate | Medium | Adding a required kind is a tightening; recorded as Open Question 1 so it is decided before external consumers go live |
+| The W&CE-wide versioning approach ends up different from header versioning: the huddle of 26 October 2026 kept room for a change of direction, with a conversation about versioning still pending | Low | The handler never reads the version. Only `.WithApiVersions(2)` on the endpoint and the `Accept` parameter in the v2 OpenAPI document tie the endpoint to the scheme, one place each |
 | The `405` for v1 clients looks like a missing feature to someone testing by hand | Low | Documented in the v2 OpenAPI description and README: send the `Accept` header |
 
 ## Notes
