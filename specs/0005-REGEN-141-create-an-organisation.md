@@ -18,7 +18,7 @@ What is already in place:
 - **Schema (spec 0003):** `organisation`, `organisation_type` (40 seeded codes, re-seeded to ten by this story), `address_usagetype` (five seeded kinds), `address` and `organisation_address`, with their EF Core entities and `TimestampInterceptor`.
 - **Authentication:** Basic or JWT bearer, scopes from the ACL, `PolicyNames.Write` for writes.
 
-Three decisions of 2 November 2026 do not fit the 1.1 schema, so this story also adds a `db.changelog-1.2.xml`: an organisation without a Companies House number may have only a `tradingName` (so `organisation.name` cannot stay `NOT NULL`), `addressLine` is no longer stored but computed, and `country.name` is no longer stored. The five address usage type names move to the upper-case form the API uses on the wire. A fourth change was decided on 3 November 2026: the organisation types are the ten on the Confluence page "Organisation Types and Subtypes", not the 36 Companies House `company_type` values plus four of our own that spec 0003 seeded, so the 1.2 changelog re-seeds `organisation_type`. Spec 0003 is not amended; this spec records what changes and why.
+Three decisions of 2 November 2026 do not fit the 1.1 schema, so this story also adds a `db.changelog-1.2.xml`: an organisation without a Companies House number may have only a `tradingName` (so `organisation.name` cannot stay `NOT NULL`), `addressLine` is no longer stored but computed, and the country name (`address.country_name`) is no longer stored. The five address usage type names move to the upper-case form the API uses on the wire. A fourth change was decided on 3 November 2026: the organisation types are the ten on the Confluence page "Organisation Types and Subtypes", not the 36 Companies House `company_type` values plus four of our own that spec 0003 seeded, so the 1.2 changelog re-seeds `organisation_type`. Spec 0003 is not amended; this spec records what changes and why.
 
 Who benefits:
 
@@ -55,14 +55,14 @@ Add `POST /organisations` as a v2-only endpoint beside the v1 `GET /organisation
         "region": "Testshire",
         "postalCode": "AB1 2CD",
         "poBox": "PO Box 99",
-        "country": { "iso": "GB" }
+        "countryIso": "GB"
       },
       {
         "addressTypes": ["CORRESPONDENCE"],
         "buildingNumber": "12",
         "street": "Harbour Road",
         "locality": "Hong Kong",
-        "country": { "iso": "HK" }
+        "countryIso": "HK"
       }
     ]
   }
@@ -82,7 +82,7 @@ Add `POST /organisations` as a v2-only endpoint beside the v1 `GET /organisation
 
 The `name`/`tradingName` rule (refinement answer, 2 November 2026): an organisation on Companies House has a registered `name` and may trade under another; a sole trader has no Companies House number and only a `tradingName`. So `name` is mandatory for a Companies House type and `tradingName` is mandatory for every other type. Both may be sent. A string that is present must be non-blank; whitespace-only is a validation error, not "absent". Since 3 November 2026 the rule is keyed on the type rather than on the number's presence, because the type now decides whether a number is present at all; the outcome is the same for every valid request.
 
-No field has a length cap, matching the `text` columns of spec 0003 ("no lengths until the payloads are final"). Every string is trimmed before validation and storage. `companiesHouseNumber` and `country.iso` are upper-cased; nothing else is changed.
+No field has a length cap, matching the `text` columns of spec 0003 ("no lengths until the payloads are final"). Every string is trimmed before validation and storage. `companiesHouseNumber` and `countryIso` are upper-cased; nothing else is changed.
 
 #### Organisation types
 
@@ -107,7 +107,7 @@ The first five are the Companies House types: the page names the Companies House
 
 #### Address fields
 
-Each item of `addresses` is an address in the Defra standard address model plus its kind:
+Each item of `addresses` is an address in the Defra standard address model, with the country flattened to a `countryIso` string (Decisions below), plus its kind:
 
 | Field | Required | Rule | Stored in |
 |---|---|---|---|
@@ -119,9 +119,8 @@ Each item of `addresses` is an address in the Defra standard address model plus 
 | `street` | Yes | Non-blank | `address.street` |
 | `locality` | Yes | Non-blank. The town or city | `address.locality` |
 | `region` | No | The county, state or province | `address.region` |
-| `postalCode` | When `country.iso` is `GB` | Non-blank for a UK address; optional otherwise, because some countries have no postcodes. No format check, because it also holds non-UK codes | `address.postal_code` |
-| `country` | Yes | An object with `iso` | |
-| `country.iso` | Yes | Upper-cased, then two letters (`^[A-Z]{2}$`, ISO 3166-1 alpha-2). `GB` is the United Kingdom, Northern Ireland included | `address.country_iso` |
+| `postalCode` | When `countryIso` is `GB` | Non-blank for a UK address; optional otherwise, because some countries have no postcodes. No format check, because it also holds non-UK codes | `address.postal_code` |
+| `countryIso` | Yes | Upper-cased, then two letters (`^[A-Z]{2}$`, ISO 3166-1 alpha-2). `GB` is the United Kingdom, Northern Ireland included. A plain string, not the address model's `country` object (Decisions below) | `address.country_iso` |
 
 Premises (refinement answer, 2 November 2026): at least one of `subBuildingName`, `buildingName`, `buildingNumber` and `poBox` must be non-blank, so the premises can be identified. This mirrors `ck_address_premises` once `address_line` is dropped from it (Schema below), so a request that passes validation cannot fail that constraint.
 
@@ -131,7 +130,7 @@ The request must carry the kind the organisation type requires (Organisation typ
 
 #### Fields the client cannot set
 
-`id`, `validFrom`, `validTo`, `createdAt`, `updatedAt`, `isUkAddress` and `addressLine` are set by the API. If a request carries any of them, or any other unknown member such as `mainActivitySicCode` (dropped on 20 October 2026) or `country.name`, the member is ignored, as `System.Text.Json` does by default and as v1 does. Rejecting unknown members would make adding an optional request field a breaking change for clients that are ahead of the server.
+`id`, `validFrom`, `validTo`, `createdAt`, `updatedAt`, `isUkAddress` and `addressLine` are set by the API. If a request carries any of them, or any other unknown member such as `mainActivitySicCode` (dropped on 20 October 2026) or `countryName`, the member is ignored, as `System.Text.Json` does by default and as v1 does. Rejecting unknown members would make adding an optional request field a breaking change for clients that are ahead of the server.
 
 ### The response
 
@@ -161,7 +160,7 @@ The request must carry the kind the organisation type requires (Organisation typ
         "region": "Testshire",
         "postalCode": "AB1 2CD",
         "poBox": "PO Box 99",
-        "country": { "iso": "GB" },
+        "countryIso": "GB",
         "isUkAddress": true
       },
       {
@@ -170,7 +169,7 @@ The request must carry the kind the organisation type requires (Organisation typ
         "buildingNumber": "12",
         "street": "Harbour Road",
         "locality": "Hong Kong",
-        "country": { "iso": "HK" },
+        "countryIso": "HK",
         "isUkAddress": false
       }
     ]
@@ -209,7 +208,7 @@ The `errors` keys use the JSON property names (camelCase, with the `organisation
 `AddValidation()` is already registered (`Program.cs`), so the minimal API validation runs the data annotations on the request records and returns the validation problem details above before the handler is called. The rules that one attribute cannot express are `IValidatableObject` implementations on the request records, reported under the same keys:
 
 - On the organisation, from the type's `RegisteredAtCompaniesHouse` flag: `name` required for a Companies House type, `tradingName` for any other; `companiesHouseNumber` required for a Companies House type and rejected for any other; `REGISTERED` among the kinds of some item for a Companies House type, `PRINCIPAL` for any other, reported under `organisation.addresses`. Each kind at most once across the items' `addressTypes`, reported under the later item's `addressTypes` key, naming the kind and the index of the item that already carries it. An unknown or missing `organisationType` reports only the type error, not the three rules that depend on it.
-- On each address: `addressTypes` present, non-empty and without a repeated kind; `postalCode` required when `country.iso` is `GB`; at least one premises field.
+- On each address: `addressTypes` present, non-empty and without a repeated kind; `postalCode` required when `countryIso` is `GB`; at least one premises field.
 
 `organisationType` is checked against `OrganisationTypeCodes.All` in validation (a `400` naming the field, as spec 0003 anticipates), not by the foreign key; the handler then looks the code up for its id. `addressTypes` is an array of the C# enum `AddressType`, which has `JsonStringEnumConverter` and `JsonStringEnumMemberName` for the five values, like v1's `RegistrationType`; an unknown value in the array, or a string where the array should be, is a deserialisation error (`400` with a `detail`), and the enum's name is also the `address_usagetype.name` the handler looks up (Schema below).
 
@@ -261,7 +260,7 @@ v2 code sits in the existing folders beside the v1 code, told apart by its type 
 | Path | Content |
 |---|---|
 | `src/Api/Endpoints/Organisations/Post.cs` | `MapOrganisationsPost`, beside `Get.cs`, `Put.cs` and `Search.cs`: `MapPost("/organisations", Handle)` with `.WithName("CreateOrganisation")`, `.WithTags("Organisations")`, summary and description, `.Produces<CreateOrganisationResponse>(201)`, `.ProducesValidationProblem(400)`, `.ProducesProblem(500)`, `.RequireAuthorization(PolicyNames.Write)`, `.WithApiVersions(2)` |
-| `src/Api/Dtos/` | New files in the existing `Defra.WasteOrganisations.Api.Dtos` namespace: `CreateOrganisationRequest` (`organisation`), `OrganisationRequest`, `AddressRequest`, `CountryRequest`; `CreateOrganisationResponse` (`organisation`), `OrganisationResponse`, `AddressResponse`, `CountryResponse`; enums `HomeNation` (the four ISO 3166-2:GB codes; v1's `BusinessCountry` is not reused) and `AddressType`, of which `AddressRequest.AddressTypes` and `AddressResponse.AddressTypes` are arrays. None of the names collides with v1's `Organisation`, `Address` or `BusinessCountry`, which are not reused because their fields and rules differ |
+| `src/Api/Dtos/` | New files in the existing `Defra.WasteOrganisations.Api.Dtos` namespace: `CreateOrganisationRequest` (`organisation`), `OrganisationRequest`, `AddressRequest`; `CreateOrganisationResponse` (`organisation`), `OrganisationResponse`, `AddressResponse`; enums `HomeNation` (the four ISO 3166-2:GB codes; v1's `BusinessCountry` is not reused) and `AddressType`, of which `AddressRequest.AddressTypes` and `AddressResponse.AddressTypes` are arrays. None of the names collides with v1's `Organisation`, `Address` or `BusinessCountry`, which are not reused because their fields and rules differ |
 | `src/Api/Mapping/CreateOrganisationExtensions.cs` | Beside `OrganisationExtensions.cs`. Request to entities (ids, trimming, upper-casing, usage type and organisation type ids; one `Address` per item and one `OrganisationAddress` per kind in its `addressTypes`); entities to response, including `AddressLine` building and `addressTypes` regrouped from the `OrganisationAddress` rows of each `Address` |
 | `src/Api/Services/IPostgresOrganisationService.cs`, `PostgresOrganisationService.cs` | `Create(Organisation, CancellationToken)` plus the two reference lookups. Named after its store, so it does not collide with the v1 Mongo `IOrganisationService`, which is not extended because it is Mongo-backed |
 | `src/Api/Endpoints/Endpoints.cs` | Calls `MapOrganisationsPost()` after the v1 mappings |
@@ -291,9 +290,9 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 | | Each of the ten codes with the number and address kind its flag requires (a theory over `OrganisationTypeCodes.All`): `201` with the code returned, pinning the flag of every code |
 | | Sole trader: `SOLE_TRADER` with `tradingName`, no `companiesHouseNumber` and a `PRINCIPAL` address: `201`, `name` absent from the body and null in the row |
 | | `name` and `tradingName` both present on an `LTD`: `201` with both; both present on a `SOLE_TRADER`: `201` with both |
-| | Lower-case `companiesHouseNumber` and `country.iso`: `201`, stored and returned upper-case; values with surrounding whitespace are stored trimmed |
+| | Lower-case `companiesHouseNumber` and `countryIso`: `201`, stored and returned upper-case; values with surrounding whitespace are stored trimmed |
 | | `addressLine`, `validFrom`, `createdAt`, `id` and `mainActivitySicCode` in the request: `201`, ignored, server values returned |
-| | Validation `400`s, each checking `errors` holds the expected key and the body is a Verify snapshot: no `organisation`; `name` missing on an `LTD`; `tradingName` missing on a `SOLE_TRADER`; blank `name`; `homeNation` missing; `homeNation` `GB-XXX`; `organisationType` missing; unknown `organisationType` (reported alone); `companiesHouseNumber` missing on an `LTD`; `companiesHouseNumber` present on a `SOLE_TRADER`; `companiesHouseNumber` `1234567`; `companiesHouseNumber` `IP12345R`; an `LTD` with a `PRINCIPAL` address only; a `SOLE_TRADER` with a `REGISTERED` address only; `addresses` missing; `addresses` empty; `addressTypes` missing; `addressTypes` empty; `REGISTERED` twice in one item; `REGISTERED` in two items; `street` missing; `locality` missing; `country` missing; `country.iso` `GBR`; `GB` without `postalCode`; `GB` with blank `postalCode`; an address with `street`, `locality`, `postalCode` and country only (no premises). Several failures in one request report every key |
+| | Validation `400`s, each checking `errors` holds the expected key and the body is a Verify snapshot: no `organisation`; `name` missing on an `LTD`; `tradingName` missing on a `SOLE_TRADER`; blank `name`; `homeNation` missing; `homeNation` `GB-XXX`; `organisationType` missing; unknown `organisationType` (reported alone); `companiesHouseNumber` missing on an `LTD`; `companiesHouseNumber` present on a `SOLE_TRADER`; `companiesHouseNumber` `1234567`; `companiesHouseNumber` `IP12345R`; an `LTD` with a `PRINCIPAL` address only; a `SOLE_TRADER` with a `REGISTERED` address only; `addresses` missing; `addresses` empty; `addressTypes` missing; `addressTypes` empty; `REGISTERED` twice in one item; `REGISTERED` in two items; `street` missing; `locality` missing; `countryIso` missing; `countryIso` `GBR`; `GB` without `postalCode`; `GB` with blank `postalCode`; an address with `street`, `locality`, `postalCode` and `countryIso` only (no premises). Several failures in one request report every key |
 | | An unknown value in `addressTypes`, `addressTypes` as a string, malformed JSON, `name` as a number, empty body: `400` problem details with a `detail` |
 | | `Content-Type: text/plain`: `415` |
 | | No credentials: `401`, empty body. Read-only client: `403`, empty body |
@@ -327,12 +326,12 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 
 - [ ] `POST /organisations` with `Accept: application/vnd.defra.waste-organisations+json; version=2`, valid credentials with the `write` scope and a valid body returns `201 Created`, `Location: /organisations/{id}` and the stored organisation in an `organisation` envelope with a server-generated UUIDv7 `id`, `validFrom`, `createdAt`, `updatedAt`, and each address with its `addressTypes`, computed `addressLine` and `isUkAddress` (Jira Scenario 1).
 - [ ] The organisation, one `address` row per address and one `organisation_address` row per kind in its `addressTypes` are stored in one transaction, with `valid_from`, `created_at` and `updated_at` set by the API and `valid_to` null.
-- [ ] `organisationType` is required and is one of the ten codes; for `LTD`, `PLC`, `LIMITED_PARTNERSHIP`, `LLP` and `CIC` the request must carry `name`, `companiesHouseNumber` and a `REGISTERED` address, and for the other five it must carry `tradingName` and a `PRINCIPAL` address and no `companiesHouseNumber`; `homeNation` and `addresses` (one to five items, each with a non-empty `addressTypes`, each kind once in the request) are required; `street`, `locality` and `country.iso` are required on every address, `postalCode` on a `GB` address, and at least one of `subBuildingName`, `buildingName`, `buildingNumber` and `poBox` on every address.
-- [ ] A request that breaks any rule above, or sends an unknown `organisationType`, an invalid `companiesHouseNumber`, `homeNation` or `country.iso`, returns `400` with validation problem details whose `errors` names every failing field by its JSON path (Jira Scenario 2).
+- [ ] `organisationType` is required and is one of the ten codes; for `LTD`, `PLC`, `LIMITED_PARTNERSHIP`, `LLP` and `CIC` the request must carry `name`, `companiesHouseNumber` and a `REGISTERED` address, and for the other five it must carry `tradingName` and a `PRINCIPAL` address and no `companiesHouseNumber`; `homeNation` and `addresses` (one to five items, each with a non-empty `addressTypes`, each kind once in the request) are required; `street`, `locality` and `countryIso` are required on every address, `postalCode` on a `GB` address, and at least one of `subBuildingName`, `buildingName`, `buildingNumber` and `poBox` on every address.
+- [ ] A request that breaks any rule above, or sends an unknown `organisationType`, an invalid `companiesHouseNumber`, `homeNation` or `countryIso`, returns `400` with validation problem details whose `errors` names every failing field by its JSON path (Jira Scenario 2).
 - [ ] Malformed JSON or a value of the wrong type returns `400` with problem details (Jira Scenario 3).
 - [ ] A request with no token returns `401` with an empty body (Jira Scenario 5); one without the `write` scope returns `403` with an empty body.
 - [ ] `POST /organisations` without `version=2` returns `405` with `Allow: GET`; a version above 2 returns `406`.
-- [ ] `companiesHouseNumber` and `country.iso` are stored upper-case; strings are trimmed; unknown request members, `addressLine`, `validFrom`, `createdAt`, `updatedAt` and `id` included, are ignored.
+- [ ] `companiesHouseNumber` and `countryIso` are stored upper-case; strings are trimmed; unknown request members, `addressLine`, `validFrom`, `createdAt`, `updatedAt` and `id` included, are ignored.
 - [ ] `addressLine` is built in postal order from the stored parts and is not stored.
 - [ ] `db.changelog-1.2.xml` makes `organisation.name` nullable with `ck_organisation_name`, drops `address.address_line` and `address.country_name`, recreates `ck_address_premises` without `address_line`, renames the five usage types to `REGISTERED`, `PRINCIPAL`, `AUDIT`, `SERVICE_OF_NOTICE` and `CORRESPONDENCE`, re-seeds `organisation_type` with the ten codes (the six kept rows keeping their ids with upper-cased codes), and tags `v1.2.0`; 1.0 and 1.1 are unchanged; no EF Core migration exists.
 - [ ] `/openapi/v2.json` describes the v2 API with `POST /organisations`, the `Accept` header, the `406`, and the ten `organisationType` codes with their meanings and rules; `/redoc/v2` renders it; `/openapi/v1.json` is unchanged (both v1 snapshots pass).
@@ -352,7 +351,7 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 - Mapping a Companies House lookup result (`company_type` and `company_subtype`) onto the ten codes; the consumer that performs the lookup sends the code.
 - Site addresses (not in the schema).
 - `mainActivitySicCode`, external ids (`rpdExternalOrganisationId`, `rpdExternalSubsidiaryId`), `isComplianceSchemeOperator`, `complianceSchemeMembership`, `organisationSubType`.
-- `country.name` on the wire or in the schema.
+- `countryName` on the wire or `country_name` in the schema.
 - A client-settable `validFrom`.
 - Field length caps and a country reference list.
 - Echoing the version in the response `Content-Type`; declaring v2 on the five v1 endpoints (each v2 story declares its own).
@@ -368,16 +367,16 @@ Endpoint tests are in `Api.IntegrationTests` (refinement answer, 2 November 2026
 | Name rule | `name` mandatory for a Companies House type, `tradingName` mandatory for every other type: the refinement answer of 2 November 2026 ("name with a Companies House number, otherwise tradingName"), keyed on the type since 3 November 2026 because the type now decides the number; `organisation.name` becomes nullable with `ck_organisation_name`, which the rule still satisfies |
 | `addressLine` | Not stored; computed in postal order on output; ignored on input (refinement answers, 2 November 2026). Dropped from `ck_address_premises` |
 | Premises | At least one of `subBuildingName`, `buildingName`, `buildingNumber`, `poBox`, enforced in validation and by the recreated check, so a valid request cannot hit a `500` on that constraint (recommendation accepted 2 November 2026) |
-| `country` | An object with `iso` only; `country.iso` required on every address; `country_name` dropped (refinement answer, 2 November 2026). Kept as an object so `name` can return later without a breaking change |
-| `postalCode` | Required only when `country.iso` is `GB`, matching `ck_address_uk_postal_code` |
-| Mandatory address fields | `street`, `locality`, `country.iso` on every address (refinement answer, 2 November 2026), plus the premises rule; `region` optional |
+| `countryIso` | A plain two-letter string, required on every address; `country_name` dropped (refinement answer, 2 November 2026). The address model's `country` object was first kept with `iso` only, so that `name` could return later; on 3 November 2026 it was flattened to `countryIso`, because an object around one value is noise for the client, and a `countryName` can be added beside it later without a breaking change. The column stays `address.country_iso` |
+| `postalCode` | Required only when `countryIso` is `GB`, matching `ck_address_uk_postal_code` |
+| Mandatory address fields | `street`, `locality`, `countryIso` on every address (refinement answer, 2 November 2026), plus the premises rule; `region` optional |
 | Mandatory address kind | A `REGISTERED` address for a Companies House type, a `PRINCIPAL` address for every other type, from the page's "Address Required for Org Creation" column (3 November 2026); the other kinds optional |
 | Organisation types | The ten types of the Confluence page "Organisation Types and Subtypes" (3 November 2026), replacing the 36 Companies House `company_type` values plus four of our own that spec 0003 seeded on the team decision of 20 October 2026. The page lists what the service accepts, with the registration authority, identifier and required address per type, which the Companies House list cannot say; a consumer that offers these ten choices would never send the other 30 codes. Spec 0003 is not edited; this row records what it supersedes |
 | Type codes | Upper snake case, like `addressTypes` (`SERVICE_OF_NOTICE`), so the two enumerations on the wire follow one convention (3 November 2026); spec 0003's kebab-case Companies House format is superseded. `LTD`, `PLC`, `LIMITED_PARTNERSHIP`, `LLP`, `SOLE_TRADER` and `PARTNERSHIP` are the 1.1 rows `ltd`, `plc`, `limited-partnership`, `llp`, `sole-trader` and `partnership`, keeping their ids with the code upper-cased; the first four map from a Companies House lookup result by upper-casing and replacing `-` with `_`. `PARTNERSHIP` is the page's "General Partnership", kept as the short code because the limited forms have their own codes; `CIC`, `REGISTERED_SOCIETY`, `CHARITABLE_ORGANISATION` and `OVERSEAS_ORGANISATION` are new. The 1.1 `charitable-incorporated-organisation` is not kept because the page's row also covers charitable trusts. Nothing is renamed or removed after publication: the v2 API is not yet published |
 | `organisationType` | Required; validated against `OrganisationTypeCodes.All`; drives the name, number and address kind rules through one `RegisteredAtCompaniesHouse` flag |
 | `companiesHouseNumber` by type | Required for the five Companies House types, rejected for the other five (the page's identifier column, 3 November 2026). A registered society's number is on the Companies House register too, but the client holds the FCA number and the API has no field for it yet, so none is accepted for that type in this story |
 | `companiesHouseNumber` pattern | `^[A-Z0-9]{2}[0-9]{6}$` after upper-casing: the eight-character Companies House format, a prefix of two letters or digits (`SC`, `NI`, `OC`, `LP`, or two digits of an eight-digit number) and six digits. The `IP[0-9]{5}R` form of registered societies on the Companies House register is not accepted, because no type that may carry a number uses it |
-| Normalisation | Trim every string; upper-case `companiesHouseNumber` and `country.iso`; nothing else; no length caps |
+| Normalisation | Trim every string; upper-case `companiesHouseNumber` and `countryIso`; nothing else; no length caps |
 | Unknown members | Ignored, as `System.Text.Json` and v1 do; never a `400` |
 | Server-set fields | `id`, `validFrom`, `validTo`, `createdAt`, `updatedAt`, `isUkAddress`, `addressLine` (refinement answer, 2 November 2026) |
 | `201` body | The stored organisation in the same envelope, nulls omitted, timestamps as ISO 8601 with offset (as v1 registrations) |
@@ -402,10 +401,10 @@ To close with the wider team during implementation or on follow-up stories (hudd
 3. **Charities.** The page bundles the charitable incorporated organisation (incorporated) with the charitable trust (unincorporated) under the Charity Commission, which registers charities in England and Wales only; `homeNation` also covers Scotland (OSCR) and Northern Ireland (the Charity Commission for Northern Ireland). A charitable company has a Companies House number and a charity number and is an `LTD` here. The page should say which register applies per nation.
 4. **Other identifiers.** The page names a UTR for sole traders and partners (marked "??" on the page), a registered society number and a charity registration number. None has a field; a later story adds them, as separate fields or as a registration number with its authority. UTRs of individuals are personal data, so collecting them needs a privacy decision first.
 5. **Partners.** The three partnership types require partner names, individual or company, roles and minimum counts. There is no partner table; this needs its own story and spec.
-6. **`homeNation` for an overseas organisation.** It stays required, read as the nation whose regulator the organisation deals with; the page does not say. The `PRINCIPAL` address of an overseas organisation is not cross-checked against `country.iso`.
+6. **`homeNation` for an overseas organisation.** It stays required, read as the nation whose regulator the organisation deals with; the page does not say. The `PRINCIPAL` address of an overseas organisation is not cross-checked against `countryIso`.
 7. **Registered name for societies and charities.** They have a registered name with the FCA or the Charity Commission, yet the rule asks them for `tradingName` like a sole trader, because the 2 November 2026 rule keyed `name` to Companies House. If `name` should be mandatory for them too, it is a validation change only; `ck_organisation_name` allows both.
 8. **Read-back.** REGEN-140 should declare `.WithApiVersions(2)` on a v2 `GET /organisations/{id}` that reads Postgres and returns this spec's `organisation` shape, rebuilding each address's `addressTypes` from its `organisation_address` rows, so `Location` resolves.
-9. **Confluence pages.** The "Create Single Organisation" request (version 36, 3 November 2026) still has a stray `]` after the `organisation` object and no `201` response; the `<structured_address_data>` placeholder should list the fields in this spec. The "Organisation Types and Subtypes" page spells "Cooperative/CCommunity Benefit Scheme", which should read "Co-operative or Community Benefit Society", and has no subtype column despite its title; CIC is the one row that is a Companies House subtype.
+9. **Confluence pages.** The "Create Single Organisation" request (version 36, 3 November 2026) still has a stray `]` after the `organisation` object and no `201` response; the `<structured_address_data>` placeholder should list the fields in this spec, with `countryIso` as a string rather than the address model's `country` object. The "Organisation Types and Subtypes" page spells "Cooperative/CCommunity Benefit Scheme", which should read "Co-operative or Community Benefit Society", and has no subtype column despite its title; CIC is the one row that is a Companies House subtype.
 10. **Jira wording.** Scenario 5 reads `/organisations/` with a trailing slash; Scenario 2's example list is blank; the description links "Update Single Organisation by ID" to a `...waste-organisations-backend` page.
 
 ## Dependencies
