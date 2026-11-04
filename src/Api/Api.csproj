@@ -43,4 +43,9 @@
     <PackageReference Include="Snappier" Version="1.3.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- The ReDoc page with the API version dropdown, served through ReDocOptions.IndexStream in Program.cs -->
+    <EmbeddedResource Include="Documentation/ReDoc/index.html" LogicalName="Documentation.ReDoc.index.html" />
+  </ItemGroup>
 </Project>
