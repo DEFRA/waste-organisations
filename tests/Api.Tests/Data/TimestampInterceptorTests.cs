@@ -23,7 +23,7 @@ public class TimestampInterceptorTests
         var organisationAddress = new OrganisationAddress
         {
             Id = Guid.CreateVersion7(),
-            UsageType = new AddressUsageType { Id = Guid.CreateVersion7(), Name = "Registered" },
+            UsageType = new AddressUsageType { Id = Guid.CreateVersion7(), Name = "REGISTERED" },
             Address = new Address { Id = Guid.CreateVersion7() },
         };
         organisation.Addresses.Add(organisationAddress);
@@ -176,7 +176,7 @@ public class TimestampInterceptorTests
         {
             Id = Guid.CreateVersion7(),
             Name = "Organisation",
-            HomeNation = "GB-ENG",
+            RegulatorNation = "GB-ENG",
         };
 
     private static PostgresDbContext CreateContext(TimestampInterceptor? interceptor = null)

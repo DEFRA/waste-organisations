@@ -38,7 +38,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         read.Name.Should().Be(organisation.Name);
         read.TradingName.Should().Be(organisation.TradingName);
         read.CompaniesHouseNumber.Should().Be(organisation.CompaniesHouseNumber);
-        read.HomeNation.Should().Be(organisation.HomeNation);
+        read.RegulatorNation.Should().Be(organisation.RegulatorNation);
         read.OrganisationTypeId.Should().Be(organisation.OrganisationTypeId);
         read.ValidFrom.Should().Be(organisation.ValidFrom);
         read.ValidTo.Should().BeNull();
@@ -57,7 +57,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
         {
             var actual = read.Addresses.Single(a => a.Id == expected.Id);
             actual.UsageTypeId.Should().Be(expected.UsageTypeId);
-            actual.Address.AddressLine.Should().Be(expected.Address.AddressLine);
             actual.Address.SubBuildingName.Should().Be(expected.Address.SubBuildingName);
             actual.Address.BuildingName.Should().Be(expected.Address.BuildingName);
             actual.Address.BuildingNumber.Should().Be(expected.Address.BuildingNumber);
@@ -67,7 +66,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
             actual.Address.PostalCode.Should().Be(expected.Address.PostalCode);
             actual.Address.PoBox.Should().Be(expected.Address.PoBox);
             actual.Address.CountryIso.Should().Be(expected.Address.CountryIso);
-            actual.Address.CountryName.Should().Be(expected.Address.CountryName);
             actual.Address.IsUkAddress.Should().BeTrue();
             actual.Address.CreatedAt.Should().Be(expected.Address.CreatedAt);
             actual.Address.UpdatedAt.Should().Be(expected.Address.UpdatedAt);
@@ -227,7 +225,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         {
             Id = Guid.CreateVersion7(),
             Name = "Untimed Ltd",
-            HomeNation = "GB-ENG",
+            RegulatorNation = "GB-ENG",
             CreatedAt = supplied,
             UpdatedAt = supplied,
         };
@@ -289,7 +287,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
         var organisation = NewOrganisation();
-        organisation.HomeNation = homeNation;
+        organisation.RegulatorNation = homeNation;
         context.Organisations.Add(organisation);
 
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -474,7 +472,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Name = "Acme Waste Ltd",
             TradingName = "Acme",
             CompaniesHouseNumber = "12345678",
-            HomeNation = "GB-ENG",
+            RegulatorNation = "GB-ENG",
             ValidFrom = now,
         };
     }
@@ -496,7 +494,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
         new()
         {
             Id = Guid.CreateVersion7(),
-            AddressLine = "Rear entrance",
             SubBuildingName = "Unit 4",
             BuildingName = "Mill House",
             BuildingNumber = "12A",
@@ -506,7 +503,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
             PostalCode = "AB1 2CD",
             PoBox = "PO Box 99",
             CountryIso = countryIso,
-            CountryName = countryIso is null ? null : "Test country",
         };
 
     // Postgres timestamptz keeps microseconds; truncating DateTime to the same resolution lets a
