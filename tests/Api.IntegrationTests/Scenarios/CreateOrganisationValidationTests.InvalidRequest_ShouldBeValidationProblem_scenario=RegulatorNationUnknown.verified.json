@@ -1,0 +1,11 @@
+﻿{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "organisation.regulatorNation": [
+      "The regulatorNation field must be one of GB-ENG, GB-SCT, GB-WLS, GB-NIR."
+    ]
+  },
+  "traceId": "{Scrubbed}"
+}
