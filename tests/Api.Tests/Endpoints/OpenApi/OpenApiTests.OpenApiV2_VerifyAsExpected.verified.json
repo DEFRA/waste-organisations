@@ -276,7 +276,7 @@
           "SERVICE_OF_NOTICE",
           "CORRESPONDENCE"
         ],
-        "description": "A kind of address an organisation has. The wire value is also the `address_usagetype.name`\nit is stored under, so `ToJsonValue()` gives the name to look up."
+        "description": "A kind of address an organisation has."
       },
       "CreateOrganisationRequest": {
         "required": [

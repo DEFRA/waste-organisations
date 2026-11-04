@@ -2,10 +2,11 @@ using System.Text.Json.Serialization;
 
 namespace Defra.WasteOrganisations.Api.Dtos;
 
-/// <summary>
-/// A kind of address an organisation has. The wire value is also the <c>address_usagetype.name</c>
-/// it is stored under, so <c>ToJsonValue()</c> gives the name to look up.
-/// </summary>
+/// <summary>A kind of address an organisation has.</summary>
+/// <remarks>
+/// The wire value is also the <c>address_usagetype.name</c> it is stored under, so
+/// <c>ToJsonValue()</c> gives the name to look up.
+/// </remarks>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AddressType
 {
