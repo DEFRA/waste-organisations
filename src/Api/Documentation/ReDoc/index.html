@@ -54,7 +54,7 @@
             });
 
             function find(name) {
-                return documents.filter(function (doc) { return doc.name === name; })[0];
+                return documents.find(function (doc) { return doc.name === name; });
             }
 
             function render(doc) {
@@ -63,11 +63,12 @@
                 var fresh = document.createElement("div");
                 fresh.id = container.id;
                 container.parentNode.replaceChild(fresh, container);
-                Redoc.init(doc.url, config, fresh);
+                // Redoc is the global that redoc.standalone.js defines
+                window.Redoc.init(doc.url, config, fresh);
             }
 
             var requested = find(new URLSearchParams(window.location.search).get("spec"));
-            var initial = requested || documents.filter(function (doc) { return doc.url === specUrl; })[0] || documents[0];
+            var initial = requested || documents.find(function (doc) { return doc.url === specUrl; }) || documents[0];
 
             select.value = initial.name;
             render(initial);
