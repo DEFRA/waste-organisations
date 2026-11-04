@@ -373,6 +373,161 @@ public class CreateOrganisationTests : IntegrationTestBase
         stored.OrganisationType!.Code.Should().Be(organisationType);
     }
 
+    // Two items holding the same address are the same address: stored once, linked once per kind,
+    // and returned as one item whose kinds are those of both items in the order sent
+    [Fact]
+    public async Task SameAddressInTwoItems_ShouldStoreOneAddressAndReturnOneItem()
+    {
+        var suffix = NewSuffix();
+        var body = Ltd(Address(suffix, "PRINCIPAL"), Address(suffix, "REGISTERED", "AUDIT"));
+
+        var response = await PostAsync(body);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created, content);
+        var created = await ReadOrganisationAsync(response);
+        created.Addresses.Should().ContainSingle();
+        created
+            .Addresses[0]
+            .AddressTypes.Select(t => t.ToJsonValue())
+            .Should()
+            .Equal("PRINCIPAL", "REGISTERED", "AUDIT");
+
+        var stored = await ReadStoredAsync(created.Id);
+        stored.Addresses.Should().HaveCount(3);
+        stored.Addresses.Select(a => a.AddressId).Distinct().Should().ContainSingle();
+        (await CountAddressesAsync(suffix)).Should().Be(1);
+    }
+
+    // An address another organisation already stored is linked, not inserted again. A 500 here
+    // means the service left a link on its candidate, so the save hit ux_address_values twice
+    [Fact]
+    public async Task AddressStoredByAnotherOrganisation_ShouldBeLinkedNotInserted()
+    {
+        var suffix = NewSuffix();
+
+        var first = await PostAsync(Ltd(Address(suffix, "REGISTERED")));
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        var firstCreated = await ReadOrganisationAsync(first);
+
+        var second = await PostAsync(Ltd(Address(suffix, "REGISTERED", "AUDIT")));
+        var content = await second.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        second.StatusCode.Should().Be(HttpStatusCode.Created, content);
+        var secondCreated = await ReadOrganisationAsync(second);
+        secondCreated.Addresses.Should().ContainSingle();
+        secondCreated.Addresses[0].AddressTypes.Select(t => t.ToJsonValue()).Should().Equal("REGISTERED", "AUDIT");
+        // Read from the stored row, which the request did not insert
+        secondCreated.Addresses[0].IsUkAddress.Should().BeTrue();
+
+        var firstStored = await ReadStoredAsync(firstCreated.Id);
+        var secondStored = await ReadStoredAsync(secondCreated.Id);
+        var addressId = firstStored.Addresses.Single().AddressId;
+        secondStored.Addresses.Select(a => a.AddressId).Should().AllBeEquivalentTo(addressId);
+        (await CountAddressesAsync(suffix)).Should().Be(1);
+        (await CountLinksAsync(addressId)).Should().Be(3);
+    }
+
+    // An absent optional part and a blank one are both stored as null, so they are one address;
+    // the second request finds the first's row through the IS NULL match on region
+    [Fact]
+    public async Task RegionAbsentAndBlank_ShouldBeOneAddress()
+    {
+        var suffix = NewSuffix();
+        var absent = new
+        {
+            addressTypes = new[] { "REGISTERED" },
+            buildingNumber = "12",
+            street = $"High Street {suffix}",
+            locality = "Testville",
+            postalCode = "AB1 2CD",
+            countryIso = "GB",
+        };
+        var blank = new
+        {
+            addressTypes = new[] { "REGISTERED" },
+            buildingNumber = "12",
+            street = $"High Street {suffix}",
+            locality = "Testville",
+            region = "  ",
+            postalCode = "AB1 2CD",
+            countryIso = "GB",
+        };
+
+        var first = await PostAsync(Ltd(absent));
+        var second = await PostAsync(Ltd(blank));
+
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        second.StatusCode.Should().Be(HttpStatusCode.Created);
+        var firstStored = await ReadStoredAsync((await ReadOrganisationAsync(first)).Id);
+        var secondStored = await ReadStoredAsync((await ReadOrganisationAsync(second)).Id);
+        secondStored.Addresses.Single().AddressId.Should().Be(firstStored.Addresses.Single().AddressId);
+        secondStored.Addresses.Single().Address.Region.Should().BeNull();
+        (await CountAddressesAsync(suffix)).Should().Be(1);
+    }
+
+    // The match is exact over the nine parts: one part more, one part different or a difference
+    // in case alone makes another address, stored as a second row
+    [Theory]
+    [InlineData("street in upper case")]
+    [InlineData("other postal code")]
+    [InlineData("building name added")]
+    [InlineData("region added")]
+    public async Task AddressDifferingInOnePart_ShouldBeStoredAsSecondRow(string difference)
+    {
+        var suffix = NewSuffix();
+        var variant = difference switch
+        {
+            "street in upper case" => VariantAddress(street: $"HIGH STREET {suffix}"),
+            "other postal code" => VariantAddress(street: $"High Street {suffix}", postalCode: "AB1 2CE"),
+            "building name added" => VariantAddress(street: $"High Street {suffix}", buildingName: "Mill House"),
+            "region added" => VariantAddress(street: $"High Street {suffix}", region: "Testshire"),
+            _ => throw new ArgumentOutOfRangeException(nameof(difference), difference, null),
+        };
+
+        var first = await PostAsync(Ltd(Address(suffix, "REGISTERED")));
+        var second = await PostAsync(Ltd(variant));
+        var content = await second.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        second.StatusCode.Should().Be(HttpStatusCode.Created, content);
+        var firstStored = await ReadStoredAsync((await ReadOrganisationAsync(first)).Id);
+        var secondStored = await ReadStoredAsync((await ReadOrganisationAsync(second)).Id);
+        secondStored.Addresses.Single().AddressId.Should().NotBe(firstStored.Addresses.Single().AddressId);
+        (await CountAddressesAsync(suffix)).Should().Be(2);
+    }
+
+    // Two requests with the same new address at once may both miss the look-up; the later insert
+    // then fails on ux_address_values and the service retries it once, finding the row. Whether
+    // the race happens or not, both succeed and the address is stored once
+    [Fact]
+    public async Task SameNewAddressSentConcurrently_ShouldBothCreateAndStoreOneAddress()
+    {
+        var suffix = NewSuffix();
+
+        var responses = await Task.WhenAll(
+            PostAsync(Ltd(Address(suffix, "REGISTERED"))),
+            PostAsync(Ltd(Address(suffix, "REGISTERED")))
+        );
+
+        foreach (var response in responses)
+        {
+            var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+            response.StatusCode.Should().Be(HttpStatusCode.Created, content);
+        }
+
+        var ids = new List<Guid>();
+        foreach (var response in responses)
+            ids.Add((await ReadOrganisationAsync(response)).Id);
+        ids.Should().OnlyHaveUniqueItems();
+
+        var addressIds = new List<Guid>();
+        foreach (var id in ids)
+            addressIds.Add((await ReadStoredAsync(id)).Addresses.Single().AddressId);
+        addressIds.Distinct().Should().ContainSingle();
+        (await CountAddressesAsync(suffix)).Should().Be(1);
+    }
+
     // Unique per test and per run, so a test never meets an address row another stored
     private static string NewSuffix() => Guid.NewGuid().ToString("N")[..12];
 
@@ -390,6 +545,25 @@ public class CreateOrganisationTests : IntegrationTestBase
             street = $"High Street {suffix}",
             locality = "Testville",
             postalCode = "AB1 2CD",
+            countryIso = "GB",
+        };
+
+    // Address(suffix, "REGISTERED") with one part changed, added or removed
+    private static object VariantAddress(
+        string street,
+        string? buildingName = null,
+        string? region = null,
+        string postalCode = "AB1 2CD"
+    ) =>
+        new
+        {
+            addressTypes = new[] { "REGISTERED" },
+            buildingName,
+            buildingNumber = "12",
+            street,
+            locality = "Testville",
+            region,
+            postalCode,
             countryIso = "GB",
         };
 
@@ -425,6 +599,32 @@ public class CreateOrganisationTests : IntegrationTestBase
         (
             await response.Content.ReadFromJsonAsync<CreateOrganisationResponse>(TestContext.Current.CancellationToken)
         )!.Organisation;
+
+    // The address rows holding this test's suffix, which no other test sends
+    private static async Task<int> CountAddressesAsync(string suffix)
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        return await context.Addresses.CountAsync(
+            a => a.Street != null && a.Street.Contains(suffix),
+            TestContext.Current.CancellationToken
+        );
+    }
+
+    // The organisation_address rows of every organisation that point at the address
+    private static async Task<int> CountLinksAsync(Guid addressId)
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        return await context.OrganisationAddresses.CountAsync(
+            a => a.AddressId == addressId,
+            TestContext.Current.CancellationToken
+        );
+    }
 
     private static async Task<Organisation> ReadStoredAsync(Guid id)
     {
