@@ -53,6 +53,7 @@ try
     builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
     builder.Services.AddTransient<OrganisationRegistrationService>();
+    builder.Services.AddScoped<IPostgresOrganisationService, PostgresOrganisationService>();
 
     var app = builder.Build();
 
