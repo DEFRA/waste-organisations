@@ -47,8 +47,9 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
     /// organisation to the stored row, or inserts the address when there is none; then saves once,
     /// so everything is stored or nothing is. Two requests inserting the same new address at the
     /// same time both miss the look-up and the later save fails on <c>ux_address_values</c>; that
-    /// save is rolled back and run once more with a fresh look-up, which then finds the row. A
-    /// second failure, or any other failure, is thrown.
+    /// save is rolled back and run once more with a fresh look-up, which then finds the row, and
+    /// with its timestamps unset, so they are stamped afresh. A second failure, or any other
+    /// failure, is thrown.
     /// </summary>
     /// <remarks>
     /// No explicit transaction is opened: <c>EnableRetryOnFailure</c> is on, and its execution
@@ -85,6 +86,13 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
             // Forgets the failed attempt: its organisation, links and new addresses were Added and
             // would be inserted again, and a row found then is looked up afresh
             context.ChangeTracker.Clear();
+
+            // TimestampInterceptor sets ValidFrom only when it is unset but CreatedAt and UpdatedAt
+            // always, so the failed attempt's ValidFrom would outlive it and the three would differ;
+            // unset, all three are the retried save's instant
+            organisation.ValidFrom = default;
+            foreach (var (link, _) in links)
+                link.ValidFrom = default;
 
             await SaveAsync(organisation, organisationType, usageTypes, links, cancellationToken);
         }

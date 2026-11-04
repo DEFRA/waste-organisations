@@ -128,6 +128,23 @@ public class PostgresOrganisationServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenRetrying_ShouldUnsetValidFromSoTheThreeTimestampsMatchAgain()
+    {
+        var organisation = NewOrganisation(Item([AddressType.Registered]));
+        Subject.StoredAddresses.Enqueue(null);
+        Subject.StoredAddresses.Enqueue(StoredAddress());
+        Context.Failures.Enqueue(UniqueViolation("ux_address_values"));
+
+        await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        // The fake stamps ValidFrom at the first save as TimestampInterceptor would. The retried
+        // save must see it unset again on the organisation and its link, or the interceptor would
+        // keep the failed attempt's ValidFrom beside a later CreatedAt and UpdatedAt
+        Context.ValidFromAtSave.Should().HaveCount(2);
+        Context.ValidFromAtSave.Should().AllSatisfy(seen => seen.Should().Equal(default(DateTime), default));
+    }
+
+    [Fact]
     public async Task CreateAsync_WhenTheRetryFailsToo_ShouldThrow()
     {
         var organisation = NewOrganisation(Item([AddressType.Registered]));
@@ -236,9 +253,25 @@ public class PostgresOrganisationServiceTests
         /// <summary>The addresses tracked at each save, with their state.</summary>
         public List<List<(Address Address, EntityState State)>> Saves { get; } = [];
 
+        /// <summary>
+        /// The <see cref="IValidFrom.ValidFrom"/> of every Added organisation and link as each save
+        /// saw it, before the fake stamps it as <c>TimestampInterceptor</c> would.
+        /// </summary>
+        public List<List<DateTime>> ValidFromAtSave { get; } = [];
+
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             Saves.Add(ChangeTracker.Entries<Address>().Select(entry => (entry.Entity, entry.State)).ToList());
+
+            // Stamped before the failure is thrown, as the interceptor runs before the failing SQL
+            var validFrom = ChangeTracker
+                .Entries<IValidFrom>()
+                .Where(entry => entry.State == EntityState.Added)
+                .Select(entry => entry.Entity)
+                .ToList();
+            ValidFromAtSave.Add(validFrom.Select(entity => entity.ValidFrom).ToList());
+            foreach (var entity in validFrom.Where(entity => entity.ValidFrom == default))
+                entity.ValidFrom = new DateTime(2026, 11, 4, 10, 15, 30, DateTimeKind.Utc);
 
             if (Failures.TryDequeue(out var failure))
                 throw failure;

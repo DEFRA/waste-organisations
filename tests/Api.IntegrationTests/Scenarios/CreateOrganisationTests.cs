@@ -518,7 +518,15 @@ public class CreateOrganisationTests : IntegrationTestBase
 
         var ids = new List<Guid>();
         foreach (var response in responses)
-            ids.Add((await ReadOrganisationAsync(response)).Id);
+        {
+            var created = await ReadOrganisationAsync(response);
+            ids.Add(created.Id);
+
+            // The create that lost the race is retried with its timestamps unset, so the three are
+            // still one instant (spec 0005, Persistence)
+            created.CreatedAt.Should().Be(created.ValidFrom);
+            created.UpdatedAt.Should().Be(created.ValidFrom);
+        }
         ids.Should().OnlyHaveUniqueItems();
 
         var addressIds = new List<Guid>();
