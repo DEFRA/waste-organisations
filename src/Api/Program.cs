@@ -64,6 +64,7 @@ try
             options.ShouldInclude = description =>
                 ApiVersionsMetadata.For(description.ActionDescriptor.EndpointMetadata).Contains(2);
             options.AddDocumentTransformer<OpenApiDocumentTransformer>();
+            options.AddDocumentTransformer<RequiredMembersDocumentTransformer>();
             options.AddOperationTransformer<AcceptHeaderOperationTransformer>();
             options.AddSchemaTransformer<CreateOrganisationSchemaTransformer>();
         }

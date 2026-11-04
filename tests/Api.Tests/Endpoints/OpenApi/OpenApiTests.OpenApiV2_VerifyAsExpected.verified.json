@@ -102,10 +102,7 @@
           "addressTypes": {
             "minItems": 1,
             "uniqueItems": true,
-            "type": [
-              "null",
-              "array"
-            ],
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/AddressType"
             },
@@ -133,17 +130,11 @@
             "description": "The building number, which may hold letters or a range, such as `12A` or `3-5`."
           },
           "street": {
-            "type": [
-              "null",
-              "string"
-            ],
+            "type": "string",
             "description": "The street."
           },
           "locality": {
-            "type": [
-              "null",
-              "string"
-            ],
+            "type": "string",
             "description": "The town or city."
           },
           "region": {
@@ -168,10 +159,7 @@
             "description": "A PO box."
           },
           "countryIso": {
-            "type": [
-              "null",
-              "string"
-            ],
+            "type": "string",
             "description": "The country as an ISO 3166-1 alpha-2 code, upper-cased before it is checked. `GB` is\nthe United Kingdom, Northern Ireland included."
           }
         },
@@ -285,15 +273,8 @@
         "type": "object",
         "properties": {
           "organisation": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "description": "The organisation to create.",
-                "$ref": "#/components/schemas/OrganisationRequest"
-              }
-            ]
+            "description": "The organisation to create.",
+            "$ref": "#/components/schemas/OrganisationRequest"
           }
         },
         "description": "The body of `POST /organisations`: the organisation to create, wrapped in an envelope."
@@ -394,10 +375,7 @@
               "GB-WLS",
               "GB-NIR"
             ],
-            "type": [
-              "null",
-              "string"
-            ],
+            "type": "string",
             "description": "The nation whose regulator the organisation deals with, which for an overseas organisation\nis not where it is based: `GB-ENG`, `GB-SCT`, `GB-WLS` or `GB-NIR`."
           },
           "organisationType": {
@@ -413,19 +391,13 @@
               "CHARITABLE_ORGANISATION",
               "OVERSEAS_ORGANISATION"
             ],
-            "type": [
-              "null",
-              "string"
-            ],
+            "type": "string",
             "description": "The organisation type, one of the published codes in upper snake case, matched exactly. The\ntype decides whether `name` or `tradingName` is required, whether\n`companiesHouseNumber` is required or must be absent, and whether a `REGISTERED` or\na `PRINCIPAL` address is required.\n\nRegistered at Companies House: `name`, `companiesHouseNumber` and a `REGISTERED` address are required.\n\n- `LTD`: Private limited company\n- `PLC`: Public limited company\n- `LIMITED_PARTNERSHIP`: Limited partnership\n- `LLP`: Limited liability partnership\n- `CIC`: Community interest company\n\nNot registered at Companies House: `tradingName` and a `PRINCIPAL` address are required, and `companiesHouseNumber` must be absent.\n\n- `SOLE_TRADER`: Sole trader\n- `PARTNERSHIP`: General partnership\n- `REGISTERED_SOCIETY`: Co-operative or community benefit society\n- `CHARITABLE_ORGANISATION`: Charitable incorporated organisation or charitable trust\n- `OVERSEAS_ORGANISATION`: Overseas organisation not registered in the UK"
           },
           "addresses": {
             "maxItems": 5,
             "minItems": 1,
-            "type": [
-              "null",
-              "array"
-            ],
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/AddressRequest"
             },
