@@ -41,6 +41,11 @@ try
     builder.Services.AddHealth();
     builder.Services.AddOpenApi(options =>
     {
+        // The default document is v1: it describes only the operations that support version 1.
+        options.ShouldInclude = description =>
+            ApiVersionsMetadata
+                .For(description.ActionDescriptor.EndpointMetadata)
+                .Contains(AcceptHeaderVersionResolver.DefaultVersion);
         options.AddDocumentTransformer<OpenApiDocumentTransformer>();
         options.AddOperationTransformer<RegistrationKeyOperationTransformer>();
         options.AddOperationTransformer<SearchQueryOperationTransformer>();
