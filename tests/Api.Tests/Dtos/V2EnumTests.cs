@@ -21,6 +21,19 @@ public class V2EnumTests
         JsonSerializer.Deserialize<AddressType>($"\"{wireName}\"").Should().Be(value);
     }
 
+    // Integers and numeric strings would bind a value no usage type has (AddressTypeJsonConverter)
+    [Theory]
+    [InlineData("0")]
+    [InlineData("999")]
+    [InlineData("\"0\"")]
+    [InlineData("\"999\"")]
+    public void AddressType_ShouldNotReadANumber(string json)
+    {
+        var read = () => JsonSerializer.Deserialize<AddressType>(json);
+
+        read.Should().Throw<JsonException>();
+    }
+
     [Fact]
     public void AddressType_ToJsonValue_ShouldGiveTheUsageTypeName()
     {

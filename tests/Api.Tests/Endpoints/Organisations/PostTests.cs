@@ -7,6 +7,7 @@ using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
 using Defra.WasteOrganisations.Api.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organisation;
@@ -32,7 +33,8 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
         services.AddTransient<IPostgresOrganisationService>(_ => MockOrganisationService);
     }
 
-    private static object Address(params string[] addressTypes) =>
+    // object[] so that a test can send what is not a wire name, such as 999
+    private static object Address(params object[] addressTypes) =>
         new
         {
             addressTypes,
@@ -174,6 +176,30 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
         await ShouldBeValidationProblem(response, "organisation.organisationType");
     }
 
+    [Fact]
+    public async Task WhenAddressTypesHoldAWireName_ShouldCreate()
+    {
+        GivenTheServiceStoresTheOrganisation();
+
+        var response = await SendPost(Ltd(Address("REGISTERED")));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        await MockOrganisationService.Received(1).CreateAsync(Arg.Any<Organisation>(), Arg.Any<CancellationToken>());
+    }
+
+    // The plain JsonStringEnumConverter reads integers and numeric strings too, which bound a kind
+    // no usage type has: it passed validation and failed in the mapping with a 500
+    [Fact]
+    public async Task WhenAddressTypesHoldAnInteger_ShouldBeBadRequestWithDetail() => await ShouldRejectAddressTypes(0);
+
+    [Fact]
+    public async Task WhenAddressTypesHoldAWireNameAndAnInteger_ShouldBeBadRequestWithDetail() =>
+        await ShouldRejectAddressTypes("REGISTERED", 999);
+
+    [Fact]
+    public async Task WhenAddressTypesHoldAWireNameAndANumericString_ShouldBeBadRequestWithDetail() =>
+        await ShouldRejectAddressTypes("REGISTERED", "999");
+
     [Theory]
     [InlineData("MalformedJson", "{\"organisation\": ")]
     [InlineData(
@@ -249,6 +275,17 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
         problem!.Errors.Keys.Should().BeEquivalentTo(keys);
         await ShouldNotHaveCalledTheService();
         await VerifyJson(content);
+    }
+
+    private async Task ShouldRejectAddressTypes(params object[] addressTypes)
+    {
+        var response = await SendPost(Ltd(Address(addressTypes)));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (response.Content.Headers.ContentType?.MediaType).Should().Be("application/problem+json");
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(TestContext.Current.CancellationToken);
+        problem!.Detail.Should().Contain("addressTypes");
+        await ShouldNotHaveCalledTheService();
     }
 
     private async Task ShouldNotHaveCalledTheService() =>
