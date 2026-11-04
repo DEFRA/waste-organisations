@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>%(DocumentTitle)</title>
     <!-- needed for adaptive design -->
@@ -35,11 +35,14 @@
         <select id="version-select"></select>
     </div>
     <div id="redoc-container"></div>
+    <!-- The two JSON placeholders live in a JSON block, not in the script, so the script is valid JavaScript before substitution -->
+    <script id="redoc-settings" type="application/json">{ "specUrl": %(SpecUrl), "config": %(ConfigObject) }</script>
     <script src="redoc.standalone.js"></script>
     <script>
         (function () {
-            var specUrl = %(SpecUrl);
-            var config = %(ConfigObject);
+            var settings = JSON.parse(document.getElementById("redoc-settings").textContent);
+            var specUrl = settings.specUrl;
+            var config = settings.config;
             var documents = window.openApiDocuments || [{ name: "default", url: specUrl }];
             var select = document.getElementById("version-select");
 
