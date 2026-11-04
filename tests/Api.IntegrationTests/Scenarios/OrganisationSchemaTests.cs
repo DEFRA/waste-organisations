@@ -298,6 +298,58 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await ShouldViolateAsync(save, "ck_organisation_regulator_nation");
     }
 
+    // 1.2 made name nullable, but ck_organisation_name still needs one unless the organisation has no
+    // Companies House number and a non-blank trading name: a sole trader may be known only by the name
+    // it trades under
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Organisation_WithoutNameButWithTradingNameAndNoNumber_IsAccepted(string? name)
+    {
+        await using var provider = BuildServiceProvider();
+        var organisation = NewOrganisation();
+        organisation.Name = name;
+        organisation.CompaniesHouseNumber = null;
+
+        await SaveOrganisationAsync(provider, organisation);
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var saved = await context
+            .Organisations.AsNoTracking()
+            .SingleAsync(o => o.Id == organisation.Id, TestContext.Current.CancellationToken);
+        saved.Name.Should().Be(name);
+        saved.TradingName.Should().Be("Acme");
+    }
+
+    [Theory]
+    [InlineData(null, "Acme", "12345678")]
+    [InlineData("  ", "Acme", "12345678")]
+    [InlineData(null, null, null)]
+    [InlineData(null, "", null)]
+    [InlineData(null, "  ", null)]
+    [InlineData("  ", null, null)]
+    public async Task Organisation_WithoutName_IsRejectedByCheckConstraintUnlessTradingNameAndNoNumber(
+        string? name,
+        string? tradingName,
+        string? companiesHouseNumber
+    )
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var organisation = NewOrganisation();
+        organisation.Name = name;
+        organisation.TradingName = tradingName;
+        organisation.CompaniesHouseNumber = companiesHouseNumber;
+        context.Organisations.Add(organisation);
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ck_organisation_name");
+    }
+
     // country_iso is ISO 3166-1 alpha-2: ck_address_country_iso allows only two upper-case letters
     [Theory]
     [InlineData("GBR")]
