@@ -56,6 +56,22 @@ public class DatabaseChangelogTests : IntegrationTestBase
         tags.Should().Contain("v1.1.0");
     }
 
+    // The v1.2.0 tag is the last changeset of db.changelog-1.2.xml, so finding it proves the v2
+    // create schema (shared addresses, the ten organisation types) applied in full
+    [Fact]
+    public async Task DatabaseChangelog_ShouldHoldV120Tag()
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        var tags = await context
+            .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        tags.Should().Contain("v1.2.0");
+    }
+
     // The changelog seeds organisation_type with exactly the codes the API publishes, so the
     // contract and the table cannot drift apart
     [Fact]
@@ -72,7 +88,8 @@ public class DatabaseChangelogTests : IntegrationTestBase
         codes.Should().BeEquivalentTo(OrganisationTypeCodes.All.Select(c => c.Code));
     }
 
-    // The changelog seeds address_usagetype with the five kinds of address on the API page and nothing else
+    // The changelog seeds address_usagetype with the five kinds of address on the API page and nothing
+    // else; 1.2 renamed them to the upper-case values the v2 addressTypes carry
     [Fact]
     public async Task AddressUsageType_ShouldHoldTheFiveSeededValues()
     {
@@ -84,6 +101,6 @@ public class DatabaseChangelogTests : IntegrationTestBase
             .AddressUsageTypes.Select(u => u.Name)
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        usageTypes.Should().BeEquivalentTo("Registered", "Audit", "ServiceOfNotice", "Principal", "Correspondence");
+        usageTypes.Should().BeEquivalentTo("REGISTERED", "AUDIT", "SERVICE_OF_NOTICE", "PRINCIPAL", "CORRESPONDENCE");
     }
 }
