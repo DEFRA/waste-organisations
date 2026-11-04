@@ -1,0 +1,36 @@
+﻿{
+  "organisation": {
+    "id": "Guid_1",
+    "name": "Acme Waste Ltd",
+    "companiesHouseNumber": "12345678",
+    "regulatorNation": "GB-ENG",
+    "organisationType": "LTD",
+    "validFrom": "DateTimeOffset_1",
+    "createdAt": "DateTimeOffset_1",
+    "updatedAt": "DateTimeOffset_1",
+    "addresses": [
+      {
+        "addressTypes": [
+          "REGISTERED",
+          "PRINCIPAL"
+        ],
+        "addressLine": "12 High Street, Testville, AB1 2CD",
+        "buildingNumber": "12",
+        "street": "High Street",
+        "locality": "Testville",
+        "postalCode": "AB1 2CD",
+        "countryIso": "GB"
+      },
+      {
+        "addressTypes": [
+          "CORRESPONDENCE"
+        ],
+        "addressLine": "Tower, Main Road, Dublin",
+        "buildingName": "Tower",
+        "street": "Main Road",
+        "locality": "Dublin",
+        "countryIso": "IE"
+      }
+    ]
+  }
+}

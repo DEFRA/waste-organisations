@@ -24,6 +24,8 @@ public static class Endpoints
 
         public static string Search(EndpointQuery? query = null) => $"{Root}{query}";
 
+        public static string Post() => Root;
+
         public static string Put(string id) => Get(id);
 
         public static string Put(Guid id) => Put(id.ToString());
