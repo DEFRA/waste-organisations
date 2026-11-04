@@ -46,6 +46,8 @@ The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) ch
 
 `db.changelog-1.1.xml` adds the organisation tables: `organisation`, `organisation_type`, `address_usagetype`, `address` and `organisation_address`. The EF Core entities that map them live in `src/Api/Data/Postgres/Entities`.
 
+`db.changelog-1.2.xml` reshapes them for the v2 API: `organisation.name` becomes nullable (the `ck_organisation_name` check still requires it unless the organisation has a trading name and no Companies House number), `home_nation` is renamed to `regulator_nation`, `address.address_line` and `address.country_name` are dropped, the `ux_address_values` unique index stops the same address being stored twice, the address usage types become upper case (`REGISTERED`, `AUDIT`, ...), and `organisation_type` is re-seeded with the ten v2 organisation types.
+
 To change the schema:
 
 - Add a new `changelog/db.changelog-1.N.xml` file (the next number after the latest one) containing the new changesets.
@@ -83,6 +85,10 @@ Clients request a version with the `Accept` header, not the URL path: `Accept: a
 A version an endpoint does not support, or a malformed or ambiguous `version`, gets `406 Not Acceptable` with a problem details body (`detail: "Unsupported API version"`). Authentication and authorisation still run first, so an unauthenticated or unauthorised request gets `401`/`403` whatever version it asks for.
 
 An endpoint supports v1 only unless it declares otherwise. To support additional versions, add `.WithApiVersions(1, 2)` next to the endpoint's other `.With...`/`.Produces...` calls. Two endpoints may share a path and HTTP method when they declare different versions: `Defra.WasteOrganisations.Api.Versioning.ApiVersionMatcherPolicy` picks the one for the requested version during routing, and a v1 request only ever sees v1 endpoints. The check itself lives in one middleware (`Defra.WasteOrganisations.Api.Versioning.ApiVersioningMiddleware`), registered straight after `app.UseAuthorization()`, and applies to every endpoint except `/health`, `/health/*`, `/openapi/*`, `/redoc` and `/redoc/*`. Routing's own answers are not versioned: an unknown path is `404` and a method no endpoint answers is `405`, whatever version is asked for. See [specs/0004-REGEN-167-implement-header-based-api-versioning.md](specs/0004-REGEN-167-implement-header-based-api-versioning.md) for the full design.
+
+### API v2
+
+v2 has one endpoint, `POST /organisations`, which creates an organisation in Postgres. Send `Accept: application/vnd.defra.waste-organisations+json; version=2` to reach it: without `version=2` the request is routed as v1, which has no `POST /organisations`, so it gets `405 Method Not Allowed` with `Allow: GET`. A version above 2 gets `406`. The v2 OpenAPI document is at `/openapi/v2.json` (v1 stays at `/openapi/v1.json`). The ReDoc page at `/redoc/index.html` has a version dropdown that switches between the two documents, and `/redoc/index.html?spec=v2` opens it on v2. See [specs/0005-REGEN-141-create-an-organisation.md](specs/0005-REGEN-141-create-an-organisation.md) for the full design.
 
 ## Tests
 
