@@ -14,7 +14,13 @@ public class OrganisationStubs : MongoTestBase
     private static string Destination => Path.Combine("..", "..", "..", "Stubs", "Generated");
     private static readonly int[] s_years = [2026, 2027, 2028, 2029, 2030];
 
-    [Fact]
+    /// <summary>
+    /// Regenerates the tracked stubs in <c>Stubs/Generated/</c>. Explicit so that a plain test run
+    /// does not rewrite their <c>created</c>/<c>updated</c> timestamps and leave the working tree
+    /// dirty. With the Compose stack up, run it with
+    /// <c>dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build -- --explicit only</c>.
+    /// </summary>
+    [Fact(Explicit = true)]
     public async Task GenerateStubs()
     {
         Directory.CreateDirectory(Destination);
