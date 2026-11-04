@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Defra.WasteOrganisations.Api.Extensions;
 
 namespace Defra.WasteOrganisations.Api.Dtos;
 
@@ -8,7 +9,7 @@ namespace Defra.WasteOrganisations.Api.Dtos;
 /// the kinds of address it is. At least one of <c>subBuildingName</c>, <c>buildingName</c>,
 /// <c>buildingNumber</c> and <c>poBox</c> must be given, so the premises can be identified.
 /// </summary>
-public record AddressRequest
+public record AddressRequest : IValidatableObject
 {
     /// <summary>
     /// Every kind of address this is, each at most once. One item may list all five kinds.
@@ -62,4 +63,52 @@ public record AddressRequest
     [JsonPropertyName("countryIso")]
     [Required]
     public string? CountryIso { get; init; }
+
+    // Member names are the JSON property names, so the request validator can key each error by its
+    // JSON path. `street`, `locality` and `countryIso` blank or missing are left to [Required]
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        var repeated = AddressTypes
+            ?.GroupBy(t => t)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key.ToJsonValue())
+            .ToList();
+
+        if (repeated is { Count: > 0 })
+            yield return new ValidationResult(
+                $"The addressTypes field must not repeat a value: {string.Join(", ", repeated)}.",
+                ["addressTypes"]
+            );
+
+        var countryIso = CountryIso?.Trim().ToUpperInvariant();
+
+        if (!string.IsNullOrEmpty(countryIso) && !IsCountryCode(countryIso))
+            yield return new ValidationResult(
+                "The countryIso field must be an ISO 3166-1 alpha-2 code of two letters, such as GB.",
+                ["countryIso"]
+            );
+
+        // A blank postcode on a UK address is missing, not absent; on any other address a blank
+        // optional part is stored as null
+        if (countryIso == "GB" && string.IsNullOrWhiteSpace(PostalCode))
+            yield return new ValidationResult(
+                "The postalCode field is required when countryIso is GB.",
+                ["postalCode"]
+            );
+
+        // Mirrors ck_address_premises, so a valid request cannot fail that constraint. No single
+        // field is at fault, so the error is reported under the address item itself
+        if (
+            string.IsNullOrWhiteSpace(SubBuildingName)
+            && string.IsNullOrWhiteSpace(BuildingName)
+            && string.IsNullOrWhiteSpace(BuildingNumber)
+            && string.IsNullOrWhiteSpace(PoBox)
+        )
+            yield return new ValidationResult(
+                "At least one of subBuildingName, buildingName, buildingNumber and poBox is required."
+            );
+    }
+
+    // ^[A-Z]{2}$, checked without a regex
+    private static bool IsCountryCode(string value) => value.Length == 2 && value.All(char.IsAsciiLetterUpper);
 }
