@@ -1,0 +1,570 @@
+﻿{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Waste Organisations REST API",
+    "description": "Create organisations with their addresses. Select v2 with the header `Accept: application/vnd.defra.waste-organisations+json; version=2`. A request without that media type, or without a `version`, is served v1. An unsupported, malformed or ambiguous version returns `406 Not Acceptable`.",
+    "version": "2.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost/"
+    }
+  ],
+  "paths": {
+    "/organisations": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Create organisation",
+        "description": "Create an organisation with its addresses. An address is stored once and shared by every organisation that uses it. Duplicate organisations are not detected.",
+        "operationId": "CreateOrganisation",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "description": "Selects v2 of the API: `application/vnd.defra.waste-organisations+json; version=2`. Without it, or with `version=1`, the request is served v1.",
+            "required": true,
+            "schema": {
+              "enum": [
+                "application/vnd.defra.waste-organisations+json; version=2"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganisationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Not Acceptable: the `Accept` header asks for an unsupported or malformed API version.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddressRequest": {
+        "required": [
+          "addressTypes",
+          "street",
+          "locality",
+          "countryIso"
+        ],
+        "type": "object",
+        "properties": {
+          "addressTypes": {
+            "minItems": 1,
+            "uniqueItems": true,
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AddressType"
+            },
+            "description": "Every kind of address this is, each at most once. One item may list all five kinds."
+          },
+          "subBuildingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A flat or unit within the building."
+          },
+          "buildingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name of the building."
+          },
+          "buildingNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The building number, which may hold letters or a range, such as `12A` or `3-5`."
+          },
+          "street": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The street."
+          },
+          "locality": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The town or city."
+          },
+          "region": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The county, state or province."
+          },
+          "postalCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The postcode. Required when `countryIso` is `GB`; optional otherwise, because some\ncountries have no postcodes. Not checked against a format."
+          },
+          "poBox": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A PO box."
+          },
+          "countryIso": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The country as an ISO 3166-1 alpha-2 code, upper-cased before it is checked. `GB` is\nthe United Kingdom, Northern Ireland included."
+          }
+        },
+        "description": "An address in the Defra standard address model, with the country as a two-letter code, and\nthe kinds of address it is. At least one of `subBuildingName`, `buildingName`,\n`buildingNumber` and `poBox` must be given, so the premises can be identified."
+      },
+      "AddressResponse": {
+        "required": [
+          "addressTypes",
+          "addressLine"
+        ],
+        "type": "object",
+        "properties": {
+          "addressTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressType"
+            },
+            "description": "Every kind of address this is for the organisation, in the order they were sent."
+          },
+          "addressLine": {
+            "type": "string",
+            "description": "The address on one line, computed in postal order with blank parts skipped and without the\ncountry; never stored."
+          },
+          "subBuildingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A flat or unit within the building."
+          },
+          "buildingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name of the building."
+          },
+          "buildingNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The building number."
+          },
+          "street": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The street."
+          },
+          "locality": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The town or city."
+          },
+          "region": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The county, state or province."
+          },
+          "postalCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The postcode."
+          },
+          "poBox": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A PO box."
+          },
+          "countryIso": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The country as an ISO 3166-1 alpha-2 code, upper-case."
+          },
+          "isUkAddress": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether `countryIso` is `GB`, the United Kingdom, Northern Ireland included."
+          }
+        },
+        "description": "A stored address and the kinds of address it is for the organisation. Absent parts are omitted."
+      },
+      "AddressType": {
+        "enum": [
+          "REGISTERED",
+          "PRINCIPAL",
+          "AUDIT",
+          "SERVICE_OF_NOTICE",
+          "CORRESPONDENCE"
+        ],
+        "description": "A kind of address an organisation has. The wire value is also the `address_usagetype.name`\nit is stored under, so `ToJsonValue()` gives the name to look up."
+      },
+      "CreateOrganisationRequest": {
+        "required": [
+          "organisation"
+        ],
+        "type": "object",
+        "properties": {
+          "organisation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The organisation to create.",
+                "$ref": "#/components/schemas/OrganisationRequest"
+              }
+            ]
+          }
+        },
+        "description": "The body of `POST /organisations`: the organisation to create, wrapped in an envelope."
+      },
+      "CreateOrganisationResponse": {
+        "required": [
+          "organisation"
+        ],
+        "type": "object",
+        "properties": {
+          "organisation": {
+            "description": "The stored organisation.",
+            "$ref": "#/components/schemas/OrganisationResponse"
+          }
+        },
+        "description": "The body of a `201` from `POST /organisations`: the stored organisation, in the same\nenvelope as the request."
+      },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "OrganisationRequest": {
+        "required": [
+          "regulatorNation",
+          "organisationType",
+          "addresses"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The registered name. Required for a type registered at Companies House; optional otherwise.\nMust not be blank when present."
+          },
+          "tradingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name the organisation trades under. Required for a type not registered at Companies\nHouse; optional otherwise. Must not be blank when present."
+          },
+          "companiesHouseNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The Companies House number: two letters or digits followed by six digits, for example\n`12345678` or `SC123456`; upper-cased before it is checked. Required for a type\nregistered at Companies House and must be absent for every other type."
+          },
+          "regulatorNation": {
+            "enum": [
+              "GB-ENG",
+              "GB-SCT",
+              "GB-WLS",
+              "GB-NIR"
+            ],
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The nation whose regulator the organisation deals with, which for an overseas organisation\nis not where it is based: `GB-ENG`, `GB-SCT`, `GB-WLS` or `GB-NIR`."
+          },
+          "organisationType": {
+            "enum": [
+              "LTD",
+              "PLC",
+              "LIMITED_PARTNERSHIP",
+              "LLP",
+              "CIC",
+              "SOLE_TRADER",
+              "PARTNERSHIP",
+              "REGISTERED_SOCIETY",
+              "CHARITABLE_ORGANISATION",
+              "OVERSEAS_ORGANISATION"
+            ],
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The organisation type, one of the published codes in upper snake case, matched exactly. The\ntype decides whether `name` or `tradingName` is required, whether\n`companiesHouseNumber` is required or must be absent, and whether a `REGISTERED` or\na `PRINCIPAL` address is required.\n\nRegistered at Companies House: `name`, `companiesHouseNumber` and a `REGISTERED` address are required.\n\n- `LTD`: Private limited company\n- `PLC`: Public limited company\n- `LIMITED_PARTNERSHIP`: Limited partnership\n- `LLP`: Limited liability partnership\n- `CIC`: Community interest company\n\nNot registered at Companies House: `tradingName` and a `PRINCIPAL` address are required, and `companiesHouseNumber` must be absent.\n\n- `SOLE_TRADER`: Sole trader\n- `PARTNERSHIP`: General partnership\n- `REGISTERED_SOCIETY`: Co-operative or community benefit society\n- `CHARITABLE_ORGANISATION`: Charitable incorporated organisation or charitable trust\n- `OVERSEAS_ORGANISATION`: Overseas organisation not registered in the UK"
+          },
+          "addresses": {
+            "maxItems": 5,
+            "minItems": 1,
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AddressRequest"
+            },
+            "description": "One to five addresses, each listing in `addressTypes` every kind it serves as; a kind\nmay appear in one item only. An address is stored once and shared by every organisation\nthat uses it, so two items holding the same address come back as one item carrying the\nkinds of both."
+          }
+        },
+        "description": "An organisation to create. Every string is trimmed before it is validated and stored."
+      },
+      "OrganisationResponse": {
+        "required": [
+          "id",
+          "regulatorNation",
+          "organisationType",
+          "validFrom",
+          "createdAt",
+          "updatedAt",
+          "addresses"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The id, a UUIDv7 generated by the API.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The registered name; absent when none was sent."
+          },
+          "tradingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name the organisation trades under; absent when none was sent."
+          },
+          "companiesHouseNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The Companies House number; absent for a type not registered at Companies House."
+          },
+          "regulatorNation": {
+            "description": "The nation whose regulator the organisation deals with.",
+            "$ref": "#/components/schemas/RegulatorNation"
+          },
+          "organisationType": {
+            "type": "string",
+            "description": "The organisation type code."
+          },
+          "validFrom": {
+            "type": "string",
+            "description": "When this version of the organisation became valid. ISO 8601 extended format with offset.",
+            "format": "date-time"
+          },
+          "validTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When this version of the organisation stopped being valid; absent while it is current.\nISO 8601 extended format with offset.",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the organisation was stored. ISO 8601 extended format with offset.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the organisation was last changed. ISO 8601 extended format with offset.",
+            "format": "date-time"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressResponse"
+            },
+            "description": "One item per stored address, in the order each first appeared in the request. Two request\nitems holding the same address come back as one item carrying the kinds of both."
+          }
+        },
+        "description": "A stored organisation, with every string as it was stored: trimmed, and\n`companiesHouseNumber` upper-cased."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RegulatorNation": {
+        "enum": [
+          "GB-ENG",
+          "GB-SCT",
+          "GB-WLS",
+          "GB-NIR"
+        ],
+        "description": "The nation whose regulator an organisation deals with, as an ISO 3166-2:GB code. For an\noverseas organisation this is not where it is based."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Organisations"
+    }
+  ]
+}

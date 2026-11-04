@@ -50,6 +50,18 @@ try
         options.AddOperationTransformer<RegistrationKeyOperationTransformer>();
         options.AddOperationTransformer<SearchQueryOperationTransformer>();
     });
+    builder.Services.AddOpenApi(
+        "v2",
+        options =>
+        {
+            // Describes only the operations that support version 2, each with the Accept header that selects it
+            options.ShouldInclude = description =>
+                ApiVersionsMetadata.For(description.ActionDescriptor.EndpointMetadata).Contains(2);
+            options.AddDocumentTransformer<OpenApiDocumentTransformer>();
+            options.AddOperationTransformer<AcceptHeaderOperationTransformer>();
+            options.AddSchemaTransformer<CreateOrganisationSchemaTransformer>();
+        }
+    );
     builder.Services.AddAuthenticationAuthorization();
     builder.Services.AddApiVersioning();
     builder.Services.AddRequestMetrics();

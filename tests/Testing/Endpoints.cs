@@ -12,6 +12,8 @@ public static class Endpoints
     public static class OpenApi
     {
         public const string V1 = "openapi/v1.json";
+
+        public const string V2 = "openapi/v2.json";
     }
 
     public static class Organisations
