@@ -40,4 +40,27 @@ public class ApiVersionsMetadataTests
 
         ApiVersionsMetadata.For(endpoint).Order().Should().Equal(1, 2);
     }
+
+    [Fact]
+    public void For_WhenTheMetadataDeclaresNothing_ShouldBeVersion1Only()
+    {
+        ApiVersionsMetadata.For(new object[] { "unrelated" }).Should().Equal(1);
+    }
+
+    [Fact]
+    public void For_WhenTheMetadataDeclaresVersion2Only_ShouldNotContainVersion1()
+    {
+        // This is what keeps a v2-only operation out of /openapi/v1.json.
+        var metadata = new object[] { "unrelated", new ApiVersionsMetadata(2) };
+
+        ApiVersionsMetadata.For(metadata).Should().Equal(2);
+    }
+
+    [Fact]
+    public void For_WhenTheMetadataDeclaresVersionsTwice_ShouldUseTheLast()
+    {
+        var metadata = new object[] { new ApiVersionsMetadata(1), new ApiVersionsMetadata(2) };
+
+        ApiVersionsMetadata.For(metadata).Should().Equal(2);
+    }
 }
