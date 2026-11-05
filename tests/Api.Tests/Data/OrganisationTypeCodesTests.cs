@@ -9,7 +9,7 @@ namespace Defra.WasteOrganisations.Api.Tests.Data;
 public partial class OrganisationTypeCodesTests
 {
     [Fact]
-    public void All_ShouldHoldTheTenConfluenceTypes()
+    public void All_ShouldHoldAllValidTypes()
     {
         OrganisationTypeCodes
             .All.Select(c => c.Code)

@@ -11,56 +11,69 @@ namespace Defra.WasteOrganisations.Api.Dtos;
 /// </summary>
 public record AddressRequest : IValidatableObject
 {
+    // The JSON member names, shared by the attributes and the validation rules so an error key or
+    // message cannot name a member the wire does not have
+    internal const string AddressTypesMember = "addressTypes";
+    internal const string SubBuildingNameMember = "subBuildingName";
+    internal const string BuildingNameMember = "buildingName";
+    internal const string BuildingNumberMember = "buildingNumber";
+    internal const string StreetMember = "street";
+    internal const string PoBoxMember = "poBox";
+    internal const string LocalityMember = "locality";
+    internal const string RegionMember = "region";
+    internal const string PostalCodeMember = "postalCode";
+    internal const string CountryIsoMember = "countryIso";
+
     /// <summary>
     /// Every kind of address this is, each at most once. One item may list all five kinds.
     /// </summary>
-    [JsonPropertyName("addressTypes")]
+    [JsonPropertyName(AddressTypesMember)]
     [Required]
     [MinLength(1, ErrorMessage = "The {0} field must hold at least one item.")]
     public List<AddressType>? AddressTypes { get; init; }
 
     /// <summary>A flat or unit within the building.</summary>
-    [JsonPropertyName("subBuildingName")]
+    [JsonPropertyName(SubBuildingNameMember)]
     public string? SubBuildingName { get; init; }
 
     /// <summary>The name of the building.</summary>
-    [JsonPropertyName("buildingName")]
+    [JsonPropertyName(BuildingNameMember)]
     public string? BuildingName { get; init; }
 
     /// <summary>The building number, which may hold letters or a range, such as <c>12A</c> or <c>3-5</c>.</summary>
-    [JsonPropertyName("buildingNumber")]
+    [JsonPropertyName(BuildingNumberMember)]
     public string? BuildingNumber { get; init; }
 
     /// <summary>The street.</summary>
-    [JsonPropertyName("street")]
+    [JsonPropertyName(StreetMember)]
     [Required]
     public string? Street { get; init; }
 
+    /// <summary>A PO box.</summary>
+    [JsonPropertyName(PoBoxMember)]
+    public string? PoBox { get; init; }
+
     /// <summary>The town or city.</summary>
-    [JsonPropertyName("locality")]
+    [JsonPropertyName(LocalityMember)]
     [Required]
     public string? Locality { get; init; }
 
     /// <summary>The county, state or province.</summary>
-    [JsonPropertyName("region")]
+    [JsonPropertyName(RegionMember)]
     public string? Region { get; init; }
 
     /// <summary>
     /// The postcode. Required when <c>countryIso</c> is <c>GB</c>; optional otherwise, because some
     /// countries have no postcodes. Not checked against a format.
     /// </summary>
-    [JsonPropertyName("postalCode")]
+    [JsonPropertyName(PostalCodeMember)]
     public string? PostalCode { get; init; }
-
-    /// <summary>A PO box.</summary>
-    [JsonPropertyName("poBox")]
-    public string? PoBox { get; init; }
 
     /// <summary>
     /// The country as an ISO 3166-1 alpha-2 code, upper-cased before it is checked. <c>GB</c> is
     /// the United Kingdom, Northern Ireland included.
     /// </summary>
-    [JsonPropertyName("countryIso")]
+    [JsonPropertyName(CountryIsoMember)]
     [Required]
     public string? CountryIso { get; init; }
 
@@ -76,24 +89,24 @@ public record AddressRequest : IValidatableObject
 
         if (repeated is { Count: > 0 })
             yield return new ValidationResult(
-                $"The addressTypes field must not repeat a value: {string.Join(", ", repeated)}.",
-                ["addressTypes"]
+                $"The {AddressTypesMember} field must not repeat a value: {string.Join(", ", repeated)}.",
+                [AddressTypesMember]
             );
 
         var countryIso = CountryIso?.Trim().ToUpperInvariant();
 
         if (!string.IsNullOrEmpty(countryIso) && !IsCountryCode(countryIso))
             yield return new ValidationResult(
-                "The countryIso field must be an ISO 3166-1 alpha-2 code of two letters, such as GB.",
-                ["countryIso"]
+                $"The {CountryIsoMember} field must be an ISO 3166-1 alpha-2 code of two letters, such as GB.",
+                [CountryIsoMember]
             );
 
         // A blank postcode on a UK address is missing, not absent; on any other address a blank
         // optional part is stored as null
         if (countryIso == "GB" && string.IsNullOrWhiteSpace(PostalCode))
             yield return new ValidationResult(
-                "The postalCode field is required when countryIso is GB.",
-                ["postalCode"]
+                $"The {PostalCodeMember} field is required when {CountryIsoMember} is GB.",
+                [PostalCodeMember]
             );
 
         // Mirrors ck_address_premises, so a valid request cannot fail that constraint. No single
@@ -105,7 +118,8 @@ public record AddressRequest : IValidatableObject
             && string.IsNullOrWhiteSpace(PoBox)
         )
             yield return new ValidationResult(
-                "At least one of subBuildingName, buildingName, buildingNumber and poBox is required."
+                $"At least one of {SubBuildingNameMember}, {BuildingNameMember}, {BuildingNumberMember} "
+                    + $"and {PoBoxMember} is required."
             );
     }
 

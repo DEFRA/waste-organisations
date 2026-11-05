@@ -12,8 +12,10 @@ namespace Defra.WasteOrganisations.Api.Dtos;
 /// </summary>
 public record CreateOrganisationRequest
 {
+    internal const string OrganisationMember = "organisation";
+
     /// <summary>The organisation to create.</summary>
-    [JsonPropertyName("organisation")]
+    [JsonPropertyName(OrganisationMember)]
     [Required]
     public OrganisationRequest? Organisation { get; init; }
 }

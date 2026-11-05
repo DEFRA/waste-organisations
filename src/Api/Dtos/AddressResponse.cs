@@ -38,6 +38,11 @@ public record AddressResponse
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Street { get; init; }
 
+    /// <summary>A PO box.</summary>
+    [JsonPropertyName("poBox")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PoBox { get; init; }
+
     /// <summary>The town or city.</summary>
     [JsonPropertyName("locality")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -52,11 +57,6 @@ public record AddressResponse
     [JsonPropertyName("postalCode")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PostalCode { get; init; }
-
-    /// <summary>A PO box.</summary>
-    [JsonPropertyName("poBox")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? PoBox { get; init; }
 
     /// <summary>The country as an ISO 3166-1 alpha-2 code, upper-case.</summary>
     [JsonPropertyName("countryIso")]

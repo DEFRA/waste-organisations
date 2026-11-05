@@ -28,13 +28,14 @@ public static class CreateOrganisationRequestValidator
 
         if (request.Organisation is { } organisation)
         {
-            ValidateNode(organisation, "organisation", errors);
+            var organisationPath = CreateOrganisationRequest.OrganisationMember;
+            ValidateNode(organisation, organisationPath, errors);
 
             var addresses = organisation.Addresses ?? [];
 
             for (var index = 0; index < addresses.Count; index++)
             {
-                var path = $"organisation.addresses[{index}]";
+                var path = $"{organisationPath}.{OrganisationRequest.AddressesMember}[{index}]";
 
                 if (addresses[index] is { } address)
                     ValidateNode(address, path, errors);

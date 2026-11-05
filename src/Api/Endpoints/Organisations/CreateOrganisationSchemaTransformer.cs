@@ -26,16 +26,19 @@ public class CreateOrganisationSchemaTransformer : IOpenApiSchemaTransformer
         {
             switch (property.Name)
             {
-                case "organisationType":
+                case OrganisationRequest.OrganisationTypeMember:
                     schema.Enum = [.. OrganisationTypeCodes.All.Select(c => JsonValue.Create(c.Code))];
                     schema.Description = AppendParagraph(schema.Description, OrganisationTypeCodesDescription());
                     break;
-                case "regulatorNation":
+                case OrganisationRequest.RegulatorNationMember:
                     schema.Enum = [.. Enum.GetValues<RegulatorNation>().Select(n => JsonValue.Create(n.ToJsonValue()))];
                     break;
             }
         }
-        else if (property?.DeclaringType == typeof(AddressRequest) && property.Name == "addressTypes")
+        else if (
+            property?.DeclaringType == typeof(AddressRequest)
+            && property.Name == AddressRequest.AddressTypesMember
+        )
         {
             schema.MinItems ??= 1;
             schema.UniqueItems = true;

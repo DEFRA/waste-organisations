@@ -123,10 +123,10 @@ public static class CreateOrganisationExtensions
             BuildingName = Normalise(item.BuildingName),
             BuildingNumber = Normalise(item.BuildingNumber),
             Street = Normalise(item.Street),
+            PoBox = Normalise(item.PoBox),
             Locality = Normalise(item.Locality),
             Region = Normalise(item.Region),
             PostalCode = Normalise(item.PostalCode),
-            PoBox = Normalise(item.PoBox),
             CountryIso = Normalise(item.CountryIso)?.ToUpperInvariant(),
         };
 
@@ -139,10 +139,10 @@ public static class CreateOrganisationExtensions
             BuildingName = address.BuildingName,
             BuildingNumber = address.BuildingNumber,
             Street = address.Street,
+            PoBox = address.PoBox,
             Locality = address.Locality,
             Region = address.Region,
             PostalCode = address.PostalCode,
-            PoBox = address.PoBox,
             CountryIso = address.CountryIso,
             IsUkAddress = address.IsUkAddress,
         };
@@ -154,18 +154,18 @@ public static class CreateOrganisationExtensions
     private static DateTimeOffset AsUtc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
     /// <summary>
-    /// The nine parts that make two addresses the same: compared exactly (ordinal), nulls equal,
-    /// as <c>ux_address_values</c> compares them.
+    /// The nine parts that make two addresses the same, in the order the DTOs list them: compared
+    /// exactly (ordinal), nulls equal, as <c>ux_address_values</c> compares them.
     /// </summary>
     private readonly record struct AddressParts(
         string? SubBuildingName,
         string? BuildingName,
         string? BuildingNumber,
         string? Street,
+        string? PoBox,
         string? Locality,
         string? Region,
         string? PostalCode,
-        string? PoBox,
         string? CountryIso
     )
     {
@@ -175,10 +175,10 @@ public static class CreateOrganisationExtensions
                 address.BuildingName,
                 address.BuildingNumber,
                 address.Street,
+                address.PoBox,
                 address.Locality,
                 address.Region,
                 address.PostalCode,
-                address.PoBox,
                 address.CountryIso
             );
     }

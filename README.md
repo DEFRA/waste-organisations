@@ -46,8 +46,6 @@ The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) ch
 
 `db.changelog-1.1.xml` adds the organisation tables: `organisation`, `organisation_type`, `address_usagetype`, `address` and `organisation_address`. The EF Core entities that map them live in `src/Api/Data/Postgres/Entities`.
 
-`db.changelog-1.2.xml` reshapes them for the v2 API: `organisation.name` becomes nullable (the `ck_organisation_name` check still requires it unless the organisation has a trading name and no Companies House number), `home_nation` is renamed to `regulator_nation`, `address.address_line` and `address.country_name` are dropped, the `ux_address_values` unique index stops the same address being stored twice, the address usage types become upper case (`REGISTERED`, `AUDIT`, ...), and `organisation_type` is re-seeded with the ten v2 organisation types.
-
 To change the schema:
 
 - Add a new `changelog/db.changelog-1.N.xml` file (the next number after the latest one) containing the new changesets.

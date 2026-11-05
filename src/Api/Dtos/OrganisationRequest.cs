@@ -11,18 +11,27 @@ namespace Defra.WasteOrganisations.Api.Dtos;
 /// </summary>
 public record OrganisationRequest : IValidatableObject
 {
+    // The JSON member names, shared by the attributes and the validation rules so an error key or
+    // message cannot name a member the wire does not have
+    internal const string NameMember = "name";
+    internal const string TradingNameMember = "tradingName";
+    internal const string CompaniesHouseNumberMember = "companiesHouseNumber";
+    internal const string RegulatorNationMember = "regulatorNation";
+    internal const string OrganisationTypeMember = "organisationType";
+    internal const string AddressesMember = "addresses";
+
     /// <summary>
     /// The registered name. Required for a type registered at Companies House; optional otherwise.
     /// Must not be blank when present.
     /// </summary>
-    [JsonPropertyName("name")]
+    [JsonPropertyName(NameMember)]
     public string? Name { get; init; }
 
     /// <summary>
     /// The name the organisation trades under. Required for a type not registered at Companies
     /// House; optional otherwise. Must not be blank when present.
     /// </summary>
-    [JsonPropertyName("tradingName")]
+    [JsonPropertyName(TradingNameMember)]
     public string? TradingName { get; init; }
 
     /// <summary>
@@ -30,14 +39,14 @@ public record OrganisationRequest : IValidatableObject
     /// <c>12345678</c> or <c>SC123456</c>; upper-cased before it is checked. Required for a type
     /// registered at Companies House and must be absent for every other type.
     /// </summary>
-    [JsonPropertyName("companiesHouseNumber")]
+    [JsonPropertyName(CompaniesHouseNumberMember)]
     public string? CompaniesHouseNumber { get; init; }
 
     /// <summary>
     /// The nation whose regulator the organisation deals with, which for an overseas organisation
     /// is not where it is based: <c>GB-ENG</c>, <c>GB-SCT</c>, <c>GB-WLS</c> or <c>GB-NIR</c>.
     /// </summary>
-    [JsonPropertyName("regulatorNation")]
+    [JsonPropertyName(RegulatorNationMember)]
     [Required]
     [JsonEnumValue<RegulatorNation>]
     public string? RegulatorNation { get; init; }
@@ -48,18 +57,17 @@ public record OrganisationRequest : IValidatableObject
     /// <c>companiesHouseNumber</c> is required or must be absent, and whether a <c>REGISTERED</c> or
     /// a <c>PRINCIPAL</c> address is required.
     /// </summary>
-    [JsonPropertyName("organisationType")]
+    [JsonPropertyName(OrganisationTypeMember)]
     [Required]
     [OrganisationTypeCode]
     public string? OrganisationType { get; init; }
 
     /// <summary>
     /// One to five addresses, each listing in <c>addressTypes</c> every kind it serves as; a kind
-    /// may appear in one item only. An address is stored once and shared by every organisation
-    /// that uses it, so two items holding the same address come back as one item carrying the
-    /// kinds of both.
+    /// may appear in one item only. Two items holding the same address come back as one item
+    /// carrying the kinds of both.
     /// </summary>
-    [JsonPropertyName("addresses")]
+    [JsonPropertyName(AddressesMember)]
     [Required]
     [MinLength(1, ErrorMessage = "The {0} field must hold at least one item.")]
     [MaxLength(5, ErrorMessage = "The {0} field must hold at most five items.")]
@@ -71,9 +79,9 @@ public record OrganisationRequest : IValidatableObject
     // alone, since rules keyed on it would only add noise
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        foreach (var result in ValidateNonBlank(Name, "name"))
+        foreach (var result in ValidateNonBlank(Name, NameMember))
             yield return result;
-        foreach (var result in ValidateNonBlank(TradingName, "tradingName"))
+        foreach (var result in ValidateNonBlank(TradingName, TradingNameMember))
             yield return result;
 
         foreach (var result in ValidateKindsAcrossAddresses())
@@ -97,7 +105,7 @@ public record OrganisationRequest : IValidatableObject
 
     private IEnumerable<ValidationResult> ValidateByType(OrganisationTypeCode type)
     {
-        var nameMember = type.RegisteredAtCompaniesHouse ? "name" : "tradingName";
+        var nameMember = type.RegisteredAtCompaniesHouse ? NameMember : TradingNameMember;
         var nameValue = type.RegisteredAtCompaniesHouse ? Name : TradingName;
 
         // A blank value is already reported as blank
@@ -111,21 +119,21 @@ public record OrganisationRequest : IValidatableObject
         {
             if (string.IsNullOrWhiteSpace(CompaniesHouseNumber))
                 yield return new ValidationResult(
-                    $"The companiesHouseNumber field is required for organisation type {type.Code}.",
-                    ["companiesHouseNumber"]
+                    $"The {CompaniesHouseNumberMember} field is required for organisation type {type.Code}.",
+                    [CompaniesHouseNumberMember]
                 );
             else if (!IsCompaniesHouseNumber(CompaniesHouseNumber.Trim().ToUpperInvariant()))
                 yield return new ValidationResult(
-                    "The companiesHouseNumber field must be two letters or digits followed by six digits, "
+                    $"The {CompaniesHouseNumberMember} field must be two letters or digits followed by six digits, "
                         + "such as 12345678 or SC123456.",
-                    ["companiesHouseNumber"]
+                    [CompaniesHouseNumberMember]
                 );
         }
         else if (CompaniesHouseNumber is not null)
         {
             yield return new ValidationResult(
-                $"The companiesHouseNumber field must be absent for organisation type {type.Code}.",
-                ["companiesHouseNumber"]
+                $"The {CompaniesHouseNumberMember} field must be absent for organisation type {type.Code}.",
+                [CompaniesHouseNumberMember]
             );
         }
 
@@ -134,9 +142,9 @@ public record OrganisationRequest : IValidatableObject
 
         if (Addresses is { Count: > 0 } && !Addresses.Any(a => a?.AddressTypes?.Contains(requiredKind) == true))
             yield return new ValidationResult(
-                $"The addresses field must hold an address with the {requiredKind.ToJsonValue()} type "
+                $"The {AddressesMember} field must hold an address with the {requiredKind.ToJsonValue()} type "
                     + $"for organisation type {type.Code}.",
-                ["addresses"]
+                [AddressesMember]
             );
     }
 
@@ -155,9 +163,9 @@ public record OrganisationRequest : IValidatableObject
             {
                 if (firstIndexByKind.TryGetValue(kind, out var firstIndex))
                     yield return new ValidationResult(
-                        $"The addressTypes field must not repeat {kind.ToJsonValue()}, "
-                            + $"which addresses[{firstIndex}] already carries.",
-                        [$"addresses[{index}].addressTypes"]
+                        $"The {AddressRequest.AddressTypesMember} field must not repeat {kind.ToJsonValue()}, "
+                            + $"which {AddressesMember}[{firstIndex}] already carries.",
+                        [$"{AddressesMember}[{index}].{AddressRequest.AddressTypesMember}"]
                     );
                 else
                     firstIndexByKind[kind] = index;

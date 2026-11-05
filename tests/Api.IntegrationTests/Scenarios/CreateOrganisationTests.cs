@@ -122,7 +122,8 @@ public class CreateOrganisationTests : IntegrationTestBase
         overseas.CountryIso.Should().Be("HK");
         overseas.IsUkAddress.Should().BeFalse();
 
-        await VerifyJson(content).AddScrubber(text => text.Replace(suffix, "{suffix}"));
+        // The suffix is this run's alone, so it is taken out and the snapshot reads as a plain address
+        await VerifyJson(content).AddScrubber(text => text.Replace($" {suffix}", ""));
     }
 
     // One item may carry every kind: the kinds come back in the order sent, and the address is

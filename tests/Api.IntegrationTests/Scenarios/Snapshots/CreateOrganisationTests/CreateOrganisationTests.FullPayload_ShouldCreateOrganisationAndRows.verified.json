@@ -15,11 +15,11 @@
           "REGISTERED",
           "PRINCIPAL"
         ],
-        "addressLine": "Unit 4, Mill House, 12A High Street {suffix}, PO Box 99, Testville, Testshire, AB1 2CD",
+        "addressLine": "Unit 4, Mill House, 12A High Street, PO Box 99, Testville, Testshire, AB1 2CD",
         "subBuildingName": "Unit 4",
         "buildingName": "Mill House",
         "buildingNumber": "12A",
-        "street": "High Street {suffix}",
+        "street": "High Street",
         "locality": "Testville",
         "region": "Testshire",
         "postalCode": "AB1 2CD",
@@ -31,9 +31,9 @@
         "addressTypes": [
           "CORRESPONDENCE"
         ],
-        "addressLine": "12 Harbour Road {suffix}, Hong Kong",
+        "addressLine": "12 Harbour Road, Hong Kong",
         "buildingNumber": "12",
-        "street": "Harbour Road {suffix}",
+        "street": "Harbour Road",
         "locality": "Hong Kong",
         "countryIso": "HK",
         "isUkAddress": false

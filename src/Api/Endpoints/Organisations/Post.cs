@@ -15,10 +15,7 @@ public static class Post
             .WithName("CreateOrganisation")
             .WithTags("Organisations")
             .WithSummary("Create organisation")
-            .WithDescription(
-                "Create an organisation with its addresses. An address is stored once and shared by every "
-                    + "organisation that uses it. Duplicate organisations are not detected."
-            )
+            .WithDescription("Create an organisation with its addresses. Duplicate organisations are not detected.")
             .Produces<CreateOrganisationResponse>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError)

@@ -17,7 +17,7 @@
           "Organisations"
         ],
         "summary": "Create organisation",
-        "description": "Create an organisation with its addresses. An address is stored once and shared by every organisation that uses it. Duplicate organisations are not detected.",
+        "description": "Create an organisation with its addresses. Duplicate organisations are not detected.",
         "operationId": "CreateOrganisation",
         "parameters": [
           {
@@ -133,6 +133,13 @@
             "type": "string",
             "description": "The street."
           },
+          "poBox": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A PO box."
+          },
           "locality": {
             "type": "string",
             "description": "The town or city."
@@ -150,13 +157,6 @@
               "string"
             ],
             "description": "The postcode. Required when `countryIso` is `GB`; optional otherwise, because some\ncountries have no postcodes. Not checked against a format."
-          },
-          "poBox": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "A PO box."
           },
           "countryIso": {
             "type": "string",
@@ -211,6 +211,13 @@
             ],
             "description": "The street."
           },
+          "poBox": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A PO box."
+          },
           "locality": {
             "type": [
               "null",
@@ -231,13 +238,6 @@
               "string"
             ],
             "description": "The postcode."
-          },
-          "poBox": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "A PO box."
           },
           "countryIso": {
             "type": [
@@ -401,7 +401,7 @@
             "items": {
               "$ref": "#/components/schemas/AddressRequest"
             },
-            "description": "One to five addresses, each listing in `addressTypes` every kind it serves as; a kind\nmay appear in one item only. An address is stored once and shared by every organisation\nthat uses it, so two items holding the same address come back as one item carrying the\nkinds of both."
+            "description": "One to five addresses, each listing in `addressTypes` every kind it serves as; a kind\nmay appear in one item only. Two items holding the same address come back as one item\ncarrying the kinds of both."
           }
         },
         "description": "An organisation to create. Every string is trimmed before it is validated and stored."

@@ -14,10 +14,10 @@ public class Address : ITimestamped
     public string? BuildingName { get; set; }
     public string? BuildingNumber { get; set; }
     public string? Street { get; set; }
+    public string? PoBox { get; set; }
     public string? Locality { get; set; }
     public string? Region { get; set; }
     public string? PostalCode { get; set; }
-    public string? PoBox { get; set; }
 
     /// <summary>ISO 3166-1 alpha-2, for example <c>GB</c>.</summary>
     public string? CountryIso { get; set; }
@@ -43,10 +43,10 @@ public class AddressConfiguration : IEntityTypeConfiguration<Address>
         builder.Property(a => a.BuildingName).HasColumnName("building_name");
         builder.Property(a => a.BuildingNumber).HasColumnName("building_number");
         builder.Property(a => a.Street).HasColumnName("street");
+        builder.Property(a => a.PoBox).HasColumnName("po_box");
         builder.Property(a => a.Locality).HasColumnName("locality");
         builder.Property(a => a.Region).HasColumnName("region");
         builder.Property(a => a.PostalCode).HasColumnName("postal_code");
-        builder.Property(a => a.PoBox).HasColumnName("po_box");
         builder.Property(a => a.CountryIso).HasColumnName("country_iso");
         builder
             .Property(a => a.IsUkAddress)

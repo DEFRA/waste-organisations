@@ -51,10 +51,10 @@ Add `POST /organisations` as a v2-only endpoint beside the v1 `GET /organisation
         "buildingName": "Mill House",
         "buildingNumber": "12A",
         "street": "High Street",
+        "poBox": "PO Box 99",
         "locality": "Testville",
         "region": "Testshire",
         "postalCode": "AB1 2CD",
-        "poBox": "PO Box 99",
         "countryIso": "GB"
       },
       {
@@ -160,10 +160,10 @@ An `address` row does not belong to an organisation: it is one set of address va
         "buildingName": "Mill House",
         "buildingNumber": "12A",
         "street": "High Street",
+        "poBox": "PO Box 99",
         "locality": "Testville",
         "region": "Testshire",
         "postalCode": "AB1 2CD",
-        "poBox": "PO Box 99",
         "countryIso": "GB",
         "isUkAddress": true
       },
@@ -287,7 +287,7 @@ Two documents from the same code:
 | Document | Content | Served at |
 |---|---|---|
 | `v1` (existing) | The five v1 endpoints only. `OpenApiOptions.ShouldInclude` keeps an operation when its endpoint supports version 1 (`ApiVersionsMetadata.For`), which excludes the v2-only `POST`. `Info.Version` becomes `1.0.0`, the API version the document describes, in place of the `0.0.1` it carries today (decision of 4 November 2026). Apart from that one `info.version` line the generated document is byte-for-byte what it is today, and the two snapshots that pin it, `OpenApiTests.OpenApi_VerifyAsExpected` in `Api.Tests` and X-CONTRACT-01 in `Api.V1.Tests`, are re-verified for that line only (Tests below) | `/openapi/v1.json`; `/redoc` shows it by default |
-| `v2` (new) | Operations whose endpoint supports version 2: for now `POST /organisations` only. `Info.Version` is `2.0.0`, and the description says how to select v2 (the `Accept` media type and `version=2`), what the default is, and that `406` is returned for an unsupported version. Each operation documents the `Accept` header as a required header parameter with that value, and the `406` response. The `organisationType` schema lists the ten codes with their meanings from `OrganisationTypeCodes.All`, so consumers build their labels from one source (spec 0003), and its description says which codes need a Companies House number and a `REGISTERED` address and which need a `PRINCIPAL` address and no number. `addressTypes` is an array of the five-value enum with `minItems` 1 and `uniqueItems` true, and its description says that one item lists every kind the address serves as; the `addresses` description says that an address is stored once and shared, and that two items with the same address come back as one. Required members are not typed nullable, although the DTOs bind them as nullable (Validation above): `RequiredMembersDocumentTransformer` takes `null` out of their schema once the document is built | `/openapi/v2.json`; `/redoc` shows it when `v2` is picked in the version dropdown, or at once with `?spec=v2` |
+| `v2` (new) | Operations whose endpoint supports version 2: for now `POST /organisations` only. `Info.Version` is `2.0.0`, and the description says how to select v2 (the `Accept` media type and `version=2`), what the default is, and that `406` is returned for an unsupported version. Each operation documents the `Accept` header as a required header parameter with that value, and the `406` response. The `organisationType` schema lists the ten codes with their meanings from `OrganisationTypeCodes.All`, so consumers build their labels from one source (spec 0003), and its description says which codes need a Companies House number and a `REGISTERED` address and which need a `PRINCIPAL` address and no number. `addressTypes` is an array of the five-value enum with `minItems` 1 and `uniqueItems` true, and its description says that one item lists every kind the address serves as; the `addresses` description says that two items with the same address come back as one, without saying how addresses are stored (an internal detail, review of 4 November 2026). Required members are not typed nullable, although the DTOs bind them as nullable (Validation above): `RequiredMembersDocumentTransformer` takes `null` out of their schema once the document is built | `/openapi/v2.json`; `/redoc` shows it when `v2` is picked in the version dropdown, or at once with `?spec=v2` |
 
 Both paths are already exempt from the version check (`/openapi` and `/redoc` prefixes, spec 0004). `AddOpenApi("v2", ...)` reuses `OpenApiDocumentTransformer`, which reads the document name to set the right `Info`, and adds a v2-only operation transformer for the `Accept` header and the `406`, a schema transformer for the request's enumerations, and a document transformer that takes `null` out of the required members' schemas (Code layout above). `OpenApiDocumentTransformer` sets `Info.Version` by document name, `1.0.0` for `v1` and `2.0.0` for `v2`, so each document's header and the ReDoc version dropdown show the API version rather than the `0.0.1` the v1 document has carried since the transformer was written; the v1 transformers are otherwise unchanged. ReDoc stays one page at `/redoc`, with a version dropdown (decision of 4 November 2026). Open-source ReDoc renders one document per page and `UseReDoc` takes one `SpecUrl`, so the page is a custom template: `options.IndexStream` returns `src/Api/Documentation/ReDoc/index.html`, an embedded resource copied from the package's default template. It keeps the default's four placeholders (`%(DocumentTitle)`, `%(HeadContent)`, `%(SpecUrl)`, `%(ConfigObject)`) and loads `redoc.standalone.js` from the middleware as the default does, so the other `ReDocOptions` still apply and a package bump changes only the bundled renderer. It adds a slim bar above `redoc-container` with a `<select>` of the documents, calls `Redoc.init` with the selected URL and `%(ConfigObject)` into the container, and calls it again whenever the selection changes. The list of documents is not in the HTML: `Program.cs` passes it through `options.HeadContent` as a `<script>` that sets `window.openApiDocuments` to `[{ "name": "v1", "url": "/openapi/v1.json" }, { "name": "v2", "url": "/openapi/v2.json" }]`, beside the `AddOpenApi` calls, so a later version adds one entry there. `?spec=v2` on `/redoc/index.html` preselects a document and the selection is written back to the query string, so a version can be linked to; `SpecUrl` stays `/openapi/v1.json` and is the default. `UseReDoc` is called once and no `/redoc/v2` route exists.
 
