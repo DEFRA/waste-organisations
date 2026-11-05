@@ -76,6 +76,17 @@
     </rollback>
   </changeSet>
 
+  <!-- A UK address is one whose country_iso is GB, which the API and its consumers read from country_iso itself, so the
+       derived column is dropped (review of 5 November 2026). No index or check refers to it; the rollback recomputes it -->
+  <changeSet id="1.2-address-drop-is-uk-address" author="waste-organisations">
+    <dropColumn tableName="address" columnName="is_uk_address" />
+    <rollback>
+      <sql>
+        ALTER TABLE address ADD COLUMN is_uk_address boolean GENERATED ALWAYS AS (country_iso = 'GB') STORED;
+      </sql>
+    </rollback>
+  </changeSet>
+
   <!-- An address is stored once and shared. NULLS NOT DISTINCT (Postgres 15 or later) makes two rows with the same
        values and the same absent parts a conflict, which a plain unique index would allow -->
   <changeSet id="1.2-ux-address-values" author="waste-organisations">

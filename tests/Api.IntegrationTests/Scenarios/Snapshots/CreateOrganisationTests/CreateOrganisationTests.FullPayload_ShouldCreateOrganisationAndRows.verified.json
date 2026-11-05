@@ -20,12 +20,11 @@
         "buildingName": "Mill House",
         "buildingNumber": "12A",
         "street": "High Street",
+        "poBox": "PO Box 99",
         "locality": "Testville",
         "region": "Testshire",
         "postalCode": "AB1 2CD",
-        "poBox": "PO Box 99",
-        "countryIso": "GB",
-        "isUkAddress": true
+        "countryIso": "GB"
       },
       {
         "addressTypes": [
@@ -35,8 +34,7 @@
         "buildingNumber": "12",
         "street": "Harbour Road",
         "locality": "Hong Kong",
-        "countryIso": "HK",
-        "isUkAddress": false
+        "countryIso": "HK"
       }
     ]
   }

@@ -67,7 +67,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
             actual.Address.PostalCode.Should().Be(expected.Address.PostalCode);
             actual.Address.PoBox.Should().Be(expected.Address.PoBox);
             actual.Address.CountryIso.Should().Be(expected.Address.CountryIso);
-            actual.Address.IsUkAddress.Should().BeTrue();
             actual.Address.CreatedAt.Should().Be(expected.Address.CreatedAt);
             actual.Address.UpdatedAt.Should().Be(expected.Address.UpdatedAt);
             actual.ValidFrom.Should().Be(expected.ValidFrom);
@@ -467,32 +466,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
         };
         address.Locality = Unique(address.Locality ?? "Testville");
         return address;
-    }
-
-    // is_uk_address is generated from country_iso: true for GB, false for any other country and
-    // null when the country is unknown; EF reads it back after the save
-    [Theory]
-    [InlineData("GB", true)]
-    [InlineData("FR", false)]
-    [InlineData(null, null)]
-    public async Task Address_IsUkAddress_IsGeneratedFromCountryIso(string? countryIso, bool? expected)
-    {
-        await using var provider = BuildServiceProvider();
-        var address = NewAddress("High Street", countryIso);
-
-        await using (var saveScope = provider.CreateAsyncScope())
-        {
-            var context = saveScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-            context.Addresses.Add(address);
-            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
-
-        address.IsUkAddress.Should().Be(expected);
-        await using var scope = provider.CreateAsyncScope();
-        var read = await scope
-            .ServiceProvider.GetRequiredService<PostgresDbContext>()
-            .Addresses.SingleAsync(a => a.Id == address.Id, TestContext.Current.CancellationToken);
-        read.IsUkAddress.Should().Be(expected);
     }
 
     // An address is stored once: ux_address_values rejects a second row with the same nine parts,

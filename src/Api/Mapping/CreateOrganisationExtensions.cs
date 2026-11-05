@@ -144,7 +144,6 @@ public static class CreateOrganisationExtensions
             Region = address.Region,
             PostalCode = address.PostalCode,
             CountryIso = address.CountryIso,
-            IsUkAddress = address.IsUkAddress,
         };
 
     private static string? Normalise(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

@@ -58,13 +58,11 @@ public record AddressResponse
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PostalCode { get; init; }
 
-    /// <summary>The country as an ISO 3166-1 alpha-2 code, upper-case.</summary>
+    /// <summary>
+    /// The country as an ISO 3166-1 alpha-2 code, upper-case. <c>GB</c> is the United Kingdom,
+    /// Northern Ireland included.
+    /// </summary>
     [JsonPropertyName("countryIso")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? CountryIso { get; init; }
-
-    /// <summary>Whether <c>countryIso</c> is <c>GB</c>, the United Kingdom, Northern Ireland included.</summary>
-    [JsonPropertyName("isUkAddress")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? IsUkAddress { get; init; }
 }

@@ -72,7 +72,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         response.Headers.Location.Should().Be($"/organisations/{created.Id}");
         created.CreatedAt.Should().Be(created.ValidFrom);
         created.UpdatedAt.Should().Be(created.ValidFrom);
-        created.Addresses.Select(a => a.IsUkAddress).Should().Equal(true, false);
 
         var stored = await ReadStoredAsync(created.Id);
         stored.Name.Should().Be("Acme Waste Ltd");
@@ -108,7 +107,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         uk.PostalCode.Should().Be("AB1 2CD");
         uk.PoBox.Should().Be("PO Box 99");
         uk.CountryIso.Should().Be("GB");
-        uk.IsUkAddress.Should().BeTrue();
 
         var overseas = correspondence.Address;
         overseas.SubBuildingName.Should().BeNull();
@@ -120,7 +118,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         overseas.PostalCode.Should().BeNull();
         overseas.PoBox.Should().BeNull();
         overseas.CountryIso.Should().Be("HK");
-        overseas.IsUkAddress.Should().BeFalse();
 
         // The suffix is this run's alone, so it is taken out and the snapshot reads as a plain address
         await VerifyJson(content).AddScrubber(text => text.Replace($" {suffix}", ""));
@@ -284,7 +281,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         address.Region.Should().BeNull();
         address.PostalCode.Should().Be("ab1 2cd");
         address.CountryIso.Should().Be("GB");
-        address.IsUkAddress.Should().BeTrue();
     }
 
     // Server-set and unknown members are ignored rather than rejected, so a client ahead of the
@@ -418,8 +414,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         var secondCreated = await ReadOrganisationAsync(second);
         secondCreated.Addresses.Should().ContainSingle();
         secondCreated.Addresses[0].AddressTypes.Select(t => t.ToJsonValue()).Should().Equal("REGISTERED", "AUDIT");
-        // Read from the stored row, which the request did not insert
-        secondCreated.Addresses[0].IsUkAddress.Should().BeTrue();
 
         var firstStored = await ReadStoredAsync(firstCreated.Id);
         var secondStored = await ReadStoredAsync(secondCreated.Id);

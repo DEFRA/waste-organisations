@@ -244,14 +244,7 @@
               "null",
               "string"
             ],
-            "description": "The country as an ISO 3166-1 alpha-2 code, upper-case."
-          },
-          "isUkAddress": {
-            "type": [
-              "null",
-              "boolean"
-            ],
-            "description": "Whether `countryIso` is `GB`, the United Kingdom, Northern Ireland included."
+            "description": "The country as an ISO 3166-1 alpha-2 code, upper-case. `GB` is the United Kingdom,\nNorthern Ireland included."
           }
         },
         "description": "A stored address and the kinds of address it is for the organisation. Absent parts are omitted."

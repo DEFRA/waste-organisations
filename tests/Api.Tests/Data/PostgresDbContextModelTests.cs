@@ -47,7 +47,6 @@ public class PostgresDbContextModelTests
                     "postal_code",
                     "po_box",
                     "country_iso",
-                    "is_uk_address",
                     "created_at",
                     "updated_at",
                 ]
