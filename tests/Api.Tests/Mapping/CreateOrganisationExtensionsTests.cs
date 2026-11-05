@@ -13,11 +13,10 @@ namespace Defra.WasteOrganisations.Api.Tests.Mapping;
 // organisation's links back into one item per Address
 public class CreateOrganisationExtensionsTests
 {
-    private static readonly Guid OrganisationTypeId = Guid.Parse("00000000-0000-0000-0001-000000000002");
+    private static readonly Guid OrganisationTypeId = Guid.NewGuid();
 
     private static readonly IReadOnlyDictionary<AddressType, Guid> UsageTypeIds = Enum.GetValues<AddressType>()
-        .Select((kind, index) => (kind, id: Guid.Parse($"00000000-0000-0000-0002-00000000000{index + 1}")))
-        .ToDictionary(pair => pair.kind, pair => pair.id);
+        .ToDictionary(kind => kind, _ => Guid.NewGuid());
 
     [Fact]
     public void ToEntity_ShouldGenerateVersion7Ids()
