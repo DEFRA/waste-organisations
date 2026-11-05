@@ -465,6 +465,319 @@
     </rollback>
   </changeSet>
 
+  <!-- The 1.1 seed ids (00000000-0000-0000-0000-000000000001 and so on) are hand-made placeholders that read like test data.
+       They become random UUIDs generated once, so every environment holds the same ids (review of 5 November 2026).
+       No environment holds a row that references them yet, but the referencing column is re-pointed all the same,
+       with the foreign key dropped for the duration because the 1.1 key has no ON UPDATE action; nothing else reads
+       the ids, since the API looks the rows up by name -->
+  <changeSet id="1.2-address-usagetype-uuid-ids" author="waste-organisations">
+    <dropForeignKeyConstraint
+      baseTableName="organisation_address"
+      constraintName="fk_organisation_address_usage_type"
+    />
+    <!-- REGISTERED -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="2a6ac3fd-909c-4c4b-91ec-f750868b0226" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000001'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="2a6ac3fd-909c-4c4b-91ec-f750868b0226" />
+      <where>id = '00000000-0000-0000-0000-000000000001'</where>
+    </update>
+    <!-- AUDIT -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="0ed6d678-659f-41c7-9476-943ed8498905" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000002'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="0ed6d678-659f-41c7-9476-943ed8498905" />
+      <where>id = '00000000-0000-0000-0000-000000000002'</where>
+    </update>
+    <!-- SERVICE_OF_NOTICE -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="ae7439dd-dc19-45f8-b416-3cc7366bf454" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000003'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="ae7439dd-dc19-45f8-b416-3cc7366bf454" />
+      <where>id = '00000000-0000-0000-0000-000000000003'</where>
+    </update>
+    <!-- PRINCIPAL -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="73027738-fc6e-4c97-8b55-b9f404601616" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000004'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="73027738-fc6e-4c97-8b55-b9f404601616" />
+      <where>id = '00000000-0000-0000-0000-000000000004'</where>
+    </update>
+    <!-- CORRESPONDENCE -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="1649c05d-2fbd-408a-8ce1-b7a5c1bd4a05" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000005'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="1649c05d-2fbd-408a-8ce1-b7a5c1bd4a05" />
+      <where>id = '00000000-0000-0000-0000-000000000005'</where>
+    </update>
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_address_usage_type"
+      baseTableName="organisation_address"
+      baseColumnNames="usage_type_id"
+      referencedTableName="address_usagetype"
+      referencedColumnNames="id"
+      onDelete="RESTRICT"
+    />
+    <rollback>
+      <dropForeignKeyConstraint
+        baseTableName="organisation_address"
+        constraintName="fk_organisation_address_usage_type"
+      />
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000001" />
+        <where>usage_type_id = '2a6ac3fd-909c-4c4b-91ec-f750868b0226'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000001" />
+        <where>id = '2a6ac3fd-909c-4c4b-91ec-f750868b0226'</where>
+      </update>
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000002" />
+        <where>usage_type_id = '0ed6d678-659f-41c7-9476-943ed8498905'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000002" />
+        <where>id = '0ed6d678-659f-41c7-9476-943ed8498905'</where>
+      </update>
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000003" />
+        <where>usage_type_id = 'ae7439dd-dc19-45f8-b416-3cc7366bf454'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000003" />
+        <where>id = 'ae7439dd-dc19-45f8-b416-3cc7366bf454'</where>
+      </update>
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000004" />
+        <where>usage_type_id = '73027738-fc6e-4c97-8b55-b9f404601616'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000004" />
+        <where>id = '73027738-fc6e-4c97-8b55-b9f404601616'</where>
+      </update>
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000005" />
+        <where>usage_type_id = '1649c05d-2fbd-408a-8ce1-b7a5c1bd4a05'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000005" />
+        <where>id = '1649c05d-2fbd-408a-8ce1-b7a5c1bd4a05'</where>
+      </update>
+      <addForeignKeyConstraint
+        constraintName="fk_organisation_address_usage_type"
+        baseTableName="organisation_address"
+        baseColumnNames="usage_type_id"
+        referencedTableName="address_usagetype"
+        referencedColumnNames="id"
+        onDelete="RESTRICT"
+      />
+    </rollback>
+  </changeSet>
+
+  <!-- The same for the ten organisation types kept or added by the reseed above; the API looks them up by code -->
+  <changeSet id="1.2-organisation-type-uuid-ids" author="waste-organisations">
+    <dropForeignKeyConstraint baseTableName="organisation" constraintName="fk_organisation_organisation_type" />
+    <!-- LTD -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="9cf3982f-ef96-4fa7-baa7-7822429961a3" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000002'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="9cf3982f-ef96-4fa7-baa7-7822429961a3" />
+      <where>id = '00000000-0000-0000-0001-000000000002'</where>
+    </update>
+    <!-- PLC -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="f79e98f6-cb47-4b2a-9f97-fadb706e45f8" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000003'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="f79e98f6-cb47-4b2a-9f97-fadb706e45f8" />
+      <where>id = '00000000-0000-0000-0001-000000000003'</where>
+    </update>
+    <!-- LIMITED_PARTNERSHIP -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="93461ef5-47a9-4b5a-a816-4e4a6465833b" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000006'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="93461ef5-47a9-4b5a-a816-4e4a6465833b" />
+      <where>id = '00000000-0000-0000-0001-000000000006'</where>
+    </update>
+    <!-- LLP -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="debbc270-271b-46a3-912a-0e3d5d7d0a62" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000022'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="debbc270-271b-46a3-912a-0e3d5d7d0a62" />
+      <where>id = '00000000-0000-0000-0001-000000000022'</where>
+    </update>
+    <!-- CIC -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="f9f2493c-f2ce-40e0-9ed6-d038ae0c49c6" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000041'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="f9f2493c-f2ce-40e0-9ed6-d038ae0c49c6" />
+      <where>id = '00000000-0000-0000-0001-000000000041'</where>
+    </update>
+    <!-- SOLE_TRADER -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="cc6b2fe3-2c80-4d0a-89b0-ca76517dbfe9" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000037'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="cc6b2fe3-2c80-4d0a-89b0-ca76517dbfe9" />
+      <where>id = '00000000-0000-0000-0001-000000000037'</where>
+    </update>
+    <!-- PARTNERSHIP -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="9f2c42cd-cfee-4fba-8a18-b8861ee0f316" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000038'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="9f2c42cd-cfee-4fba-8a18-b8861ee0f316" />
+      <where>id = '00000000-0000-0000-0001-000000000038'</where>
+    </update>
+    <!-- REGISTERED_SOCIETY -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="3f764ec0-6a0a-4c32-8ec2-0790b246e62c" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000042'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="3f764ec0-6a0a-4c32-8ec2-0790b246e62c" />
+      <where>id = '00000000-0000-0000-0001-000000000042'</where>
+    </update>
+    <!-- CHARITABLE_ORGANISATION -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="79b976f8-8e05-470e-b1d5-1cb9dc9a36c3" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000043'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="79b976f8-8e05-470e-b1d5-1cb9dc9a36c3" />
+      <where>id = '00000000-0000-0000-0001-000000000043'</where>
+    </update>
+    <!-- OVERSEAS_ORGANISATION -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="146c1690-4443-41e9-add8-96df52420e34" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000044'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="146c1690-4443-41e9-add8-96df52420e34" />
+      <where>id = '00000000-0000-0000-0001-000000000044'</where>
+    </update>
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_organisation_type"
+      baseTableName="organisation"
+      baseColumnNames="organisation_type_id"
+      referencedTableName="organisation_type"
+      referencedColumnNames="id"
+      onDelete="RESTRICT"
+    />
+    <rollback>
+      <dropForeignKeyConstraint baseTableName="organisation" constraintName="fk_organisation_organisation_type" />
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000002" />
+        <where>organisation_type_id = '9cf3982f-ef96-4fa7-baa7-7822429961a3'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000002" />
+        <where>id = '9cf3982f-ef96-4fa7-baa7-7822429961a3'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000003" />
+        <where>organisation_type_id = 'f79e98f6-cb47-4b2a-9f97-fadb706e45f8'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000003" />
+        <where>id = 'f79e98f6-cb47-4b2a-9f97-fadb706e45f8'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000006" />
+        <where>organisation_type_id = '93461ef5-47a9-4b5a-a816-4e4a6465833b'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000006" />
+        <where>id = '93461ef5-47a9-4b5a-a816-4e4a6465833b'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000022" />
+        <where>organisation_type_id = 'debbc270-271b-46a3-912a-0e3d5d7d0a62'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000022" />
+        <where>id = 'debbc270-271b-46a3-912a-0e3d5d7d0a62'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000041" />
+        <where>organisation_type_id = 'f9f2493c-f2ce-40e0-9ed6-d038ae0c49c6'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000041" />
+        <where>id = 'f9f2493c-f2ce-40e0-9ed6-d038ae0c49c6'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000037" />
+        <where>organisation_type_id = 'cc6b2fe3-2c80-4d0a-89b0-ca76517dbfe9'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000037" />
+        <where>id = 'cc6b2fe3-2c80-4d0a-89b0-ca76517dbfe9'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000038" />
+        <where>organisation_type_id = '9f2c42cd-cfee-4fba-8a18-b8861ee0f316'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000038" />
+        <where>id = '9f2c42cd-cfee-4fba-8a18-b8861ee0f316'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000042" />
+        <where>organisation_type_id = '3f764ec0-6a0a-4c32-8ec2-0790b246e62c'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000042" />
+        <where>id = '3f764ec0-6a0a-4c32-8ec2-0790b246e62c'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000043" />
+        <where>organisation_type_id = '79b976f8-8e05-470e-b1d5-1cb9dc9a36c3'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000043" />
+        <where>id = '79b976f8-8e05-470e-b1d5-1cb9dc9a36c3'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000044" />
+        <where>organisation_type_id = '146c1690-4443-41e9-add8-96df52420e34'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000044" />
+        <where>id = '146c1690-4443-41e9-add8-96df52420e34'</where>
+      </update>
+      <addForeignKeyConstraint
+        constraintName="fk_organisation_organisation_type"
+        baseTableName="organisation"
+        baseColumnNames="organisation_type_id"
+        referencedTableName="organisation_type"
+        referencedColumnNames="id"
+        onDelete="RESTRICT"
+      />
+    </rollback>
+  </changeSet>
+
   <changeSet id="1.2-tag-v1.2.0" author="waste-organisations">
     <tagDatabase tag="v1.2.0" />
   </changeSet>
