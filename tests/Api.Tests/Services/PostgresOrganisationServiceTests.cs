@@ -20,10 +20,10 @@ namespace Defra.WasteOrganisations.Api.Tests.Services;
 // Api.IntegrationTests prove the queries and the race against Postgres
 public class PostgresOrganisationServiceTests
 {
-    private static readonly Guid OrganisationTypeId = Guid.NewGuid();
+    private static readonly Guid OrganisationTypeId = Guid.Parse("00000000-0000-0000-0001-000000000002");
 
     private static readonly IReadOnlyList<(Guid Id, string Name)> UsageTypes = Enum.GetValues<AddressType>()
-        .Select(kind => (Guid.NewGuid(), kind.ToJsonValue()))
+        .Select((kind, index) => (Guid.Parse($"00000000-0000-0000-0002-00000000000{index + 1}"), kind.ToJsonValue()))
         .ToList();
 
     private static readonly IReadOnlyDictionary<AddressType, Guid> UsageTypeIds = UsageTypes.ToDictionary(
