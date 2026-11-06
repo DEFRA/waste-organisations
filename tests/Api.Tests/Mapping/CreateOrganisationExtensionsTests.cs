@@ -15,7 +15,7 @@ public class CreateOrganisationExtensionsTests
 {
     private static readonly Guid OrganisationTypeId = Guid.NewGuid();
 
-    private static readonly IReadOnlyDictionary<AddressType, Guid> UsageTypeIds = Enum.GetValues<AddressType>()
+    private static readonly Dictionary<AddressType, Guid> UsageTypeIds = Enum.GetValues<AddressType>()
         .ToDictionary(kind => kind, _ => Guid.NewGuid());
 
     [Fact]

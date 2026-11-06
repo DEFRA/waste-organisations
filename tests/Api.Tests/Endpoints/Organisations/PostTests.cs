@@ -23,6 +23,10 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
     private const string MediaType = "application/vnd.defra.waste-organisations+json";
     private static readonly DateTime s_now = new(2026, 11, 4, 12, 0, 0, DateTimeKind.Utc);
 
+    // Shared rather than inline, since a constant array argument is allocated on every call (CA1861)
+    private static readonly string[] s_correspondence = ["CORRESPONDENCE"];
+    private static readonly string[] s_principal = ["PRINCIPAL"];
+
     private IPostgresOrganisationService MockOrganisationService { get; } =
         Substitute.For<IPostgresOrganisationService>();
 
@@ -68,7 +72,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
                 Address("REGISTERED", "PRINCIPAL"),
                 new
                 {
-                    addressTypes = new[] { "CORRESPONDENCE" },
+                    addressTypes = s_correspondence,
                     buildingName = "Tower",
                     street = "Main Road",
                     locality = "Dublin",
@@ -116,7 +120,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
                 Address("REGISTERED"),
                 new
                 {
-                    addressTypes = new[] { "CORRESPONDENCE" },
+                    addressTypes = s_correspondence,
                     buildingNumber = "1",
                     street = "Mill Lane",
                     locality = "Testville",
@@ -144,7 +148,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
                     {
                         new
                         {
-                            addressTypes = new[] { "PRINCIPAL" },
+                            addressTypes = s_principal,
                             buildingNumber = "12",
                             locality = "Testville",
                             postalCode = "AB1 2CD",

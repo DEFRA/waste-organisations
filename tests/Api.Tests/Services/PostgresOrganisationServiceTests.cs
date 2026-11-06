@@ -159,19 +159,23 @@ public class PostgresOrganisationServiceTests
         Context.Saves.Should().HaveCount(2);
     }
 
-    public static TheoryData<string, DbUpdateException> OtherFailures =>
-        new()
-        {
-            { "another unique index", UniqueViolation("ux_organisation_address_current") },
-            { "another error on ux_address_values", Failure(PostgresErrorCodes.CheckViolation, "ux_address_values") },
-            { "a foreign key", Failure(PostgresErrorCodes.ForeignKeyViolation, "fk_organisation_address_address") },
-            { "not from Postgres", new DbUpdateException("Failed") },
-        };
+    // Keyed by name, so the theory's data is a serialisable string and each row is listed on its
+    // own (xUnit1045); the exception is built in the test
+    private static readonly Dictionary<string, Func<DbUpdateException>> FailuresByName = new()
+    {
+        ["another unique index"] = () => UniqueViolation("ux_organisation_address_current"),
+        ["another error on ux_address_values"] = () => Failure(PostgresErrorCodes.CheckViolation, "ux_address_values"),
+        ["a foreign key"] = () => Failure(PostgresErrorCodes.ForeignKeyViolation, "fk_organisation_address_address"),
+        ["not from Postgres"] = () => new DbUpdateException("Failed"),
+    };
+
+    public static TheoryData<string> OtherFailures => [.. FailuresByName.Keys];
 
     [Theory]
     [MemberData(nameof(OtherFailures))]
-    public async Task CreateAsync_WhenAnythingElseFails_ShouldThrowWithoutRetrying(string _, DbUpdateException failure)
+    public async Task CreateAsync_WhenAnythingElseFails_ShouldThrowWithoutRetrying(string failureName)
     {
+        var failure = FailuresByName[failureName]();
         var organisation = NewOrganisation(Item([AddressType.Registered]));
         Context.Failures.Enqueue(failure);
 
