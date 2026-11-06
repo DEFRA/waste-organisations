@@ -20,11 +20,19 @@ public record OrganisationRequest : IValidatableObject
     internal const string OrganisationTypeMember = "organisationType";
     internal const string AddressesMember = "addresses";
 
+    // A cap on every free-text string, generous for any real name or address part. Without it a
+    // long enough address part makes its ux_address_values entry too large for Postgres, a 500;
+    // with it, realistic input stays well clear of that limit and oversize input is a 400 under
+    // its JSON path (review of 6 November 2026)
+    internal const int MaxTextLength = 255;
+    internal const string MaxTextLengthMessage = "The {0} field must be at most 255 characters.";
+
     /// <summary>
     /// The registered name. Required for a type registered at Companies House; optional otherwise.
     /// Must not be blank when present.
     /// </summary>
     [JsonPropertyName(NameMember)]
+    [MaxLength(MaxTextLength, ErrorMessage = MaxTextLengthMessage)]
     public string? Name { get; init; }
 
     /// <summary>
@@ -32,6 +40,7 @@ public record OrganisationRequest : IValidatableObject
     /// House; optional otherwise. Must not be blank when present.
     /// </summary>
     [JsonPropertyName(TradingNameMember)]
+    [MaxLength(MaxTextLength, ErrorMessage = MaxTextLengthMessage)]
     public string? TradingName { get; init; }
 
     /// <summary>

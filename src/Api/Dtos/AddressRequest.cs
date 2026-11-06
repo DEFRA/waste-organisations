@@ -34,39 +34,48 @@ public record AddressRequest : IValidatableObject
 
     /// <summary>A flat or unit within the building.</summary>
     [JsonPropertyName(SubBuildingNameMember)]
+    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     public string? SubBuildingName { get; init; }
 
     /// <summary>The name of the building.</summary>
     [JsonPropertyName(BuildingNameMember)]
+    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     public string? BuildingName { get; init; }
 
     /// <summary>The building number, which may hold letters or a range, such as <c>12A</c> or <c>3-5</c>.</summary>
     [JsonPropertyName(BuildingNumberMember)]
+    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     public string? BuildingNumber { get; init; }
 
     /// <summary>The street.</summary>
     [JsonPropertyName(StreetMember)]
+    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     [Required]
     public string? Street { get; init; }
 
     /// <summary>A PO box.</summary>
     [JsonPropertyName(PoBoxMember)]
+    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     public string? PoBox { get; init; }
 
     /// <summary>The town or city.</summary>
     [JsonPropertyName(LocalityMember)]
+    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     [Required]
     public string? Locality { get; init; }
 
     /// <summary>The county, state or province.</summary>
     [JsonPropertyName(RegionMember)]
+    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     public string? Region { get; init; }
 
     /// <summary>
     /// The postcode. Required when <c>countryIso</c> is <c>GB</c>; optional otherwise, because some
-    /// countries have no postcodes. Not checked against a format.
+    /// countries have no postcodes. Not checked against a format. Upper-cased, with each run of
+    /// whitespace inside it made one space, before it is stored and compared with stored addresses.
     /// </summary>
     [JsonPropertyName(PostalCodeMember)]
+    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     public string? PostalCode { get; init; }
 
     /// <summary>

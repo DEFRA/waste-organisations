@@ -225,8 +225,9 @@ public class CreateOrganisationTests : IntegrationTestBase
         stored.TradingName.Should().Be("Acme Skips");
     }
 
-    // Strings are trimmed, and the Companies House number and country code upper-cased, before
-    // they are stored and returned; other parts keep their case
+    // Strings are trimmed, the Companies House number, country code and postcode upper-cased, and
+    // the postcode's inner whitespace collapsed, before they are stored and returned; other parts
+    // keep their case
     [Fact]
     public async Task Values_ShouldBeTrimmedAndUpperCased()
     {
@@ -249,7 +250,7 @@ public class CreateOrganisationTests : IntegrationTestBase
                         street = $"  High Street {suffix} ",
                         locality = " Testville ",
                         region = "   ",
-                        postalCode = " ab1 2cd ",
+                        postalCode = " ab1   2cd ",
                         countryIso = " gb ",
                     },
                 },
@@ -267,6 +268,7 @@ public class CreateOrganisationTests : IntegrationTestBase
         created.RegulatorNation.Should().Be(RegulatorNation.NorthernIreland);
         created.OrganisationType.Should().Be("LTD");
         created.Addresses[0].Street.Should().Be($"High Street {suffix}");
+        created.Addresses[0].PostalCode.Should().Be("AB1 2CD");
         created.Addresses[0].CountryIso.Should().Be("GB");
 
         var stored = await ReadStoredAsync(created.Id);
@@ -279,7 +281,7 @@ public class CreateOrganisationTests : IntegrationTestBase
         address.Street.Should().Be($"High Street {suffix}");
         address.Locality.Should().Be("Testville");
         address.Region.Should().BeNull();
-        address.PostalCode.Should().Be("ab1 2cd");
+        address.PostalCode.Should().Be("AB1 2CD");
         address.CountryIso.Should().Be("GB");
     }
 

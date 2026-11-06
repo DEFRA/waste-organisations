@@ -110,8 +110,30 @@ public class CreateOrganisationExtensionsTests
         addresses.Select(a => a.Street).Should().Equal("High Street", "HIGH STREET");
     }
 
+    // The postcode alone is upper-cased and has its inner whitespace collapsed, so it merges
+    // where the other parts would not (review of 6 November 2026)
     [Fact]
-    public void ToEntity_ShouldTrimEveryStringAndUpperCaseTheNumberAndCountry()
+    public void ToEntity_WithPostcodesDifferingOnlyInCaseOrSpacing_ShouldMergeThem()
+    {
+        var organisation = Request(
+                Item([AddressType.Registered]),
+                Item([AddressType.Principal]) with
+                {
+                    PostalCode = "ab1 2cd",
+                },
+                Item([AddressType.Correspondence]) with
+                {
+                    PostalCode = " AB1   2CD ",
+                }
+            )
+            .ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        var address = organisation.Addresses.Select(link => link.Address).Distinct().Should().ContainSingle().Subject;
+        address.PostalCode.Should().Be("AB1 2CD");
+    }
+
+    [Fact]
+    public void ToEntity_ShouldTrimEveryStringAndUpperCaseTheNumberCountryAndPostcode()
     {
         var request = Request(
             new AddressRequest
@@ -123,7 +145,7 @@ public class CreateOrganisationExtensionsTests
                 Street = " High Street ",
                 Locality = " Testville ",
                 Region = " Testshire ",
-                PostalCode = " AB1 2CD ",
+                PostalCode = " ab1\t 2cd ",
                 PoBox = " PO Box 99 ",
                 CountryIso = " gb ",
             }

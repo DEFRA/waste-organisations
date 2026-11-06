@@ -109,6 +109,7 @@
             "description": "Every kind of address this is, each at most once. One item may list all five kinds."
           },
           "subBuildingName": {
+            "maxLength": 255,
             "type": [
               "null",
               "string"
@@ -116,6 +117,7 @@
             "description": "A flat or unit within the building."
           },
           "buildingName": {
+            "maxLength": 255,
             "type": [
               "null",
               "string"
@@ -123,6 +125,7 @@
             "description": "The name of the building."
           },
           "buildingNumber": {
+            "maxLength": 255,
             "type": [
               "null",
               "string"
@@ -130,10 +133,12 @@
             "description": "The building number, which may hold letters or a range, such as `12A` or `3-5`."
           },
           "street": {
+            "maxLength": 255,
             "type": "string",
             "description": "The street."
           },
           "poBox": {
+            "maxLength": 255,
             "type": [
               "null",
               "string"
@@ -141,10 +146,12 @@
             "description": "A PO box."
           },
           "locality": {
+            "maxLength": 255,
             "type": "string",
             "description": "The town or city."
           },
           "region": {
+            "maxLength": 255,
             "type": [
               "null",
               "string"
@@ -152,11 +159,12 @@
             "description": "The county, state or province."
           },
           "postalCode": {
+            "maxLength": 255,
             "type": [
               "null",
               "string"
             ],
-            "description": "The postcode. Required when `countryIso` is `GB`; optional otherwise, because some\ncountries have no postcodes. Not checked against a format."
+            "description": "The postcode. Required when `countryIso` is `GB`; optional otherwise, because some\ncountries have no postcodes. Not checked against a format. Upper-cased, with each run of\nwhitespace inside it made one space, before it is stored and compared with stored addresses."
           },
           "countryIso": {
             "type": "string",
@@ -341,6 +349,7 @@
         "type": "object",
         "properties": {
           "name": {
+            "maxLength": 255,
             "type": [
               "null",
               "string"
@@ -348,6 +357,7 @@
             "description": "The registered name. Required for a type registered at Companies House; optional otherwise.\nMust not be blank when present."
           },
           "tradingName": {
+            "maxLength": 255,
             "type": [
               "null",
               "string"

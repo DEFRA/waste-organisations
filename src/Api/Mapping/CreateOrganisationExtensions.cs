@@ -15,7 +15,8 @@ public static class CreateOrganisationExtensions
 {
     /// <summary>
     /// Builds the organisation to store from a validated request. Every string is trimmed,
-    /// <c>companiesHouseNumber</c> and <c>countryIso</c> are upper-cased, and a blank optional part
+    /// <c>companiesHouseNumber</c> and <c>countryIso</c> are upper-cased, <c>postalCode</c> is
+    /// upper-cased with each run of whitespace inside it made one space, and a blank optional part
     /// becomes null. Items holding the same nine normalised address parts share one
     /// <see cref="Address"/>, since an address is stored once (spec 0005, Shared addresses); each
     /// kind of each item becomes one <see cref="OrganisationAddress"/>, in request order, holding
@@ -126,7 +127,7 @@ public static class CreateOrganisationExtensions
             PoBox = Normalise(item.PoBox),
             Locality = Normalise(item.Locality),
             Region = Normalise(item.Region),
-            PostalCode = Normalise(item.PostalCode),
+            PostalCode = NormalisePostalCode(item.PostalCode),
             CountryIso = Normalise(item.CountryIso)?.ToUpperInvariant(),
         };
 
@@ -147,6 +148,13 @@ public static class CreateOrganisationExtensions
         };
 
     private static string? Normalise(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    // Postcodes are where case and spacing differ most between clients, so `sw1a  1aa` and
+    // `SW1A 1AA` are stored as one address (review of 6 November 2026)
+    private static string? NormalisePostalCode(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? null
+            : string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
 
     // Npgsql reads timestamptz as UTC, and TimestampInterceptor writes UTC; the kind is set
     // explicitly so an unspecified kind is never taken as local time

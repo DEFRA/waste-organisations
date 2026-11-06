@@ -524,6 +524,67 @@ public class CreateOrganisationRequestValidatorTests
         errors.Keys.Should().BeEquivalentTo("organisation.addresses[0].street", "organisation.tradingName");
     }
 
+    // Every free-text string is capped at 255 characters (review of 6 November 2026)
+    [Fact]
+    public void Validate_FreeTextAt255Characters_ShouldBeAccepted()
+    {
+        var text = new string('a', 255);
+
+        Validate(WithEveryFreeText(Ltd(), text)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Validate_FreeTextOver255Characters_ShouldReportEachField()
+    {
+        var text = new string('a', 256);
+
+        var errors = Validate(WithEveryFreeText(Ltd(), text));
+
+        string[] members =
+        [
+            "organisation.name",
+            "organisation.tradingName",
+            "organisation.addresses[0].subBuildingName",
+            "organisation.addresses[0].buildingName",
+            "organisation.addresses[0].buildingNumber",
+            "organisation.addresses[0].street",
+            "organisation.addresses[0].poBox",
+            "organisation.addresses[0].locality",
+            "organisation.addresses[0].region",
+            "organisation.addresses[0].postalCode",
+        ];
+        errors
+            .Should()
+            .BeEquivalentTo(
+                members.ToDictionary(
+                    member => member,
+                    member =>
+                        new[] { $"The {member[(member.LastIndexOf('.') + 1)..]} field must be at most 255 characters." }
+                )
+            );
+    }
+
+    private static OrganisationRequest WithEveryFreeText(OrganisationRequest organisation, string text) =>
+        organisation with
+        {
+            Name = text,
+            TradingName = text,
+            Addresses =
+            [
+                Address(AddressType.Registered) with
+                {
+                    SubBuildingName = text,
+                    BuildingName = text,
+                    BuildingNumber = text,
+                    Street = text,
+                    PoBox = text,
+                    Locality = text,
+                    Region = text,
+                    PostalCode = text,
+                },
+            ],
+        };
+
     [Fact]
     public void Validate_NullAddressItem_ShouldReportTheItem()
     {
