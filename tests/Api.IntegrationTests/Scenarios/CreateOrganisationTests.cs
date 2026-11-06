@@ -492,45 +492,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         (await CountAddressesAsync(suffix)).Should().Be(2);
     }
 
-    // Two requests with the same new address at once may both miss the look-up; the later insert
-    // then fails on ux_address_values and the service retries it once, finding the row. Whether
-    // the race happens or not, both succeed and the address is stored once
-    [Fact]
-    public async Task SameNewAddressSentConcurrently_ShouldBothCreateAndStoreOneAddress()
-    {
-        var suffix = NewSuffix();
-
-        var responses = await Task.WhenAll(
-            PostAsync(Ltd(Address(suffix, "REGISTERED"))),
-            PostAsync(Ltd(Address(suffix, "REGISTERED")))
-        );
-
-        foreach (var response in responses)
-        {
-            var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-            response.StatusCode.Should().Be(HttpStatusCode.Created, content);
-        }
-
-        var ids = new List<Guid>();
-        foreach (var response in responses)
-        {
-            var created = await ReadOrganisationAsync(response);
-            ids.Add(created.Id);
-
-            // The create that lost the race is retried with its timestamps unset, so the three are
-            // still one instant (spec 0005, Persistence)
-            created.CreatedAt.Should().Be(created.ValidFrom);
-            created.UpdatedAt.Should().Be(created.ValidFrom);
-        }
-        ids.Should().OnlyHaveUniqueItems();
-
-        var addressIds = new List<Guid>();
-        foreach (var id in ids)
-            addressIds.Add((await ReadStoredAsync(id)).Addresses.Single().AddressId);
-        addressIds.Distinct().Should().ContainSingle();
-        (await CountAddressesAsync(suffix)).Should().Be(1);
-    }
-
     // Unique per test and per run, so a test never meets an address row another stored
     private static string NewSuffix() => Guid.NewGuid().ToString("N")[..12];
 

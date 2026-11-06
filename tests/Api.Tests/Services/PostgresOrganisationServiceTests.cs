@@ -17,7 +17,8 @@ namespace Defra.WasteOrganisations.Api.Tests.Services;
 // attaching and adding open no connection, the save is faked and the look-ups are stubbed. What
 // matters here is what is tracked at each save, which decides what EF Core would insert: a stored
 // address must be Unchanged, never re-inserted, and only a ux_address_values race is retried.
-// Api.IntegrationTests prove the queries and the race against Postgres
+// Api.IntegrationTests prove the queries against Postgres, and the race with a look-up made to
+// miss a stored address (Services/PostgresOrganisationServiceTests)
 public class PostgresOrganisationServiceTests
 {
     private static readonly Guid OrganisationTypeId = Guid.NewGuid();
