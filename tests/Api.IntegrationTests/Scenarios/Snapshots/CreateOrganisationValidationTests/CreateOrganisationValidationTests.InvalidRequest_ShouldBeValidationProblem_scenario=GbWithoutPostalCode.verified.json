@@ -1,0 +1,11 @@
+﻿{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "organisation.addresses[1].postalCode": [
+      "The postalCode field is required when countryIso is GB."
+    ]
+  },
+  "traceId": "{Scrubbed}"
+}

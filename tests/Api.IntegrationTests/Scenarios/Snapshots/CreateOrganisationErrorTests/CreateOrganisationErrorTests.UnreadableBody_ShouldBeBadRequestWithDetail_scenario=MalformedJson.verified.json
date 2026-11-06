@@ -1,0 +1,7 @@
+﻿{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Failed to read parameter \"CreateOrganisationRequest request\" from the request body as JSON. - Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $.organisation | LineNumber: 0 | BytePositionInLine: 281. $.organisation",
+  "traceId": "{Scrubbed}"
+}

@@ -1,0 +1,23 @@
+﻿{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "organisation.regulatorNation": [
+      "The regulatorNation field must be one of GB-ENG, GB-SCT, GB-WLS, GB-NIR."
+    ],
+    "organisation.tradingName": [
+      "The tradingName field is required for organisation type SOLE_TRADER."
+    ],
+    "organisation.companiesHouseNumber": [
+      "The companiesHouseNumber field must be absent for organisation type SOLE_TRADER."
+    ],
+    "organisation.addresses[0].street": [
+      "The street field is required."
+    ],
+    "organisation.addresses[1].postalCode": [
+      "The postalCode field is required when countryIso is GB."
+    ]
+  },
+  "traceId": "{Scrubbed}"
+}

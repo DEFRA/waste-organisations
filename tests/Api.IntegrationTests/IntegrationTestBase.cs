@@ -37,15 +37,19 @@ public abstract class IntegrationTestBase
         return services.AddPostgres(configuration).BuildServiceProvider();
     }
 
-    protected static HttpClient CreateClient()
+    // See compose.yml for configuration of IntegrationTest client, which has read and write
+    protected static HttpClient CreateClient() => CreateClient("IntegrationTest");
+
+    // A client named in compose.yml's Acl__Clients, or no Authorization header when null
+    protected static HttpClient CreateClient(string? clientId)
     {
         var client = new HttpClient { BaseAddress = new Uri("http://localhost:8080") };
 
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            JwtAuthenticationHandler.SchemeName,
-            // See compose.yml for configuration of IntegrationTest client
-            GenerateJwt("IntegrationTest")
-        );
+        if (clientId is not null)
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                JwtAuthenticationHandler.SchemeName,
+                GenerateJwt(clientId)
+            );
 
         return client;
     }

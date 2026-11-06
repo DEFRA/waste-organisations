@@ -1,0 +1,14 @@
+﻿{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "organisation.addresses": [
+      "The addresses field must hold at most five items."
+    ],
+    "organisation.addresses[5].addressTypes": [
+      "The addressTypes field must not repeat CORRESPONDENCE, which addresses[4] already carries."
+    ]
+  },
+  "traceId": "{Scrubbed}"
+}

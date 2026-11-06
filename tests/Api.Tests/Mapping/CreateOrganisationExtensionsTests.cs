@@ -1,0 +1,367 @@
+using System.Text.Json;
+using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
+using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Mapping;
+using Address = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Address;
+using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organisation;
+
+namespace Defra.WasteOrganisations.Api.Tests.Mapping;
+
+// An address is stored once and shared (spec 0005, Shared addresses), so the mapping merges request
+// items holding the same nine normalised parts into one Address and the response splits the
+// organisation's links back into one item per Address
+public class CreateOrganisationExtensionsTests
+{
+    private static readonly Guid OrganisationTypeId = Guid.NewGuid();
+
+    private static readonly Dictionary<AddressType, Guid> UsageTypeIds = Enum.GetValues<AddressType>()
+        .ToDictionary(kind => kind, _ => Guid.NewGuid());
+
+    [Fact]
+    public void ToEntity_ShouldGenerateVersion7Ids()
+    {
+        var organisation = Request(Item([AddressType.Registered])).ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.Id.Version.Should().Be(7);
+        organisation.Addresses.Should().ContainSingle().Which.Id.Version.Should().Be(7);
+        organisation.Addresses[0].Address.Id.Version.Should().Be(7);
+    }
+
+    [Fact]
+    public void ToEntity_ShouldSetTheOrganisationTypeAndUsageTypeIds()
+    {
+        var organisation = Request(Item([AddressType.Registered, AddressType.Audit]))
+            .ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.OrganisationTypeId.Should().Be(OrganisationTypeId);
+        organisation
+            .Addresses.Select(link => link.UsageTypeId)
+            .Should()
+            .Equal(UsageTypeIds[AddressType.Registered], UsageTypeIds[AddressType.Audit]);
+        organisation.Addresses.Should().AllSatisfy(link => link.OrganisationId.Should().Be(organisation.Id));
+    }
+
+    [Fact]
+    public void ToEntity_WithTwoItemsHoldingTheSameAddress_ShouldGiveOneAddressAndTheLinksOfBoth()
+    {
+        var organisation = Request(
+                Item([AddressType.Registered, AddressType.Principal]),
+                Item([AddressType.Correspondence]),
+                Item([AddressType.Audit])
+            )
+            .ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.Addresses.Should().HaveCount(4);
+        organisation.Addresses.Select(link => link.Address).Distinct().Should().ContainSingle();
+        organisation
+            .Addresses.Should()
+            .AllSatisfy(link => link.AddressId.Should().Be(organisation.Addresses[0].Address.Id));
+        organisation
+            .Addresses.Select(link => link.UsageTypeId)
+            .Should()
+            .Equal(
+                UsageTypeIds[AddressType.Registered],
+                UsageTypeIds[AddressType.Principal],
+                UsageTypeIds[AddressType.Correspondence],
+                UsageTypeIds[AddressType.Audit]
+            );
+    }
+
+    [Fact]
+    public void ToEntity_WithBlankAndAbsentRegion_ShouldGiveOneAddress()
+    {
+        var organisation = Request(
+                Item([AddressType.Registered]) with
+                {
+                    Region = "   ",
+                },
+                Item([AddressType.Correspondence]) with
+                {
+                    Region = null,
+                }
+            )
+            .ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.Addresses.Select(link => link.Address).Distinct().Should().ContainSingle();
+        organisation.Addresses[0].Address.Region.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToEntity_WithWhitespaceOrCaseDifferingInOnePart_ShouldMergeOnlyTheTrimmedEqualOnes()
+    {
+        var organisation = Request(
+                Item([AddressType.Registered]),
+                Item([AddressType.Principal]) with
+                {
+                    Street = "  High Street  ",
+                },
+                Item([AddressType.Correspondence]) with
+                {
+                    Street = "HIGH STREET",
+                }
+            )
+            .ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        // Trimming makes the first two the same; case is part of the address (spec 0005, Address
+        // equality), so the third is another address
+        var addresses = organisation.Addresses.Select(link => link.Address).Distinct().ToList();
+        addresses.Should().HaveCount(2);
+        addresses.Select(a => a.Street).Should().Equal("High Street", "HIGH STREET");
+    }
+
+    // The postcode alone is upper-cased and has its inner whitespace collapsed, so it merges
+    // where the other parts would not (review of 6 November 2026)
+    [Fact]
+    public void ToEntity_WithPostcodesDifferingOnlyInCaseOrSpacing_ShouldMergeThem()
+    {
+        var organisation = Request(
+                Item([AddressType.Registered]),
+                Item([AddressType.Principal]) with
+                {
+                    PostalCode = "ab1 2cd",
+                },
+                Item([AddressType.Correspondence]) with
+                {
+                    PostalCode = " AB1   2CD ",
+                }
+            )
+            .ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        var address = organisation.Addresses.Select(link => link.Address).Distinct().Should().ContainSingle().Subject;
+        address.PostalCode.Should().Be("AB1 2CD");
+    }
+
+    [Fact]
+    public void ToEntity_ShouldTrimEveryStringAndUpperCaseTheNumberCountryAndPostcode()
+    {
+        var request = Request(
+            new AddressRequest
+            {
+                AddressTypes = [AddressType.Registered],
+                SubBuildingName = " Unit 4 ",
+                BuildingName = " Mill House ",
+                BuildingNumber = " 12A ",
+                Street = " High Street ",
+                Locality = " Testville ",
+                Region = " Testshire ",
+                PostalCode = " ab1\t 2cd ",
+                PoBox = " PO Box 99 ",
+                CountryIso = " gb ",
+            }
+        ) with
+        {
+            Name = " Acme Waste Ltd ",
+            TradingName = " Acme ",
+            CompaniesHouseNumber = " sc123456 ",
+            RegulatorNation = " GB-SCT ",
+        };
+
+        var organisation = request.ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.Name.Should().Be("Acme Waste Ltd");
+        organisation.TradingName.Should().Be("Acme");
+        organisation.CompaniesHouseNumber.Should().Be("SC123456");
+        organisation.RegulatorNation.Should().Be("GB-SCT");
+
+        var address = organisation.Addresses[0].Address;
+        address.SubBuildingName.Should().Be("Unit 4");
+        address.BuildingName.Should().Be("Mill House");
+        address.BuildingNumber.Should().Be("12A");
+        address.Street.Should().Be("High Street");
+        address.Locality.Should().Be("Testville");
+        address.Region.Should().Be("Testshire");
+        address.PostalCode.Should().Be("AB1 2CD");
+        address.PoBox.Should().Be("PO Box 99");
+        address.CountryIso.Should().Be("GB");
+    }
+
+    [Fact]
+    public void ToEntity_ShouldStoreBlankOptionalPartsAsNull()
+    {
+        var request = Request(
+            Item([AddressType.Principal]) with
+            {
+                SubBuildingName = "",
+                BuildingName = " ",
+                PoBox = "\t",
+                Region = "",
+            }
+        ) with
+        {
+            Name = null,
+            TradingName = "Acme",
+            CompaniesHouseNumber = null,
+        };
+
+        var organisation = request.ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.Name.Should().BeNull();
+        organisation.CompaniesHouseNumber.Should().BeNull();
+
+        var address = organisation.Addresses[0].Address;
+        address.SubBuildingName.Should().BeNull();
+        address.BuildingName.Should().BeNull();
+        address.PoBox.Should().BeNull();
+        address.Region.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToEntity_WithAKindThatHasNoUsageTypeId_ShouldThrow()
+    {
+        var usageTypeIds = UsageTypeIds
+            .Where(pair => pair.Key != AddressType.Audit)
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+        var act = () => Request(Item([AddressType.Audit])).ToEntity(OrganisationTypeId, usageTypeIds);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*AUDIT*");
+    }
+
+    [Fact]
+    public void ToResponse_WithTwoLinksToOneAddress_ShouldGiveOneItemWithBothKindsInOrder()
+    {
+        var shared = StoredAddress("12A", "High Street");
+        var other = StoredAddress("12", "Harbour Road");
+        var organisation = StoredOrganisation((shared, "REGISTERED"), (other, "CORRESPONDENCE"), (shared, "PRINCIPAL"));
+
+        var addresses = organisation.ToResponse().Organisation.Addresses;
+
+        addresses.Should().HaveCount(2);
+        addresses[0].AddressTypes.Should().Equal(AddressType.Registered, AddressType.Principal);
+        addresses[0].Street.Should().Be("High Street");
+        addresses[1].AddressTypes.Should().Equal(AddressType.Correspondence);
+        addresses[1].Street.Should().Be("Harbour Road");
+    }
+
+    [Fact]
+    public void ToResponse_ShouldMapTheOrganisationAndBuildTheAddressLine()
+    {
+        var createdAt = new DateTime(2026, 11, 2, 10, 15, 30, 123, DateTimeKind.Utc);
+        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        organisation.ValidFrom = createdAt;
+        organisation.CreatedAt = createdAt;
+        organisation.UpdatedAt = createdAt;
+
+        var response = organisation.ToResponse().Organisation;
+
+        response.Id.Should().Be(organisation.Id);
+        response.Name.Should().Be("Acme Waste Ltd");
+        response.CompaniesHouseNumber.Should().Be("12345678");
+        response.RegulatorNation.Should().Be(RegulatorNation.England);
+        response.OrganisationType.Should().Be("LTD");
+        response.ValidFrom.Should().Be(new DateTimeOffset(createdAt));
+        response.ValidFrom.Offset.Should().Be(TimeSpan.Zero);
+        response.ValidTo.Should().BeNull();
+        response.CreatedAt.Should().Be(new DateTimeOffset(createdAt));
+        response.UpdatedAt.Should().Be(new DateTimeOffset(createdAt));
+        response.Addresses[0].AddressLine.Should().Be("12A High Street, Testville, AB1 2CD");
+        response.Addresses[0].CountryIso.Should().Be("GB");
+    }
+
+    [Fact]
+    public void ToResponse_WithAnUnspecifiedKind_ShouldTreatTheTimestampAsUtc()
+    {
+        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        organisation.CreatedAt = new DateTime(2026, 11, 2, 10, 15, 30, DateTimeKind.Unspecified);
+
+        organisation
+            .ToResponse()
+            .Organisation.CreatedAt.Should()
+            .Be(new DateTimeOffset(2026, 11, 2, 10, 15, 30, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public void ToResponse_WithoutTheOrganisationType_ShouldThrow()
+    {
+        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        organisation.OrganisationType = null;
+
+        var act = () => organisation.ToResponse();
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void ToResponse_WhenSerialised_ShouldOmitNullMembers()
+    {
+        var organisation = StoredOrganisation((StoredAddress("12", "Harbour Road"), "PRINCIPAL"));
+        organisation.Name = null;
+        organisation.CompaniesHouseNumber = null;
+        organisation.TradingName = "Acme";
+
+        var json = JsonSerializer.SerializeToElement(organisation.ToResponse());
+
+        var body = json.GetProperty("organisation");
+        body.TryGetProperty("name", out _).Should().BeFalse();
+        body.TryGetProperty("companiesHouseNumber", out _).Should().BeFalse();
+        body.TryGetProperty("validTo", out _).Should().BeFalse();
+        body.GetProperty("tradingName").GetString().Should().Be("Acme");
+        body.GetProperty("regulatorNation").GetString().Should().Be("GB-ENG");
+
+        var address = body.GetProperty("addresses")[0];
+        address.TryGetProperty("subBuildingName", out _).Should().BeFalse();
+        address.TryGetProperty("region", out _).Should().BeFalse();
+        address.GetProperty("addressTypes")[0].GetString().Should().Be("PRINCIPAL");
+        address.GetProperty("street").GetString().Should().Be("Harbour Road");
+    }
+
+    private static OrganisationRequest Request(params AddressRequest[] items) =>
+        new()
+        {
+            Name = "Acme Waste Ltd",
+            CompaniesHouseNumber = "12345678",
+            RegulatorNation = "GB-ENG",
+            OrganisationType = "LTD",
+            Addresses = [.. items],
+        };
+
+    private static AddressRequest Item(List<AddressType> addressTypes) =>
+        new()
+        {
+            AddressTypes = addressTypes,
+            BuildingNumber = "12A",
+            Street = "High Street",
+            Locality = "Testville",
+            PostalCode = "AB1 2CD",
+            CountryIso = "GB",
+        };
+
+    private static Address StoredAddress(string buildingNumber, string street) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(),
+            BuildingNumber = buildingNumber,
+            Street = street,
+            Locality = "Testville",
+            PostalCode = "AB1 2CD",
+            CountryIso = "GB",
+        };
+
+    private static Organisation StoredOrganisation(params (Address Address, string UsageType)[] links)
+    {
+        var organisation = new Organisation
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "Acme Waste Ltd",
+            CompaniesHouseNumber = "12345678",
+            RegulatorNation = "GB-ENG",
+            OrganisationTypeId = OrganisationTypeId,
+            OrganisationType = new OrganisationType { Id = OrganisationTypeId, Code = "LTD" },
+        };
+
+        foreach (var (address, usageType) in links)
+            organisation.Addresses.Add(
+                new OrganisationAddress
+                {
+                    Id = Guid.CreateVersion7(),
+                    Organisation = organisation,
+                    Address = address,
+                    AddressId = address.Id,
+                    UsageType = new AddressUsageType { Id = Guid.NewGuid(), Name = usageType },
+                }
+            );
+
+        return organisation;
+    }
+}

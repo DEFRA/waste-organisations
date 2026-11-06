@@ -25,4 +25,12 @@ public sealed class ApiVersionsMetadata
     /// <summary>The versions an endpoint supports: those it declares, or <see cref="Default"/>.</summary>
     public static IReadOnlySet<int> For(Endpoint endpoint) =>
         endpoint.Metadata.GetMetadata<ApiVersionsMetadata>()?.Versions ?? Default;
+
+    /// <summary>
+    /// The versions an endpoint with this metadata supports, for callers that hold the metadata but no
+    /// <see cref="Endpoint"/>, such as the OpenAPI document filter. Like
+    /// <see cref="EndpointMetadataCollection.GetMetadata{T}"/>, the last declaration wins.
+    /// </summary>
+    public static IReadOnlySet<int> For(IEnumerable<object> metadata) =>
+        metadata.OfType<ApiVersionsMetadata>().LastOrDefault()?.Versions ?? Default;
 }

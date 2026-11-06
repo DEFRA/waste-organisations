@@ -84,6 +84,10 @@ A version an endpoint does not support, or a malformed or ambiguous `version`, g
 
 An endpoint supports v1 only unless it declares otherwise. To support additional versions, add `.WithApiVersions(1, 2)` next to the endpoint's other `.With...`/`.Produces...` calls. Two endpoints may share a path and HTTP method when they declare different versions: `Defra.WasteOrganisations.Api.Versioning.ApiVersionMatcherPolicy` picks the one for the requested version during routing, and a v1 request only ever sees v1 endpoints. The check itself lives in one middleware (`Defra.WasteOrganisations.Api.Versioning.ApiVersioningMiddleware`), registered straight after `app.UseAuthorization()`, and applies to every endpoint except `/health`, `/health/*`, `/openapi/*`, `/redoc` and `/redoc/*`. Routing's own answers are not versioned: an unknown path is `404` and a method no endpoint answers is `405`, whatever version is asked for. See [specs/0004-REGEN-167-implement-header-based-api-versioning.md](specs/0004-REGEN-167-implement-header-based-api-versioning.md) for the full design.
 
+### API v2
+
+v2 has one endpoint, `POST /organisations`, which creates an organisation in Postgres. Send `Accept: application/vnd.defra.waste-organisations+json; version=2` to reach it: without `version=2` the request is routed as v1, which has no `POST /organisations`, so it gets `405 Method Not Allowed` with `Allow: GET`. A version above 2 gets `406`. The v2 OpenAPI document is at `/openapi/v2.json` (v1 stays at `/openapi/v1.json`). The ReDoc page at `/redoc/index.html` has a version dropdown that switches between the two documents, and `/redoc/index.html?spec=v2` opens it on v2. See [specs/0005-REGEN-141-create-an-organisation.md](specs/0005-REGEN-141-create-an-organisation.md) for the full design.
+
 ## Tests
 
 Tests with the `IntegrationTests` trait require additional local dependencies - either the API running in Docker, or the API running via .NET with Mongo, Postgres and Liquibase started in Docker.

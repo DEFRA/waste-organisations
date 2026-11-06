@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>%(DocumentTitle)</title>
+    <!-- needed for adaptive design -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+
+    <!--
+    Redoc doesn't change outer page styles
+    -->
+    <link href="index.css" rel="stylesheet" type="text/css">
+    <style>
+        .version-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            font-family: Roboto, sans-serif;
+            font-size: 14px;
+        }
+    </style>
+    %(HeadContent)
+</head>
+<body>
+    <!--
+    Copied from the default template of Swashbuckle.AspNetCore.ReDoc 10.3.1, with a version dropdown added.
+    Open-source ReDoc renders one document per page, so the page renders the document picked in the dropdown.
+    The documents come from window.openApiDocuments, set by Program.cs through ReDocOptions.HeadContent.
+    -->
+    <div class="version-bar">
+        <label for="version-select">API version</label>
+        <select id="version-select"></select>
+    </div>
+    <div id="redoc-container"></div>
+    <!-- The two JSON placeholders live in a JSON block, not in the script, so the script is valid JavaScript before substitution -->
+    <script id="redoc-settings" type="application/json">{ "specUrl": %(SpecUrl), "config": %(ConfigObject) }</script>
+    <script src="redoc.standalone.js"></script>
+    <script>
+        (function () {
+            var settings = JSON.parse(document.getElementById("redoc-settings").textContent);
+            var specUrl = settings.specUrl;
+            var config = settings.config;
+            var documents = window.openApiDocuments || [{ name: "default", url: specUrl }];
+            var select = document.getElementById("version-select");
+
+            documents.forEach(function (doc) {
+                var option = document.createElement("option");
+                option.value = doc.name;
+                option.textContent = doc.name;
+                select.appendChild(option);
+            });
+
+            function find(name) {
+                return documents.find(function (doc) { return doc.name === name; });
+            }
+
+            function render(doc) {
+                // Redoc.init creates a new React root on every call, so each document gets a fresh container
+                var container = document.getElementById("redoc-container");
+                var fresh = document.createElement("div");
+                fresh.id = container.id;
+                container.parentNode.replaceChild(fresh, container);
+                // Redoc is the global that redoc.standalone.js defines
+                window.Redoc.init(doc.url, config, fresh);
+            }
+
+            var requested = find(new URLSearchParams(window.location.search).get("spec"));
+            var initial = requested || documents.find(function (doc) { return doc.url === specUrl; }) || documents[0];
+
+            select.value = initial.name;
+            render(initial);
+
+            select.addEventListener("change", function () {
+                var doc = find(select.value);
+                // Written back to the query string so a version can be linked to; the anchor belongs to the previous document
+                var url = new URL(window.location.href);
+                url.searchParams.set("spec", doc.name);
+                url.hash = "";
+                window.history.replaceState(null, "", url);
+                window.scrollTo(0, 0);
+                render(doc);
+            });
+        })();
+    </script>
+</body>
+</html>
