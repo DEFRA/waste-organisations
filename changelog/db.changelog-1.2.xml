@@ -5,7 +5,9 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
 >
   <!-- A sole trader or partnership has no registered name, only a trading name. The check is the API rule in the
-       database's terms: a non-blank name, or no Companies House number and a non-blank trading name -->
+       database's terms: a non-blank name, or no Companies House number and a non-blank trading name. The rollback
+       copies the trading name into a null name before restoring NOT NULL, which the check guarantees is non-blank,
+       so it still works once v2 has stored an organisation without a name (review of 6 November 2026) -->
   <changeSet id="1.2-organisation-name-nullable" author="waste-organisations">
     <dropNotNullConstraint tableName="organisation" columnName="name" columnDataType="text" />
     <sql>
@@ -14,6 +16,7 @@
     <rollback>
       <sql>
         ALTER TABLE organisation DROP CONSTRAINT ck_organisation_name;
+        UPDATE organisation SET name = trading_name WHERE name IS NULL;
       </sql>
       <addNotNullConstraint tableName="organisation" columnName="name" columnDataType="text" />
     </rollback>
@@ -145,7 +148,10 @@
   </changeSet>
 
   <!-- The ten codes of the Confluence page "Organisation Types and Subtypes", in the order of OrganisationTypeCodes.All.
-       The six kept rows keep their 1.1 ids; the rollback restores the 34 removed rows with their 1.1 ids and codes -->
+       The six kept rows keep their 1.1 ids; the rollback restores the 34 removed rows with their 1.1 ids and codes.
+       The rollback works only while no organisation uses CIC, REGISTERED_SOCIETY, CHARITABLE_ORGANISATION or
+       OVERSEAS_ORGANISATION: 1.1 has no code to move such an organisation to, so deleting the four rows fails on
+       fk_organisation_organisation_type (ON DELETE RESTRICT) (review of 6 November 2026) -->
   <changeSet id="1.2-organisation-type-reseed" author="waste-organisations">
     <delete tableName="organisation_type">
       <where>id = '00000000-0000-0000-0001-000000000001'</where>
