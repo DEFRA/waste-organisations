@@ -117,3 +117,9 @@ In the sandbox environment, Api.V1.Tests need escalation because the tests call 
 ## Specs
 
 Specs live in `specs/` and are named `NNNN-TICKET-ID-slug.md`. A spec whose development is done (its story is delivered and the changes are merged, for example specs 0001 to 0004) is a record of what was built and why. Never edit such a spec, not even its Open Questions or Decisions, while doing new development or writing a new spec. When new work changes something an earlier spec decided, such as a column or a rule it introduced, record the change and its reason in the new spec, name the earlier spec it supersedes and in what, and leave the earlier spec as it is. Edit a spec only while its own story is still in progress.
+
+## Commits And Pull Requests
+
+Start every pull request title with the Jira story number, a colon and a short summary, for example `REGEN-141: Create an organisation through v2 POST /organisations`. Take the story number from the branch name (`feature/REGEN-141` is `REGEN-141`); if the branch has none, ask rather than guess. Dependabot pull requests are exempt.
+
+The repository only allows squash merges, so each pull request becomes one commit on `main`. GitHub names it after the pull request title when the pull request has several commits, but after the commit subject when it has only one: give a single commit the same `REGEN-NNN: ` prefix. Commits on a feature branch otherwise keep their conventional-commit subjects (`feat(create): ...`), since they do not reach `main` on their own.
