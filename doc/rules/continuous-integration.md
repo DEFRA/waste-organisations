@@ -18,7 +18,7 @@ The same gate runs locally before a PR is proposed (commands in "Local Build And
 
 ## Branch protection
 
-`main` is protected by repository rulesets requiring `Run Pull Request Checks` and `CDP SonarCloud Scan / CDP SonarCloud coverage scan`, at least one approving review, code owner review, resolved threads and signed commits. Renaming a job renames a required check: update the ruleset in the same change, or the PR cannot merge.
+`main` is protected by repository rulesets requiring `Run Pull Request Checks` and `CDP SonarCloud Scan / CDP SonarCloud coverage scan`, two approving reviews, code owner review, resolved threads and signed commits. Renaming a job renames a required check: update the ruleset in the same change, or the PR cannot merge.
 
 ## GitHub Actions
 

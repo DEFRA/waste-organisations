@@ -6,7 +6,7 @@ Adapted for this repo from the DEFRA [version control standards](https://github.
 
 - All code is held in the Defra GitHub organisation (`DEFRA/waste-organisations`).
 - GitHub flow: `main` plus short-lived story branches. CDP supports no other workflow.
-- `main` is protected by repository rulesets: at least one approving review, code owner review (`.github/CODEOWNERS` gives the v1 tests their own approver), the `Run Pull Request Checks` and `CDP SonarCloud Scan` status checks, resolved review threads, signed commits, no force pushes or deletion.
+- `main` is protected by repository rulesets: two approving reviews (GitHub states this when a PR is opened), code owner review (`.github/CODEOWNERS` gives the v1 tests their own approver), the `Run Pull Request Checks` and `CDP SonarCloud Scan` status checks, resolved review threads, signed commits, no force pushes or deletion.
 - Releases are tagged and versioned by the CDP build action on every merge to `main` (`.github/workflows/publish.yml`), which also publishes the Liquibase changelog as a versioned migrations artefact. **Accepted deviation:** the version number lives in the CDP tag and the `SERVICE_VERSION` environment variable, not in the source code, because CDP owns release versioning for every service it hosts.
 
 ## Pull request process
