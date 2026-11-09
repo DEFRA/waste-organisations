@@ -161,7 +161,9 @@ The rules every developer and AI coding tool follows are in [AGENTS.md](AGENTS.m
 
 - [spec-clarify](.agents/skills/spec-clarify/README.md): turn a Jira story into a spec in `specs/`, the first step of every story
 - [spec-breakdown](.agents/skills/spec-breakdown/README.md): split a large spec into child specs, one pull request each
-- `commit`, `pr-preflight` and `pr-review`: commit in the DEFRA style, check your own pull request before asking for review, and review a colleague's
+- [pr-preflight](.agents/skills/pr-preflight/README.md): check your own pull request before asking for review
+- [pr-review](.agents/skills/pr-review/README.md): review a colleague's pull request against its story and these rules
+- `commit`: commit in the DEFRA message style
 
 ## Licence Information
 
