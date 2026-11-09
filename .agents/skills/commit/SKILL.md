@@ -3,7 +3,7 @@ name: commit
 description: >
   Commit finished work in this repository as one or more atomic commits with messages in the
   DEFRA style (capitalised imperative subject of at most 50 characters, blank line, body saying
-  what and why with the Jira link). Use whenever asked to commit, save, or check in changes, and
+  what and why with the Jira story key). Use whenever asked to commit, save, or check in changes, and
   at the end of a Ralph build iteration. Stages explicit paths only and never commits the loop
   artefacts.
 allowed-tools: Bash

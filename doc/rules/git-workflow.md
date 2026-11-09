@@ -24,7 +24,7 @@ Goals: focused PRs, simple reviews, a clean commit history, and respect for revi
    Description covering why we're making this change, and briefly what the change is.
    ```
 
-   Cover **the actual change you intend to make**, not a repeat of the backlog story; the Jira link provides that context.
+   Cover **the actual change you intend to make**, not a repeat of the backlog story; the Jira story key provides that context.
 
 3. **Push immediately and open the PR** (`git push -u origin REGEN-NNN-short-slug`). Title it `REGEN-NNN: summary` and fill in `.github/PULL_REQUEST_TEMPLATE.md`, which GitHub offers in place of the commit message; the empty commit still carries the why in the history. Assign yourself. Open it as a draft until it is ready for review, and complete the "How to test" section before you request review.
 4. **Code, committing frequently.** Interim messages can be informal but keep `WIP` noise to a minimum; they are visible in the PR.
