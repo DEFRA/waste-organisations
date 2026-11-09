@@ -1,4 +1,78 @@
-# Agent Guidance
+# waste-organisations
+
+.NET 10 backend API (ASP.NET Core minimal APIs) for organisation data and their Extended Producer Responsibility (EPR) registrations, hosted on Defra's Core Delivery Platform (CDP). Data lives in Postgres (EF Core over a Liquibase-managed schema) and MongoDB. All work in this repo must follow the [DEFRA software development standards](https://github.com/DEFRA/software-development-standards).
+
+## Detailed standards
+
+The rules below are the always-applicable summary. The full standards, tailored to this repo, live in `doc/rules/`. **Read the relevant file before starting the matching kind of task**:
+
+- [csharp-dotnet.md](doc/rules/csharp-dotnet.md): writing any C#; endpoints, services, DTOs, validation, data access, API versioning; adding NuGet packages
+- [common-coding.md](doc/rules/common-coding.md): readability, naming, comments, simplicity; coverage rules
+- [git-workflow.md](doc/rules/git-workflow.md): branches, commit messages, PR titles, the full PR process
+- [security-logging.md](doc/rules/security-logging.md): secure coding, secrets, GitHub Advanced Security, Serilog/ECS logging and PII rules
+- [quality-assurance.md](doc/rules/quality-assurance.md): acceptance criteria, the three test projects, snapshots, coverage
+- [continuous-integration.md](doc/rules/continuous-integration.md): workflow changes, action SHA-pinning, Trivy, Sonar
+- [containers.md](doc/rules/containers.md): Dockerfile, compose.yml and image changes
+
+## Reusable skills
+
+Agent-invocable procedures live in `.agents/skills/` in the open Agent Skills format (`SKILL.md`). Codex and GitHub Copilot read that directory natively; Claude Code reads the same skills through the `.claude/skills/` symlinks. When a task matches one of these skills, follow the skill rather than improvising:
+
+- `commit`: stage and commit finished work as atomic commits with DEFRA-style messages.
+- `pr-review`: review a colleague's PR against the linked Jira story and these standards. Findings are reported for a human to act on; the AI never approves, requests changes, or comments.
+- `pr-preflight`: pre-flight check of your own PR before requesting human review; may fix mechanical, in-spec blocking findings (new commit, plain push, full gate first).
+
+Both review skills enforce scope discipline: AI-suggested changes must be in spec (the linked story's acceptance criteria plus these standards on the lines the PR touches). Valuable out-of-scope findings are raised as suggested new Jira stories, never as changes or change requests on the PR.
+
+## Language and framework
+
+- C# on .NET 10, the current LTS. This is a backend API only: no Razor, Blazor, MVC views or any other .NET UI.
+- ASP.NET Core minimal APIs. Each endpoint is a static class under `src/Api/Endpoints/<Resource>/` with a `Map...` extension method registered in `Endpoints.cs`. Handlers stay thin: validate, call a service in `src/Api/Services`, return a `TypedResults` value.
+- Nullable reference types and implicit usings stay enabled. Records for DTOs. `async`/`await` with a `CancellationToken` throughout; never `.Result` or `.Wait()`.
+- Postgres is accessed through EF Core LINQ on `PostgresDbContext`, MongoDB through the typed driver API. Never build SQL or Mongo filters from strings.
+- The Postgres schema is the Liquibase changelog only (see "Postgres And Liquibase" below and the README): a new changeset file, never an EF Core migration, never an edit to a published changeset.
+- API versions are selected by the `Accept` header (README, "API versioning"). v1 behaviour is frozen; new or changed behaviour goes in endpoints that declare `.WithApiVersions(...)`.
+
+## Code style
+
+- Formatting is CSharpier (`dotnet csharpier check .`, which also covers `changelog/*.xml`); do not hand-format. Conventions are in `.editorconfig`.
+- Warnings are errors and SonarAnalyzer runs on every build. Do not add `#pragma warning disable`, `<NoWarn>` or `[SuppressMessage]` without a comment saying why, and never to get a build green.
+- Intent-revealing names; no generic names (`temp`, `data2`, `x`); spell out a domain acronym (EPR, ACL, CDP) where it is first used. Prefer small, named methods over comments; comments explain _why_, never _how_. Never leave commented-out code. No `TODO` without a Jira reference.
+- Simplicity first: no speculative abstraction or premature reuse. Apply the rule of three before extracting shared code.
+
+## Dependencies
+
+- NuGet only, with exact versions in the `.csproj`. Vet a new package before adding it (maintained, widely used, OGL-compatible licence, security history) and say why it was chosen in the PR.
+- Adding or moving a package means checking the Dependabot groups (see "Updating Dependabot" below).
+- A `NuGetAuditSuppress` entry needs the advisory link and the reason in a comment, as the existing one has.
+
+## Testing and quality
+
+- Every change ships with tests. Unit coverage reported to SonarCloud must stay at or above 90% and must never decrease. `[ExcludeFromCodeCoverage]` only on bootstrap wiring, never on business logic.
+- Negative cases matter as much as positive ones: validation failures, `401`/`403`, `404`/`405`/`406`, concurrency conflicts, error paths.
+- Run the full gate before proposing a change: CSharpier, the build, `Api.Tests`, then `Api.IntegrationTests` and `Api.V1.Tests` against Docker Compose, in that order (commands in "Local Build And Test Checks" and "V1 API Tests" below).
+- Never weaken, delete or skip a test or an assertion to make a build pass. v1 tests and every `*.verified.*` snapshot are frozen (see "V1 API Tests"). Review a new `*.received.*` file before accepting it as `*.verified.*`.
+
+## Security
+
+- Follow the OWASP Secure Coding Practices quick reference guide (version 2). Validate all input at the boundary and return problem details, never stack traces or connection strings.
+- Never log PII or secrets: no names, addresses, emails, phone numbers, National Insurance numbers, usernames, passwords, API keys or tokens in log output. Use the configured Serilog logger (ECS format) with message templates; never `Console.WriteLine`.
+- Secrets come from CDP environment variables. Development-only credentials live in `appsettings.Development.json` and `compose.yml`; `appsettings.json` holds placeholders only. If a secret ever reaches git history, treat it as compromised and follow Defra's credential exposure process.
+- In GitHub Actions, pin third-party actions to a full commit SHA with the version as a trailing comment, never a tag or branch. Pin container images by digest.
+
+## Git workflow
+
+- All work happens on a branch named `REGEN-NNN-short-slug`; never commit directly to `main`. Main is always shippable.
+- Commit messages: imperative mood, capitalised subject of at most 50 characters, no trailing period, blank line, then a body explaining _what and why_ with the Jira link.
+- PRs are small and focused on one change, titled `REGEN-NNN: summary`, described with `.github/PULL_REQUEST_TEMPLATE.md` including its "How to test" section, squash-merged, and the branch deleted after merge (see "Commits And Pull Requests" below).
+- A human developer reviews and approves every PR. AI review supplements that review and never approves.
+
+## AI-assisted development
+
+- Read this file and the matching `doc/rules/` file before changing anything. If a request conflicts with these rules, say so and stop; never proceed silently or work around a rule.
+- Ralph loop: one plan item per iteration. Never stage or commit `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `PROMPT_*.md` or `.ralph/`. Stop and report, instead of forcing a fix, when a v1 test fails, when a delivered spec would need editing, or when an acceptance criterion cannot be met without a decision.
+- Never put secrets, credentials or personal data into prompts, specs, tickets or test fixtures. Test data is synthetic.
+- Reference files, specs and standards by path or link; do not paste them into prompts or rules.
 
 ## Updating Dependabot
 
@@ -120,6 +194,10 @@ Specs live in `specs/` and are named `NNNN-TICKET-ID-slug.md`. A spec whose deve
 
 ## Commits And Pull Requests
 
-Start every pull request title with the Jira story number, a colon and a short summary, for example `REGEN-141: Create an organisation through v2 POST /organisations`. Take the story number from the branch name (`feature/REGEN-141` is `REGEN-141`); if the branch has none, ask rather than guess. Dependabot pull requests are exempt.
+Branches are named after the Jira story: the key followed by a short slug, for example `REGEN-141-create-an-organisation`. Older branches use `feature/REGEN-141`; the story number is the `REGEN-NNN` part either way. Dependabot branches are exempt.
 
-The repository only allows squash merges, so each pull request becomes one commit on `main`. GitHub names it after the pull request title when the pull request has several commits, but after the commit subject when it has only one: give a single commit the same `REGEN-NNN: ` prefix. Commits on a feature branch otherwise keep their conventional-commit subjects (`feat(create): ...`), since they do not reach `main` on their own.
+Start every pull request title with the Jira story number, a colon and a short summary, for example `REGEN-141: Create an organisation through v2 POST /organisations`. Take the story number from the branch name; if the branch has none, ask rather than guess. Dependabot pull requests are exempt. The description follows `.github/PULL_REQUEST_TEMPLATE.md`; its "How to test" section is required for any behaviour, schema or configuration change, so QA or another developer can verify the change without reading the code.
+
+Commit messages follow the DEFRA pull request process: imperative mood, capitalised subject of at most 50 characters, no trailing period, a blank line, then a body that explains what and why and links the Jira story. The `commit` skill produces this format; see `doc/rules/git-workflow.md` for the full process.
+
+The repository only allows squash merges, so each pull request becomes one commit on `main`. GitHub names it after the pull request title when the pull request has several commits, but after the commit subject when it has only one: give a single commit the same `REGEN-NNN: ` prefix.
