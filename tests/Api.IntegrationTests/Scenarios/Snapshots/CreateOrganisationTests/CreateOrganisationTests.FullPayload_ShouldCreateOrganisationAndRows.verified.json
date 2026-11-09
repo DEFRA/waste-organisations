@@ -1,0 +1,41 @@
+﻿{
+  "organisation": {
+    "id": "Guid_1",
+    "name": "Acme Waste Ltd",
+    "tradingName": "Acme Recycling",
+    "companiesHouseNumber": "12345678",
+    "regulatorNation": "GB-ENG",
+    "organisationType": "LTD",
+    "validFrom": "DateTimeOffset_1",
+    "createdAt": "DateTimeOffset_1",
+    "updatedAt": "DateTimeOffset_1",
+    "addresses": [
+      {
+        "addressTypes": [
+          "REGISTERED",
+          "PRINCIPAL"
+        ],
+        "addressLine": "Unit 4, Mill House, 12A High Street, PO Box 99, Testville, Testshire, AB1 2CD",
+        "subBuildingName": "Unit 4",
+        "buildingName": "Mill House",
+        "buildingNumber": "12A",
+        "street": "High Street",
+        "poBox": "PO Box 99",
+        "locality": "Testville",
+        "region": "Testshire",
+        "postalCode": "AB1 2CD",
+        "countryIso": "GB"
+      },
+      {
+        "addressTypes": [
+          "CORRESPONDENCE"
+        ],
+        "addressLine": "12 Harbour Road, Hong Kong",
+        "buildingNumber": "12",
+        "street": "Harbour Road",
+        "locality": "Hong Kong",
+        "countryIso": "HK"
+      }
+    ]
+  }
+}

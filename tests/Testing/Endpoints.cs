@@ -12,6 +12,8 @@ public static class Endpoints
     public static class OpenApi
     {
         public const string V1 = "openapi/v1.json";
+
+        public const string V2 = "openapi/v2.json";
     }
 
     public static class Organisations
@@ -23,6 +25,8 @@ public static class Endpoints
         public static string Get(Guid id) => Get(id.ToString());
 
         public static string Search(EndpointQuery? query = null) => $"{Root}{query}";
+
+        public static string Post() => Root;
 
         public static string Put(string id) => Get(id);
 

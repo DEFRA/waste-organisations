@@ -39,12 +39,36 @@ try
     });
     builder.Services.AddProblemDetails();
     builder.Services.AddHealth();
+    // The documents in the ReDoc version dropdown, the default first; a new API version adds its document here
+    var openApiDocuments = new[]
+    {
+        new { name = "v1", url = "/openapi/v1.json" },
+        new { name = "v2", url = "/openapi/v2.json" },
+    };
     builder.Services.AddOpenApi(options =>
     {
+        // The default document is v1: it describes only the operations that support version 1.
+        options.ShouldInclude = description =>
+            ApiVersionsMetadata
+                .For(description.ActionDescriptor.EndpointMetadata)
+                .Contains(AcceptHeaderVersionResolver.DefaultVersion);
         options.AddDocumentTransformer<OpenApiDocumentTransformer>();
         options.AddOperationTransformer<RegistrationKeyOperationTransformer>();
         options.AddOperationTransformer<SearchQueryOperationTransformer>();
     });
+    builder.Services.AddOpenApi(
+        "v2",
+        options =>
+        {
+            // Describes only the operations that support version 2, each with the Accept header that selects it
+            options.ShouldInclude = description =>
+                ApiVersionsMetadata.For(description.ActionDescriptor.EndpointMetadata).Contains(2);
+            options.AddDocumentTransformer<OpenApiDocumentTransformer>();
+            options.AddDocumentTransformer<RequiredMembersDocumentTransformer>();
+            options.AddOperationTransformer<AcceptHeaderOperationTransformer>();
+            options.AddSchemaTransformer<CreateOrganisationSchemaTransformer>();
+        }
+    );
     builder.Services.AddAuthenticationAuthorization();
     builder.Services.AddApiVersioning();
     builder.Services.AddRequestMetrics();
@@ -53,6 +77,7 @@ try
     builder.Services.AddValidation();
     builder.Services.AddTransient<IOrganisationService, OrganisationService>();
     builder.Services.AddTransient<OrganisationRegistrationService>();
+    builder.Services.AddScoped<IPostgresOrganisationService, PostgresOrganisationService>();
 
     var app = builder.Build();
 
@@ -102,7 +127,13 @@ try
     app.UseReDoc(options =>
     {
         options.RoutePrefix = "redoc";
-        options.SpecUrl = "/openapi/v1.json";
+        options.SpecUrl = openApiDocuments[0].url;
+        // A custom page, so one ReDoc page serves every document through a version dropdown
+        options.IndexStream = () =>
+            typeof(Program).Assembly.GetManifestResourceStream("Documentation.ReDoc.index.html")
+            ?? throw new InvalidOperationException("The embedded ReDoc page is missing");
+        options.HeadContent =
+            $"<script>window.openApiDocuments = {JsonSerializer.Serialize(openApiDocuments)};</script>";
     });
 
     app.MapApiEndpoints();

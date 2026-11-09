@@ -1,0 +1,790 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <!-- A sole trader or partnership has no registered name, only a trading name. The check is the API rule in the
+       database's terms: a non-blank name, or no Companies House number and a non-blank trading name. The rollback
+       copies the trading name into a null name before restoring NOT NULL, which the check guarantees is non-blank,
+       so it still works once v2 has stored an organisation without a name (review of 6 November 2026) -->
+  <changeSet id="1.2-organisation-name-nullable" author="waste-organisations">
+    <dropNotNullConstraint tableName="organisation" columnName="name" columnDataType="text" />
+    <sql>
+      ALTER TABLE organisation ADD CONSTRAINT ck_organisation_name CHECK (COALESCE(btrim(name), '') &lt;&gt; '' OR (companies_house_number IS NULL AND COALESCE(btrim(trading_name), '') &lt;&gt; ''));
+    </sql>
+    <rollback>
+      <sql>
+        ALTER TABLE organisation DROP CONSTRAINT ck_organisation_name;
+        UPDATE organisation SET name = trading_name WHERE name IS NULL;
+      </sql>
+      <addNotNullConstraint tableName="organisation" columnName="name" columnDataType="text" />
+    </rollback>
+  </changeSet>
+
+  <!-- Postgres keeps the check's expression bound to the renamed column, so the constraint is renamed, not recreated -->
+  <changeSet id="1.2-organisation-rename-regulator-nation" author="waste-organisations">
+    <renameColumn
+      tableName="organisation"
+      oldColumnName="home_nation"
+      newColumnName="regulator_nation"
+      columnDataType="text"
+    />
+    <sql>
+      ALTER TABLE organisation RENAME CONSTRAINT ck_organisation_home_nation TO ck_organisation_regulator_nation;
+    </sql>
+    <rollback>
+      <sql>
+        ALTER TABLE organisation RENAME CONSTRAINT ck_organisation_regulator_nation TO ck_organisation_home_nation;
+      </sql>
+      <renameColumn
+        tableName="organisation"
+        oldColumnName="regulator_nation"
+        newColumnName="home_nation"
+        columnDataType="text"
+      />
+    </rollback>
+  </changeSet>
+
+  <!-- The check is dropped and recreated explicitly rather than left to Postgres's automatic drop with the column,
+       so the rollback is deterministic. The rollback does not restore address_line data; no environment holds any -->
+  <changeSet id="1.2-address-drop-address-line" author="waste-organisations">
+    <sql>
+      ALTER TABLE address DROP CONSTRAINT ck_address_premises;
+    </sql>
+    <dropColumn tableName="address" columnName="address_line" />
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_premises CHECK (num_nonnulls(NULLIF(btrim(building_number), ''), NULLIF(btrim(building_name), ''), NULLIF(btrim(sub_building_name), ''), NULLIF(btrim(po_box), '')) &gt; 0);
+    </sql>
+    <rollback>
+      <sql>
+        ALTER TABLE address DROP CONSTRAINT ck_address_premises;
+      </sql>
+      <addColumn tableName="address">
+        <column name="address_line" type="text" />
+      </addColumn>
+      <sql>
+        ALTER TABLE address ADD CONSTRAINT ck_address_premises CHECK (num_nonnulls(NULLIF(btrim(building_number), ''), NULLIF(btrim(building_name), ''), NULLIF(btrim(sub_building_name), ''), NULLIF(btrim(po_box), ''), NULLIF(btrim(address_line), '')) &gt; 0);
+      </sql>
+    </rollback>
+  </changeSet>
+
+  <!-- The rollback does not restore country_name data; no environment holds any -->
+  <changeSet id="1.2-address-drop-country-name" author="waste-organisations">
+    <dropColumn tableName="address" columnName="country_name" />
+    <rollback>
+      <addColumn tableName="address">
+        <column name="country_name" type="text" />
+      </addColumn>
+    </rollback>
+  </changeSet>
+
+  <!-- A UK address is one whose country_iso is GB, which the API and its consumers read from country_iso itself, so the
+       derived column is dropped (review of 5 November 2026). No index or check refers to it; the rollback recomputes it -->
+  <changeSet id="1.2-address-drop-is-uk-address" author="waste-organisations">
+    <dropColumn tableName="address" columnName="is_uk_address" />
+    <rollback>
+      <sql>
+        ALTER TABLE address ADD COLUMN is_uk_address boolean GENERATED ALWAYS AS (country_iso = 'GB') STORED;
+      </sql>
+    </rollback>
+  </changeSet>
+
+  <!-- An address is stored once and shared. NULLS NOT DISTINCT (Postgres 15 or later) makes two rows with the same
+       values and the same absent parts a conflict, which a plain unique index would allow -->
+  <changeSet id="1.2-ux-address-values" author="waste-organisations">
+    <sql>
+      CREATE UNIQUE INDEX ux_address_values ON address (sub_building_name, building_name, building_number, street, locality, region, postal_code, po_box, country_iso) NULLS NOT DISTINCT;
+    </sql>
+    <rollback>
+      DROP INDEX ux_address_values;
+    </rollback>
+  </changeSet>
+
+  <!-- The names are the v2 wire values of addressTypes -->
+  <changeSet id="1.2-address-usagetype-upper-case" author="waste-organisations">
+    <update tableName="address_usagetype">
+      <column name="name" value="REGISTERED" />
+      <where>id = '00000000-0000-0000-0000-000000000001'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="name" value="AUDIT" />
+      <where>id = '00000000-0000-0000-0000-000000000002'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="name" value="SERVICE_OF_NOTICE" />
+      <where>id = '00000000-0000-0000-0000-000000000003'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="name" value="PRINCIPAL" />
+      <where>id = '00000000-0000-0000-0000-000000000004'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="name" value="CORRESPONDENCE" />
+      <where>id = '00000000-0000-0000-0000-000000000005'</where>
+    </update>
+    <rollback>
+      <update tableName="address_usagetype">
+        <column name="name" value="Registered" />
+        <where>id = '00000000-0000-0000-0000-000000000001'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="name" value="Audit" />
+        <where>id = '00000000-0000-0000-0000-000000000002'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="name" value="ServiceOfNotice" />
+        <where>id = '00000000-0000-0000-0000-000000000003'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="name" value="Principal" />
+        <where>id = '00000000-0000-0000-0000-000000000004'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="name" value="Correspondence" />
+        <where>id = '00000000-0000-0000-0000-000000000005'</where>
+      </update>
+    </rollback>
+  </changeSet>
+
+  <!-- The ten codes of the Confluence page "Organisation Types and Subtypes", in the order of OrganisationTypeCodes.All.
+       The six kept rows keep their 1.1 ids; the rollback restores the 34 removed rows with their 1.1 ids and codes.
+       The rollback works only while no organisation uses CIC, REGISTERED_SOCIETY, CHARITABLE_ORGANISATION or
+       OVERSEAS_ORGANISATION: 1.1 has no code to move such an organisation to, so deleting the four rows fails on
+       fk_organisation_organisation_type (ON DELETE RESTRICT) (review of 6 November 2026) -->
+  <changeSet id="1.2-organisation-type-reseed" author="waste-organisations">
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000001'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000004'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000005'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000007'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000008'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000009'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000010'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000011'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000012'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000013'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000014'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000015'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000016'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000017'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000018'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000019'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000020'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000021'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000023'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000024'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000025'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000026'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000027'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000028'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000029'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000030'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000031'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000032'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000033'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000034'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000035'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000036'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000039'</where>
+    </delete>
+    <delete tableName="organisation_type">
+      <where>id = '00000000-0000-0000-0001-000000000040'</where>
+    </delete>
+    <update tableName="organisation_type">
+      <column name="code" value="LTD" />
+      <where>id = '00000000-0000-0000-0001-000000000002'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="code" value="PLC" />
+      <where>id = '00000000-0000-0000-0001-000000000003'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="code" value="LIMITED_PARTNERSHIP" />
+      <where>id = '00000000-0000-0000-0001-000000000006'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="code" value="LLP" />
+      <where>id = '00000000-0000-0000-0001-000000000022'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="code" value="SOLE_TRADER" />
+      <where>id = '00000000-0000-0000-0001-000000000037'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="code" value="PARTNERSHIP" />
+      <where>id = '00000000-0000-0000-0001-000000000038'</where>
+    </update>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000041" />
+      <column name="code" value="CIC" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000042" />
+      <column name="code" value="REGISTERED_SOCIETY" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000043" />
+      <column name="code" value="CHARITABLE_ORGANISATION" />
+    </insert>
+    <insert tableName="organisation_type">
+      <column name="id" value="00000000-0000-0000-0001-000000000044" />
+      <column name="code" value="OVERSEAS_ORGANISATION" />
+    </insert>
+    <rollback>
+      <delete tableName="organisation_type">
+        <where>id = '00000000-0000-0000-0001-000000000041'</where>
+      </delete>
+      <delete tableName="organisation_type">
+        <where>id = '00000000-0000-0000-0001-000000000042'</where>
+      </delete>
+      <delete tableName="organisation_type">
+        <where>id = '00000000-0000-0000-0001-000000000043'</where>
+      </delete>
+      <delete tableName="organisation_type">
+        <where>id = '00000000-0000-0000-0001-000000000044'</where>
+      </delete>
+      <update tableName="organisation_type">
+        <column name="code" value="ltd" />
+        <where>id = '00000000-0000-0000-0001-000000000002'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="code" value="plc" />
+        <where>id = '00000000-0000-0000-0001-000000000003'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="code" value="limited-partnership" />
+        <where>id = '00000000-0000-0000-0001-000000000006'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="code" value="llp" />
+        <where>id = '00000000-0000-0000-0001-000000000022'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="code" value="sole-trader" />
+        <where>id = '00000000-0000-0000-0001-000000000037'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="code" value="partnership" />
+        <where>id = '00000000-0000-0000-0001-000000000038'</where>
+      </update>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000001" />
+        <column name="code" value="private-unlimited" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000004" />
+        <column name="code" value="old-public-company" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000005" />
+        <column name="code" value="private-limited-guarant-nsc-limited-exemption" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000007" />
+        <column name="code" value="private-limited-guarant-nsc" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000008" />
+        <column name="code" value="converted-or-closed" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000009" />
+        <column name="code" value="private-unlimited-nsc" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000010" />
+        <column name="code" value="private-limited-shares-section-30-exemption" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000011" />
+        <column name="code" value="protected-cell-company" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000012" />
+        <column name="code" value="assurance-company" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000013" />
+        <column name="code" value="oversea-company" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000014" />
+        <column name="code" value="eeig-establishment" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000015" />
+        <column name="code" value="icvc-securities" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000016" />
+        <column name="code" value="icvc-warrant" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000017" />
+        <column name="code" value="icvc-umbrella" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000018" />
+        <column name="code" value="registered-society-non-jurisdictional" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000019" />
+        <column name="code" value="industrial-and-provident-society" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000020" />
+        <column name="code" value="northern-ireland" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000021" />
+        <column name="code" value="northern-ireland-other" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000023" />
+        <column name="code" value="royal-charter" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000024" />
+        <column name="code" value="investment-company-with-variable-capital" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000025" />
+        <column name="code" value="unregistered-company" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000026" />
+        <column name="code" value="other" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000027" />
+        <column name="code" value="european-public-limited-liability-company-se" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000028" />
+        <column name="code" value="united-kingdom-societas" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000029" />
+        <column name="code" value="uk-establishment" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000030" />
+        <column name="code" value="scottish-partnership" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000031" />
+        <column name="code" value="charitable-incorporated-organisation" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000032" />
+        <column name="code" value="scottish-charitable-incorporated-organisation" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000033" />
+        <column name="code" value="further-education-or-sixth-form-college-corporation" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000034" />
+        <column name="code" value="eeig" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000035" />
+        <column name="code" value="ukeig" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000036" />
+        <column name="code" value="registered-overseas-entity" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000039" />
+        <column name="code" value="unincorporated-association" />
+      </insert>
+      <insert tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000040" />
+        <column name="code" value="public-body" />
+      </insert>
+    </rollback>
+  </changeSet>
+
+  <!-- The 1.1 seed ids (00000000-0000-0000-0000-000000000001 and so on) are hand-made placeholders that read like test data.
+       They become random UUIDs generated once, so every environment holds the same ids (review of 5 November 2026).
+       No environment holds a row that references them yet, but the referencing column is re-pointed all the same,
+       with the foreign key dropped for the duration because the 1.1 key has no ON UPDATE action; nothing else reads
+       the ids, since the API looks the rows up by name -->
+  <changeSet id="1.2-address-usagetype-uuid-ids" author="waste-organisations">
+    <dropForeignKeyConstraint
+      baseTableName="organisation_address"
+      constraintName="fk_organisation_address_usage_type"
+    />
+    <!-- REGISTERED -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="2a6ac3fd-909c-4c4b-91ec-f750868b0226" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000001'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="2a6ac3fd-909c-4c4b-91ec-f750868b0226" />
+      <where>id = '00000000-0000-0000-0000-000000000001'</where>
+    </update>
+    <!-- AUDIT -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="0ed6d678-659f-41c7-9476-943ed8498905" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000002'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="0ed6d678-659f-41c7-9476-943ed8498905" />
+      <where>id = '00000000-0000-0000-0000-000000000002'</where>
+    </update>
+    <!-- SERVICE_OF_NOTICE -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="ae7439dd-dc19-45f8-b416-3cc7366bf454" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000003'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="ae7439dd-dc19-45f8-b416-3cc7366bf454" />
+      <where>id = '00000000-0000-0000-0000-000000000003'</where>
+    </update>
+    <!-- PRINCIPAL -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="73027738-fc6e-4c97-8b55-b9f404601616" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000004'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="73027738-fc6e-4c97-8b55-b9f404601616" />
+      <where>id = '00000000-0000-0000-0000-000000000004'</where>
+    </update>
+    <!-- CORRESPONDENCE -->
+    <update tableName="organisation_address">
+      <column name="usage_type_id" value="1649c05d-2fbd-408a-8ce1-b7a5c1bd4a05" />
+      <where>usage_type_id = '00000000-0000-0000-0000-000000000005'</where>
+    </update>
+    <update tableName="address_usagetype">
+      <column name="id" value="1649c05d-2fbd-408a-8ce1-b7a5c1bd4a05" />
+      <where>id = '00000000-0000-0000-0000-000000000005'</where>
+    </update>
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_address_usage_type"
+      baseTableName="organisation_address"
+      baseColumnNames="usage_type_id"
+      referencedTableName="address_usagetype"
+      referencedColumnNames="id"
+      onDelete="RESTRICT"
+    />
+    <rollback>
+      <dropForeignKeyConstraint
+        baseTableName="organisation_address"
+        constraintName="fk_organisation_address_usage_type"
+      />
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000001" />
+        <where>usage_type_id = '2a6ac3fd-909c-4c4b-91ec-f750868b0226'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000001" />
+        <where>id = '2a6ac3fd-909c-4c4b-91ec-f750868b0226'</where>
+      </update>
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000002" />
+        <where>usage_type_id = '0ed6d678-659f-41c7-9476-943ed8498905'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000002" />
+        <where>id = '0ed6d678-659f-41c7-9476-943ed8498905'</where>
+      </update>
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000003" />
+        <where>usage_type_id = 'ae7439dd-dc19-45f8-b416-3cc7366bf454'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000003" />
+        <where>id = 'ae7439dd-dc19-45f8-b416-3cc7366bf454'</where>
+      </update>
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000004" />
+        <where>usage_type_id = '73027738-fc6e-4c97-8b55-b9f404601616'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000004" />
+        <where>id = '73027738-fc6e-4c97-8b55-b9f404601616'</where>
+      </update>
+      <update tableName="organisation_address">
+        <column name="usage_type_id" value="00000000-0000-0000-0000-000000000005" />
+        <where>usage_type_id = '1649c05d-2fbd-408a-8ce1-b7a5c1bd4a05'</where>
+      </update>
+      <update tableName="address_usagetype">
+        <column name="id" value="00000000-0000-0000-0000-000000000005" />
+        <where>id = '1649c05d-2fbd-408a-8ce1-b7a5c1bd4a05'</where>
+      </update>
+      <addForeignKeyConstraint
+        constraintName="fk_organisation_address_usage_type"
+        baseTableName="organisation_address"
+        baseColumnNames="usage_type_id"
+        referencedTableName="address_usagetype"
+        referencedColumnNames="id"
+        onDelete="RESTRICT"
+      />
+    </rollback>
+  </changeSet>
+
+  <!-- The same for the ten organisation types kept or added by the reseed above; the API looks them up by code -->
+  <changeSet id="1.2-organisation-type-uuid-ids" author="waste-organisations">
+    <dropForeignKeyConstraint baseTableName="organisation" constraintName="fk_organisation_organisation_type" />
+    <!-- LTD -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="9cf3982f-ef96-4fa7-baa7-7822429961a3" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000002'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="9cf3982f-ef96-4fa7-baa7-7822429961a3" />
+      <where>id = '00000000-0000-0000-0001-000000000002'</where>
+    </update>
+    <!-- PLC -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="f79e98f6-cb47-4b2a-9f97-fadb706e45f8" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000003'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="f79e98f6-cb47-4b2a-9f97-fadb706e45f8" />
+      <where>id = '00000000-0000-0000-0001-000000000003'</where>
+    </update>
+    <!-- LIMITED_PARTNERSHIP -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="93461ef5-47a9-4b5a-a816-4e4a6465833b" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000006'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="93461ef5-47a9-4b5a-a816-4e4a6465833b" />
+      <where>id = '00000000-0000-0000-0001-000000000006'</where>
+    </update>
+    <!-- LLP -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="debbc270-271b-46a3-912a-0e3d5d7d0a62" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000022'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="debbc270-271b-46a3-912a-0e3d5d7d0a62" />
+      <where>id = '00000000-0000-0000-0001-000000000022'</where>
+    </update>
+    <!-- CIC -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="f9f2493c-f2ce-40e0-9ed6-d038ae0c49c6" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000041'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="f9f2493c-f2ce-40e0-9ed6-d038ae0c49c6" />
+      <where>id = '00000000-0000-0000-0001-000000000041'</where>
+    </update>
+    <!-- SOLE_TRADER -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="cc6b2fe3-2c80-4d0a-89b0-ca76517dbfe9" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000037'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="cc6b2fe3-2c80-4d0a-89b0-ca76517dbfe9" />
+      <where>id = '00000000-0000-0000-0001-000000000037'</where>
+    </update>
+    <!-- PARTNERSHIP -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="9f2c42cd-cfee-4fba-8a18-b8861ee0f316" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000038'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="9f2c42cd-cfee-4fba-8a18-b8861ee0f316" />
+      <where>id = '00000000-0000-0000-0001-000000000038'</where>
+    </update>
+    <!-- REGISTERED_SOCIETY -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="3f764ec0-6a0a-4c32-8ec2-0790b246e62c" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000042'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="3f764ec0-6a0a-4c32-8ec2-0790b246e62c" />
+      <where>id = '00000000-0000-0000-0001-000000000042'</where>
+    </update>
+    <!-- CHARITABLE_ORGANISATION -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="79b976f8-8e05-470e-b1d5-1cb9dc9a36c3" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000043'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="79b976f8-8e05-470e-b1d5-1cb9dc9a36c3" />
+      <where>id = '00000000-0000-0000-0001-000000000043'</where>
+    </update>
+    <!-- OVERSEAS_ORGANISATION -->
+    <update tableName="organisation">
+      <column name="organisation_type_id" value="146c1690-4443-41e9-add8-96df52420e34" />
+      <where>organisation_type_id = '00000000-0000-0000-0001-000000000044'</where>
+    </update>
+    <update tableName="organisation_type">
+      <column name="id" value="146c1690-4443-41e9-add8-96df52420e34" />
+      <where>id = '00000000-0000-0000-0001-000000000044'</where>
+    </update>
+    <addForeignKeyConstraint
+      constraintName="fk_organisation_organisation_type"
+      baseTableName="organisation"
+      baseColumnNames="organisation_type_id"
+      referencedTableName="organisation_type"
+      referencedColumnNames="id"
+      onDelete="RESTRICT"
+    />
+    <rollback>
+      <dropForeignKeyConstraint baseTableName="organisation" constraintName="fk_organisation_organisation_type" />
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000002" />
+        <where>organisation_type_id = '9cf3982f-ef96-4fa7-baa7-7822429961a3'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000002" />
+        <where>id = '9cf3982f-ef96-4fa7-baa7-7822429961a3'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000003" />
+        <where>organisation_type_id = 'f79e98f6-cb47-4b2a-9f97-fadb706e45f8'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000003" />
+        <where>id = 'f79e98f6-cb47-4b2a-9f97-fadb706e45f8'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000006" />
+        <where>organisation_type_id = '93461ef5-47a9-4b5a-a816-4e4a6465833b'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000006" />
+        <where>id = '93461ef5-47a9-4b5a-a816-4e4a6465833b'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000022" />
+        <where>organisation_type_id = 'debbc270-271b-46a3-912a-0e3d5d7d0a62'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000022" />
+        <where>id = 'debbc270-271b-46a3-912a-0e3d5d7d0a62'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000041" />
+        <where>organisation_type_id = 'f9f2493c-f2ce-40e0-9ed6-d038ae0c49c6'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000041" />
+        <where>id = 'f9f2493c-f2ce-40e0-9ed6-d038ae0c49c6'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000037" />
+        <where>organisation_type_id = 'cc6b2fe3-2c80-4d0a-89b0-ca76517dbfe9'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000037" />
+        <where>id = 'cc6b2fe3-2c80-4d0a-89b0-ca76517dbfe9'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000038" />
+        <where>organisation_type_id = '9f2c42cd-cfee-4fba-8a18-b8861ee0f316'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000038" />
+        <where>id = '9f2c42cd-cfee-4fba-8a18-b8861ee0f316'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000042" />
+        <where>organisation_type_id = '3f764ec0-6a0a-4c32-8ec2-0790b246e62c'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000042" />
+        <where>id = '3f764ec0-6a0a-4c32-8ec2-0790b246e62c'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000043" />
+        <where>organisation_type_id = '79b976f8-8e05-470e-b1d5-1cb9dc9a36c3'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000043" />
+        <where>id = '79b976f8-8e05-470e-b1d5-1cb9dc9a36c3'</where>
+      </update>
+      <update tableName="organisation">
+        <column name="organisation_type_id" value="00000000-0000-0000-0001-000000000044" />
+        <where>organisation_type_id = '146c1690-4443-41e9-add8-96df52420e34'</where>
+      </update>
+      <update tableName="organisation_type">
+        <column name="id" value="00000000-0000-0000-0001-000000000044" />
+        <where>id = '146c1690-4443-41e9-add8-96df52420e34'</where>
+      </update>
+      <addForeignKeyConstraint
+        constraintName="fk_organisation_organisation_type"
+        baseTableName="organisation"
+        baseColumnNames="organisation_type_id"
+        referencedTableName="organisation_type"
+        referencedColumnNames="id"
+        onDelete="RESTRICT"
+      />
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.2-tag-v1.2.0" author="waste-organisations">
+    <tagDatabase tag="v1.2.0" />
+  </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,11 @@
+﻿{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "organisation.organisationType": [
+      "The organisationType field must be one of LTD, PLC, LIMITED_PARTNERSHIP, LLP, CIC, SOLE_TRADER, PARTNERSHIP, REGISTERED_SOCIETY, CHARITABLE_ORGANISATION, OVERSEAS_ORGANISATION."
+    ]
+  },
+  "traceId": "{Scrubbed}"
+}

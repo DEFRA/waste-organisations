@@ -2,6 +2,7 @@ using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Defra.WasteOrganisations.Api.Tests.Data;
@@ -22,7 +23,7 @@ public class PostgresDbContextModelTests
                     "name",
                     "trading_name",
                     "companies_house_number",
-                    "home_nation",
+                    "regulator_nation",
                     "organisation_type_id",
                     "valid_from",
                     "valid_to",
@@ -37,7 +38,6 @@ public class PostgresDbContextModelTests
                 "address",
                 [
                     "id",
-                    "address_line",
                     "sub_building_name",
                     "building_name",
                     "building_number",
@@ -47,8 +47,6 @@ public class PostgresDbContextModelTests
                     "postal_code",
                     "po_box",
                     "country_iso",
-                    "country_name",
-                    "is_uk_address",
                     "created_at",
                     "updated_at",
                 ]
@@ -104,17 +102,46 @@ public class PostgresDbContextModelTests
         foreignKeys.Should().AllSatisfy(fk => fk.DeleteBehavior.Should().Be(DeleteBehavior.Restrict));
     }
 
+    // Mirrors ux_address_values from db.changelog-1.2.xml: an address is stored once and shared,
+    // so the model must know the nine parts are unique with nulls not distinct. NULLS NOT DISTINCT
+    // is a design-time annotation, absent from the runtime model, so the design-time model is read
+    [Fact]
+    public void Address_ShouldHaveUniqueIndexOverTheNineParts()
+    {
+        using var context = CreateContext();
+        var entityType = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(Address))!;
+
+        var index = entityType.GetIndexes().Single(i => i.GetDatabaseName() == "ux_address_values");
+
+        index.IsUnique.Should().BeTrue();
+        index.GetAreNullsDistinct().Should().BeFalse();
+        index
+            .Properties.Select(p => p.GetColumnName())
+            .Should()
+            .Equal(
+                "sub_building_name",
+                "building_name",
+                "building_number",
+                "street",
+                "locality",
+                "region",
+                "postal_code",
+                "po_box",
+                "country_iso"
+            );
+    }
+
     [Fact]
     public void Organisation_WhenAdded_ShouldFixUpForeignKeysFromNavigations()
     {
         using var context = CreateContext();
-        var usageType = new AddressUsageType { Id = Guid.CreateVersion7(), Name = "Registered" };
+        var usageType = new AddressUsageType { Id = Guid.CreateVersion7(), Name = "REGISTERED" };
         var organisation = new Organisation
         {
             Id = Guid.CreateVersion7(),
             Name = "Organisation",
-            HomeNation = "GB-ENG",
-            OrganisationType = new OrganisationType { Id = Guid.CreateVersion7(), Code = "ltd" },
+            RegulatorNation = "GB-ENG",
+            OrganisationType = new OrganisationType { Id = Guid.CreateVersion7(), Code = "LTD" },
         };
         var address = new Address { Id = Guid.CreateVersion7() };
         organisation.Addresses.Add(
