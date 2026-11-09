@@ -14,7 +14,7 @@ In this repo that is `.github/workflows/check-pull-request.yml`:
 4. Trivy against the built image, ignoring unfixed findings.
 5. The reusable `sonarcloud.yml` workflow, which reports `Api.Tests` coverage to SonarQube Cloud.
 
-The same gate runs locally before a PR is proposed (commands in "Local Build And Test Checks" and "V1 API Tests" in `AGENTS.md`). `check-pull-request.yml` and `publish.yml` must stay in step: a test step added to one is added to the other.
+The same gate runs locally before a PR is proposed (commands in "Local Build And Test Checks" and "V1 API Tests" in `AGENTS.md`). `publish.yml` and `publish-hotfix.yml` run the unit and integration tests; the v1 tests run on pull requests only. A test step changed in one workflow is considered for the other two, and a deliberate difference is recorded here.
 
 ## Branch protection
 

@@ -16,7 +16,7 @@ Adapted for this repo from the DEFRA [container standards](https://github.com/DE
 
 The DEFRA standard asks for the Defra parent images (`defradigital/dotnetcore`, `defradigital/dotnetcore-development`) and for containers that do not run as root. This repo follows the [CDP .NET backend template](https://github.com/DEFRA/cdp-dotnet-backend-template) instead:
 
-- **Base images are Microsoft's** `mcr.microsoft.com/dotnet/sdk` and `mcr.microsoft.com/dotnet/aspnet`, pinned by digest. The CDP template uses them, the platform health check expects the resulting layout, and the Defra parent images do not yet track .NET 10.
+- **Base images are Microsoft's** `mcr.microsoft.com/dotnet/sdk` and `mcr.microsoft.com/dotnet/aspnet`, pinned by digest. The CDP template uses them and the platform health check expects the resulting layout. The Defra parent images do publish .NET 10 tags (`defradigital/dotnetcore:2.1.8-dotnet10.0` on 9 November 2026), so moving to them is possible; it is a decision to take with CDP, not a change to make in passing.
 - **The final stage has no `USER` instruction**, so the process runs as root inside the container. CDP runs the container on ECS with the platform's task-level controls. Adding `USER $APP_UID` (supported by the Microsoft images) is a candidate change to raise with CDP; do not make it in passing, because the platform health check and log shipping would need verifying.
 
 Record any further deviation here with the date and the reason, and revisit these when the CDP template or the Defra parent images change.

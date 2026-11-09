@@ -16,7 +16,7 @@ The rules below are the always-applicable summary. The full standards, tailored 
 
 ## Reusable skills
 
-Agent-invocable procedures live in `.agents/skills/` in the open Agent Skills format (`SKILL.md`). Codex and GitHub Copilot read that directory natively; Claude Code reads the same skills through the `.claude/skills/` symlinks. When a task matches one of these skills, follow the skill rather than improvising:
+Agent-invocable procedures live in `.agents/skills/` in the open Agent Skills format (`SKILL.md`). Codex reads that directory natively; Claude Code reads the same skills through the `.claude/skills/` symlinks. When a task matches one of these skills, follow the skill rather than improvising:
 
 - `spec-clarify`: turn a Jira story, bug or idea into a spec in `specs/`, in the repo's format, by asking the author questions; the first step of every story.
 - `spec-breakdown`: split a spec that needs more than one pull request into child specs, one per slice, with dependencies and order.

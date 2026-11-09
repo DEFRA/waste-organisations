@@ -62,7 +62,7 @@ Put new code in the existing folder for its role. Do not add parallel folders (`
 
 ## Dependencies
 
-- NuGet packages only, exact versions, declared in the project that uses them. `Directory.Build.props` carries only what applies to every project (currently the Sonar analyzer).
+- NuGet packages only, exact versions, declared in the project that uses them. `Directory.Build.props` carries only what applies to every project: the Sonar analyzer, warnings as errors, nullable reference types and the audit suppression.
 - Before adding a package, apply the DEFRA choosing packages guide: maintained, widely used, documented, no known vulnerabilities, and a licence compatible with the Open Government Licence. A package with no licence cannot be used. State the reason for the choice in the PR description.
 - Update `.github/dependabot.yml` when a new package belongs to an existing group (see "Updating Dependabot" in `AGENTS.md`).
 - Security advisories are never suppressed to pass the build. `NuGetAuditSuppress` is a last resort, carrying the advisory URL and the reason in a comment, and is removed when the fixed package arrives.

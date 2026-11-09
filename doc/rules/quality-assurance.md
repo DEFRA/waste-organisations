@@ -30,7 +30,7 @@ This repo is a backend API with no user interface. The DEFRA criteria about scre
 - Arrange, act, assert, with the arrangement built from `tests/Testing/Fixtures` where a fixture exists.
 - Assert on observable behaviour (status code, body, stored rows, problem details), not on implementation detail or on which internal method was called.
 - Test data is synthetic. Never copy production data or real company, address or personal details into fixtures, snapshots or test names.
-- Each test is independent and runs in any order. Integration tests clear the collections and tables they use; do not depend on another test's data.
+- Each test is independent and runs in any order. The Mongo integration tests clear the `Organisation` collection before each test (`MongoTestBase`); Postgres tests create their own distinct data. Never depend on another test's data.
 - No skipped tests (`Skip =`) committed without a Jira reference in the reason.
 
 ## Snapshots (Verify)
