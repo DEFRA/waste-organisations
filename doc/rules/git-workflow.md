@@ -37,7 +37,7 @@ Goals: focused PRs, simple reviews, a clean commit history, and respect for revi
 
 The description follows `.github/PULL_REQUEST_TEMPLATE.md`:
 
-- **Why**: why the change is needed and briefly what it does, with the Jira link and the spec file. Not a copy of the story.
+- **Why**: why the change is needed and briefly what it does, with the Jira story key (a repository autolink turns it into a link) and the spec file. Not a copy of the story.
 - **What changed**: one bullet per behaviour change, not per file.
 - **How to test**: everything QA or another developer needs to verify the change without reading the code: environment, preconditions (changelog applied, data, configuration), which client credentials to use, numbered requests with the `Accept` header version and the expected status and body, the negative cases, how to confirm the stored data, the automated tests and spec scenarios that cover the change, and what still needs a human. Required for any behaviour, schema or configuration change; "No behaviour change: <reason>" is acceptable for a docs-only or tooling PR.
 - **Checklist**: the gate, tests and coverage, no PII or secrets, docs updated, Dependabot groups updated.
@@ -51,7 +51,7 @@ This is how the repo meets the DEFRA quality assurance standard's expectation th
 3. Capitalise the subject line
 4. Do not end the subject line with a period
 5. Use the imperative mood in the subject line (_Add ability_, not _Added ability_)
-6. Use the body to explain _what and why_, not _how_, and link the Jira story
+6. Use the body to explain _what and why_, not _how_, and name the Jira story key
 
 Source: [How to write a Git commit message](https://chris.beams.io/posts/git-commit/). The `commit` skill in `.agents/skills/commit` produces this format.
 

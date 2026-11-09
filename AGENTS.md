@@ -65,7 +65,7 @@ Both review skills enforce scope discipline: AI-suggested changes must be in spe
 ## Git workflow
 
 - All work happens on a branch named `REGEN-NNN-short-slug`; never commit directly to `main`. Main is always shippable.
-- Commit messages: imperative mood, capitalised subject of at most 50 characters, no trailing period, blank line, then a body explaining _what and why_ with the Jira link.
+- Commit messages: imperative mood, capitalised subject of at most 50 characters, no trailing period, blank line, then a body explaining _what and why_ with the Jira story key.
 - PRs are small and focused on one change, titled `REGEN-NNN: summary`, described with `.github/PULL_REQUEST_TEMPLATE.md` including its "How to test" section, squash-merged, and the branch deleted after merge (see "Commits And Pull Requests" below).
 - A human developer reviews and approves every PR. AI review supplements that review and never approves.
 
@@ -202,6 +202,6 @@ Branches are named after the Jira story: the key followed by a short slug, for e
 
 Start every pull request title with the Jira story number, a colon and a short summary, for example `REGEN-141: Create an organisation through v2 POST /organisations`. Take the story number from the branch name; if the branch has none, ask rather than guess. Dependabot pull requests are exempt. The description follows `.github/PULL_REQUEST_TEMPLATE.md`; its "How to test" section is required for any behaviour, schema or configuration change, so QA or another developer can verify the change without reading the code.
 
-Commit messages follow the DEFRA pull request process: imperative mood, capitalised subject of at most 50 characters, no trailing period, a blank line, then a body that explains what and why and links the Jira story. The `commit` skill produces this format; see `doc/rules/git-workflow.md` for the full process.
+Commit messages follow the DEFRA pull request process: imperative mood, capitalised subject of at most 50 characters, no trailing period, a blank line, then a body that explains what and why and names the Jira story key. The `commit` skill produces this format; see `doc/rules/git-workflow.md` for the full process.
 
 The repository only allows squash merges, so each pull request becomes one commit on `main`. GitHub names it after the pull request title when the pull request has several commits, but after the commit subject when it has only one: give a single commit the same `REGEN-NNN: ` prefix.

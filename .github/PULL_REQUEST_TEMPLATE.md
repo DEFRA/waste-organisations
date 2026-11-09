@@ -4,7 +4,7 @@
 
 <!-- Why this change is needed and briefly what it does. Not a copy of the story. -->
 
-Jira: https://eaflood.atlassian.net/browse/REGEN-NNN
+Jira: REGEN-NNN
 Spec: specs/NNNN-REGEN-NNN-slug.md
 
 ## What changed

@@ -17,7 +17,7 @@ recorded in `doc/rules/git-workflow.md`. Use plain `git` commands.
 ```
 Capitalised imperative subject, 50 characters max
 
-https://eaflood.atlassian.net/browse/REGEN-NNN
+Jira: REGEN-NNN
 
 Why this change is needed and, briefly, what it changes. Wrap at 72 characters.
 ```
@@ -29,7 +29,7 @@ Rules for the message:
 3. Capitalise the subject.
 4. Do not end the subject with a period.
 5. Use the imperative mood (_Add ability_, not _Added ability_).
-6. Use the body to explain _what and why_, not _how_. Link the Jira story when one exists; take the key from the branch name (`REGEN-141-create-an-organisation` or `feature/REGEN-141` gives `REGEN-141`). On a branch with no story key, omit the link rather than invent one.
+6. Use the body to explain _what and why_, not _how_. Name the Jira story key when one exists (a repository autolink makes it clickable); take the key from the branch name (`REGEN-141-create-an-organisation` or `feature/REGEN-141` gives `REGEN-141`). On a branch with no story key, omit it rather than invent one.
 7. A single-commit PR is squash-merged under its commit subject, so when the branch will have only this commit, prefix the subject with the story key: `REGEN-141: Create an organisation`.
 
 ## Procedure
@@ -46,7 +46,7 @@ Rules for the message:
    git commit -m "$(cat <<'MSG'
    Add organisation type seed changeset
 
-   https://eaflood.atlassian.net/browse/REGEN-141
+   Jira: REGEN-141
 
    The v2 POST needs the 40 organisation type codes present before the
    endpoint can map a request; this adds them as Liquibase 1.2 so every
