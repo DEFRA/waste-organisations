@@ -5,8 +5,7 @@ the PR size guide (about 800 non-generated changed lines, see `doc/rules/git-wor
 independently testable, with dependencies and an order. Each child spec becomes one pull request,
 which is how specs 0003 and 0005 delivered REGEN-141 in two steps.
 
-Adapted from the Equal Experts llm-toolkit `breakdown` command (commit a46825d). The agent-facing
-procedure is in [SKILL.md](SKILL.md); this file is for developers.
+The agent-facing procedure is in [SKILL.md](SKILL.md); this file is for developers.
 
 ## When to use it
 
@@ -39,8 +38,9 @@ It never writes code and never edits a delivered spec.
 
 ## What you get
 
-See [examples/example-breakdown.md](examples/example-breakdown.md): a synthetic parent split into
-three child specs with their order and sizes.
+Child specs shaped like the ones already in `specs/`. REGEN-141 is the worked example: spec 0003
+(the schema) and spec 0005 (the endpoint) are its two slices, and the "Work breakdown" table in
+spec 0005 shows how a spec lists its slices with what verifies each one.
 
 ## Afterwards
 

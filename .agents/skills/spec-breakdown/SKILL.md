@@ -12,11 +12,9 @@ description: >
 
 # Spec breakdown
 
-Adapted for this repo from the Equal Experts llm-toolkit `commands/breakdown.md`
-(https://github.com/EqualExperts/llm-toolkit, commit a46825d, 22 April 2026). Last synced
-9 November 2026. The upstream command splits a generic work item into tracked items; this skill
-splits a spec into child specs, because in this repo a spec is the unit of review and each slice
-becomes one pull request (specs 0003 and 0005 are two slices of one story, REGEN-141).
+Last reviewed 9 November 2026. This skill splits a spec into child specs, because in this repo a
+spec is the unit of review and each slice becomes one pull request (specs 0003 and 0005 are two
+slices of one story, REGEN-141).
 
 ## Usage
 

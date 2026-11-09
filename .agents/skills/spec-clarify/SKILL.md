@@ -12,11 +12,8 @@ description: >
 
 # Spec clarify
 
-Adapted for this repo from the Equal Experts llm-toolkit `commands/clarify.md`
-(https://github.com/EqualExperts/llm-toolkit, commit a46825d, 22 April 2026). Last synced
-9 November 2026. The upstream command refines a generic work item; this skill produces a spec
-in the format this repo already uses (`specs/0005-REGEN-141-create-an-organisation.md` is the
-fullest example).
+Last reviewed 9 November 2026. This skill produces a spec in the format this repo already uses
+(`specs/0005-REGEN-141-create-an-organisation.md` is the fullest example).
 
 You are running an idea refinement workshop with the developer. The output is a spec that a
 reviewer can approve and that the Ralph build loop, or a developer, can implement without

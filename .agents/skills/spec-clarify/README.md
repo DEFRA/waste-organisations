@@ -4,8 +4,7 @@ Turns a Jira story, bug or idea into a spec in `specs/`, in the format the team 
 asking you questions one topic at a time. It is the first step of every story in this repo: the
 spec is what reviewers approve and what the Ralph build loop plans from.
 
-Adapted from the Equal Experts llm-toolkit `clarify` command (commit a46825d). The agent-facing
-procedure is in [SKILL.md](SKILL.md); this file is for developers.
+The agent-facing procedure is in [SKILL.md](SKILL.md); this file is for developers.
 
 ## When to use it
 
@@ -42,8 +41,9 @@ something an earlier spec decided is recorded in the new spec's Decisions, namin
 
 ## What you get
 
-A spec like [examples/example-spec.md](examples/example-spec.md) (a synthetic story, kept small
-to show the shape). For a real, full one see `specs/0005-REGEN-141-create-an-organisation.md`.
+A spec shaped like the ones already in `specs/`: `specs/0005-REGEN-141-create-an-organisation.md`
+is the fullest example of a feature spec, `specs/0001-REGEN-145-test-scenarios-for-existing-v1-api.md`
+of a task spec.
 
 ## Afterwards
 
