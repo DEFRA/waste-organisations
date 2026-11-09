@@ -91,6 +91,7 @@ otherwise work through them in order. The result must be the same either way.
    | architecture | Endpoints, Services, Dtos, Mapping layout; thin handlers; options validated on start; DI registration                      | `doc/rules/csharp-dotnet.md`                                            |
    | dependencies | Vetting rationale for a new package, exact versions, Dependabot groups updated, audit suppressions justified               | `AGENTS.md` ("Dependencies", "Updating Dependabot"), `doc/rules/csharp-dotnet.md` |
    | PR hygiene   | Commit message rules, `REGEN-NNN: ` title, Jira link, description matches the diff, "How to test" present and runnable by QA, PR within the size guide, no loop artefacts | `doc/rules/git-workflow.md`                                        |
+   | spec         | For changes under `specs/`: the standard sections present (metadata table, Problem/Opportunity, Proposed Solution, Acceptance Criteria, Out of Scope, Decisions, Open Questions, Dependencies, Risks), acceptance criteria testable with negative cases, sources cited, delivered specs untouched, a Work breakdown or child specs when the work exceeds the size guide | `AGENTS.md` ("Specs"), `.agents/skills/spec-clarify/SKILL.md`, `.agents/skills/spec-breakdown/SKILL.md` |
 
    Only apply a rule to lines the PR touches. Pre-existing violations nearby are
    out-of-scope findings (step 7), not change requests.

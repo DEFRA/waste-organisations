@@ -153,11 +153,25 @@ See [dependabot.yml](.github/dependabot.yml) for group configuration.
 
 Review CDP documentation and process for relevant portal operations.
 
+## Branching and contributing
+
+Work follows GitHub flow: every change is made on a branch named after its Jira story (`REGEN-NNN-short-slug`), opened as a pull request titled `REGEN-NNN: summary`, approved by two reviewers (repository ruleset) and squash-merged into `main`, which is always shippable. The pull request template asks for a "How to test" section so QA or another developer can verify the change without reading the code.
+
+The rules every developer and AI coding tool follows are in [AGENTS.md](AGENTS.md), with the DEFRA software development standards adapted for this repo in [doc/rules](doc/rules/). Reusable procedures live in [.agents/skills](.agents/skills/) and work in Claude Code and Codex:
+
+- [spec-clarify](.agents/skills/spec-clarify/README.md): turn a Jira story into a spec in `specs/`, the first step of every story
+- [spec-breakdown](.agents/skills/spec-breakdown/README.md): split a large spec into child specs, one pull request each
+- `commit`, `pr-preflight` and `pr-review`: commit in the DEFRA style, check your own pull request before asking for review, and review a colleague's
+
 ## Licence Information
 
 THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:
 
 http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3
+
+The following attribution statement must be cited in products and applications that use this information:
+
+> Contains public sector information licensed under the Open Government Licence v3.0.
 
 ### About the licence
 
