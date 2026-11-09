@@ -59,8 +59,7 @@ Rules for the message:
 
 ## Quality standards
 
-- **Always include** footer: `Co-Authored-By: Claude <noreply@anthropic.com>`
-- **Never include** "Generated with Claude Code" signatures
+- No tool signatures or co-author trailers in commit messages; the message carries the subject, the story key and the body, nothing else.
 - One logical change per commit; split larger diffs into several atomic commits in a single invocation.
 - Body in sentences, two to five lines; no bullet dumps of file names, which the diff already shows.
 - Match the branch's style, not its content: do not copy earlier messages.
