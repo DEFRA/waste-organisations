@@ -47,7 +47,7 @@ Workflows declare the least `permissions` they need at the top level and widen p
 ## Security in CI
 
 - **Dependabot** is enabled with grouped updates for NuGet (daily), GitHub Actions, Docker and Docker Compose (weekly).
-- **Dependency review action** should run in the PR workflow to block newly introduced vulnerable packages. **Gap:** not yet present; adding it is a small, standalone change.
+- **Dependency review action** belongs in the PR workflow, to block newly introduced vulnerable packages.
 - **Trivy** scans the built image on every PR.
 - **GitHub Security tab** is reviewed regularly; open alerts are resolved. This includes vulnerabilities in GitHub Actions themselves.
 

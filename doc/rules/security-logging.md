@@ -24,7 +24,7 @@ Defra has GitHub Advanced Security enabled organisation-wide. Maximise these bui
 
 - **Dependency graph** enabled (foundation for the features below).
 - **Dependabot** raises PRs for vulnerable or outdated dependencies, with grouped updates to reduce noise (`.github/dependabot.yml`, see "Updating Dependabot" in `AGENTS.md`).
-- **Dependency review action** in the PR workflow fails the check if a PR introduces known-vulnerable packages. **Gap:** not yet in `check-pull-request.yml`; add it rather than another scanner.
+- **Dependency review action** belongs in the PR workflow, so that a PR introducing a known-vulnerable package fails its check. Prefer it to adding another scanner.
 - **Security tab** reviewed regularly: Dependabot alerts, code scanning alerts, secret scanning alerts. Open alerts are resolved, not left to age.
 - Trivy scans the built image in the PR workflow for OS and runtime vulnerabilities (`--ignore-unfixed`).
 
