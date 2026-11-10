@@ -23,7 +23,7 @@ Record any further deviation here with the date and the reason, and revisit thes
 
 ## Local stack (`compose.yml`)
 
-- Services: `mongodb`, `postgres`, `liquibase` (one-shot, applies `changelog/` and exits), `api`. The API waits for Liquibase to complete successfully; an exited `liquibase` container is expected (see "Postgres And Liquibase" in `AGENTS.md`).
+- `compose.yml` is the source of truth for the services of the local stack; read it rather than rely on a list here. A one-shot service that does its work and exits is expected to show as exited, and the services that depend on it wait for it to complete successfully (see "Postgres And Liquibase" in `AGENTS.md`).
 - Images in `compose.yml` are pinned by tag and digest. The Liquibase image sits inside a `dockerfile_inline`, so Dependabot cannot see it: bump its tag and digest by hand, resolving the digest rather than typing it from memory.
-- Host ports 8080, 5432 and 27017 are fixed because the tests depend on them. Do not change them to work around a local conflict; stop the conflicting service instead.
+- Host ports configured in `compose.yml` are fixed because the tests depend on them. Do not change them to work around a local conflict; stop the conflicting service instead.
 - Development-only credentials in `compose.yml` and `compose/aws.env` are test values. Never put a real credential in a Compose file.
