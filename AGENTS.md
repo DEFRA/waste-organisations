@@ -64,9 +64,9 @@ Both review skills enforce scope discipline: AI-suggested changes must be in spe
 
 ## Git workflow
 
-- All work happens on a branch named `REGEN-NNN-short-slug`; never commit directly to `main`. Main is always shippable.
+- All work happens on a branch named `REGEN-NNN-short-slug` (Dependabot branches and work with no Jira story are exempt); never commit directly to `main`. Main is always shippable.
 - Branch commits follow Conventional Commits (`type(scope): subject`, imperative, at most 50 characters, optional body of up to three bullets), made with the `commit` skill, with no tool signatures or co-author trailers. They never reach `main`.
-- PRs are small and focused on one change, titled `REGEN-NNN: summary`, described with `.github/PULL_REQUEST_TEMPLATE.md` including its "How to test" section, squash-merged with the PR title and description as the commit message, and the branch deleted after merge (see "Commits And Pull Requests" below).
+- PRs are small and focused on one change, titled `REGEN-NNN: summary` (no prefix when the work has no Jira story), described with `.github/PULL_REQUEST_TEMPLATE.md` including its "How to test" section, squash-merged with the PR title and description as the commit message, and the branch deleted after merge (see "Commits And Pull Requests" below).
 - A human developer reviews and approves every PR. AI review supplements that review and never approves.
 
 ## AI-assisted development
@@ -198,9 +198,9 @@ A new spec is written with the `spec-clarify` skill, so it has the sections, the
 
 ## Commits And Pull Requests
 
-Branches are named after the Jira story: the key followed by a short slug, for example `REGEN-141-create-an-organisation`. Older branches use `feature/REGEN-141`; the story number is the `REGEN-NNN` part either way. Dependabot branches are exempt.
+Branches are named after the Jira story: the key followed by a short slug, for example `REGEN-141-create-an-organisation`. Older branches use `feature/REGEN-141`; the story number is the `REGEN-NNN` part either way. Dependabot branches are exempt. Work that is not associated with a Jira story takes no key: the branch has a short descriptive name and the PR title is the summary alone. Never invent a placeholder key.
 
-Start every pull request title with the Jira story number, a colon and a short summary, for example `REGEN-141: Create an organisation through v2 POST /organisations`. Take the story number from the branch name; if the branch has none, ask rather than guess. Dependabot pull requests are exempt. The description follows `.github/PULL_REQUEST_TEMPLATE.md`; its "How to test" section is required for any behaviour, schema or configuration change, so QA or another developer can verify the change without reading the code.
+Start every pull request title with the Jira story number, a colon and a short summary, for example `REGEN-141: Create an organisation through v2 POST /organisations`. Take the story number from the branch name; if the branch has none, ask rather than guess. Dependabot pull requests and work with no Jira story take no prefix. The description follows `.github/PULL_REQUEST_TEMPLATE.md`; its "How to test" section is required for any behaviour, schema or configuration change, so QA or another developer can verify the change without reading the code.
 
 Commits on a feature branch keep their conventional-commit subjects (`feat(create): ...`), since they do not reach `main` on their own; the `commit` skill produces them. The squash commit is what `main` records: use the pull request title as its subject and the Why and What changed of the description as its body, not the default list of branch commit messages. See `doc/rules/git-workflow.md` for the full process.
 

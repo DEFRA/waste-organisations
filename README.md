@@ -155,7 +155,7 @@ Review CDP documentation and process for relevant portal operations.
 
 ## Branching and contributing
 
-Work follows GitHub flow: every change is made on a branch named after its Jira story (`REGEN-NNN-short-slug`), opened as a pull request titled `REGEN-NNN: summary`, approved by two reviewers (repository ruleset) and squash-merged into `main`, which is always shippable. The pull request template asks for a "How to test" section so QA or another developer can verify the change without reading the code.
+Work follows GitHub flow: every change is made on a branch named after its Jira story (`REGEN-NNN-short-slug`), opened as a pull request titled `REGEN-NNN: summary` (work with no Jira story takes no key), approved by two reviewers (repository ruleset) and squash-merged into `main`, which is always shippable. The pull request template asks for a "How to test" section so QA or another developer can verify the change without reading the code.
 
 The rules every developer and AI coding tool follows are in [AGENTS.md](AGENTS.md), with the DEFRA software development standards adapted for this repo in [doc/rules](doc/rules/). Reusable procedures live in [.agents/skills](.agents/skills/) and work in Claude Code and Codex:
 

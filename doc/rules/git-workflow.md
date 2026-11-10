@@ -13,7 +13,7 @@ Adapted for this repo from the DEFRA [version control standards](https://github.
 
 Goals: focused PRs, simple reviews, a clean commit history, and respect for reviewers' time.
 
-1. **Always on a branch.** However small the change: `git checkout -b REGEN-NNN-short-slug`, for example `REGEN-141-create-an-organisation`. The DEFRA process uses a plain descriptive name; this repo prefixes the Jira key so the PR title and story link can be derived from it. Older `feature/REGEN-NNN` branches exist; new branches use the new form. Dependabot branches are exempt.
+1. **Always on a branch.** However small the change: `git checkout -b REGEN-NNN-short-slug`, for example `REGEN-141-create-an-organisation`. The DEFRA process uses a plain descriptive name; this repo prefixes the Jira key so the PR title and story link can be derived from it. Older `feature/REGEN-NNN` branches exist; new branches use the new form. Dependabot branches are exempt. Work that is not associated with a Jira story takes no key: the branch has a short descriptive name and the PR title is the summary alone. Never invent a placeholder key.
 2. **Start with an empty commit** (`git commit --allow-empty`) using this template, so the PR is visible from the start:
 
    ```text
@@ -26,7 +26,7 @@ Goals: focused PRs, simple reviews, a clean commit history, and respect for revi
 
    Cover **the actual change you intend to make**, not a repeat of the backlog story; the Jira story key provides that context.
 
-3. **Push immediately and open the PR** (`git push -u origin REGEN-NNN-short-slug`). Title it `REGEN-NNN: summary` and fill in `.github/PULL_REQUEST_TEMPLATE.md`, which GitHub offers in place of the commit message; the empty commit still carries the why in the history. Assign yourself. Open it as a draft until it is ready for review, and complete the "How to test" section before you request review.
+3. **Push immediately and open the PR** (`git push -u origin REGEN-NNN-short-slug`). Title it `REGEN-NNN: summary`, or the summary alone when the work has no Jira story, and fill in `.github/PULL_REQUEST_TEMPLATE.md`, which GitHub offers in place of the commit message; the empty commit still carries the why in the history. Assign yourself. Open it as a draft until it is ready for review, and complete the "How to test" section before you request review.
 4. **Code, committing frequently** with the `commit` skill: Conventional Commits subjects and short bulleted bodies (see "Commit messages" below). Keep `WIP` noise to a minimum; the messages are visible in the PR.
 5. **Keep your branch up to date** with `git rebase origin/main` (preferred over merge, to keep the PR history clean). Never rebase or force-push a branch someone else is working on.
 6. **Keep the PR small.** One spec slice or one plan item per PR. A PR that mixes a schema change, an endpoint and a refactor is three PRs. Size guide: at most about 800 non-generated changed lines (generated means `*.verified.*` snapshots and lock files); above that, split by spec slice before asking for review. The `pr-review` and `pr-preflight` skills flag a PR over the guide with a suggested split point. The figure was proposed in November 2026 and the team can revise it here.
@@ -37,7 +37,7 @@ Goals: focused PRs, simple reviews, a clean commit history, and respect for revi
 
 The description follows `.github/PULL_REQUEST_TEMPLATE.md`:
 
-- **Why**: why the change is needed and briefly what it does, with the Jira story key (a repository autolink turns it into a link) and the spec file. Not a copy of the story.
+- **Why**: why the change is needed and briefly what it does, with the Jira story key (a repository autolink turns it into a link), or `Jira: none` with the reason when the work has no story, and the spec file. Not a copy of the story.
 - **What changed**: one bullet per behaviour change, not per file.
 - **How to test**: everything QA or another developer needs to verify the change without reading the code: environment, preconditions (changelog applied, data, configuration), which client credentials to use, numbered requests with the `Accept` header version and the expected status and body, the negative cases, how to confirm the stored data, the automated tests and spec scenarios that cover the change, and what still needs a human. Required for any behaviour, schema or configuration change; "No behaviour change: <reason>" is acceptable for a docs-only or tooling PR.
 - **Checklist**: the gate, tests and coverage, no PII or secrets, docs updated, Dependabot groups updated.

@@ -1,10 +1,10 @@
-<!-- Title: REGEN-NNN: Short summary (imperative, 50 characters). See doc/rules/git-workflow.md. -->
+<!-- Title: REGEN-NNN: Short summary (imperative, 50 characters). No prefix when the work has no Jira story. See doc/rules/git-workflow.md. -->
 
 ## Why
 
 <!-- Why this change is needed and briefly what it does. Not a copy of the story. -->
 
-Jira: REGEN-NNN
+Jira: REGEN-NNN <!-- or "none" with the reason when the work has no Jira story -->
 Spec: specs/NNNN-REGEN-NNN-slug.md
 
 ## What changed
