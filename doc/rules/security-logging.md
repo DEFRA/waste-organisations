@@ -24,7 +24,7 @@ Defra has GitHub Advanced Security enabled organisation-wide. Maximise these bui
 
 - **Dependency graph** enabled (foundation for the features below).
 - **Dependabot** raises PRs for vulnerable or outdated dependencies, with grouped updates to reduce noise (`.github/dependabot.yml`, see "Updating Dependabot" in `AGENTS.md`).
-- **Dependency review action** belongs in the PR workflow, so that a PR introducing a known-vulnerable package fails its check. Prefer it to adding another scanner.
+- **NuGet audit** runs on every restore in `all` mode (direct and transitive packages, every severity) with warnings as errors, so the build, and with it the PR check, fails on a package with a known vulnerability. This is how the repo meets the DEFRA expectation that a PR cannot introduce a vulnerable package, which the standard names the dependency review action for. Never switch the audit off or lower its level; a single advisory is suppressed only as `csharp-dotnet.md` describes.
 - **Security tab** reviewed regularly: Dependabot alerts, code scanning alerts, secret scanning alerts. Open alerts are resolved, not left to age.
 - Trivy scans the built image in the PR workflow for OS and runtime vulnerabilities (`--ignore-unfixed`).
 

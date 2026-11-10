@@ -4,7 +4,7 @@ Adapted for this repo from the DEFRA [continuous integration standards](https://
 
 ## What CI must check
 
-Every branch build verifies: the solution builds, tests pass, code style passes (CSharpier), code quality passes (SonarQube Cloud) and security checks pass (Trivy image scan, Dependabot, dependency review).
+Every branch build verifies: the solution builds, tests pass, code style passes (CSharpier), code quality passes (SonarQube Cloud) and security checks pass (Trivy image scan, Dependabot, NuGet audit).
 
 In this repo that is `.github/workflows/check-pull-request.yml`:
 
@@ -47,7 +47,7 @@ Workflows declare the least `permissions` they need at the top level and widen p
 ## Security in CI
 
 - **Dependabot** is enabled with grouped updates for NuGet (daily), GitHub Actions, Docker and Docker Compose (weekly).
-- **Dependency review action** belongs in the PR workflow, to block newly introduced vulnerable packages.
+- **NuGet audit** (mode `all`, warnings as errors) fails the build when a package has a known vulnerability, which blocks newly introduced vulnerable packages where the DEFRA standard names the dependency review action.
 - **Trivy** scans the built image on every PR.
 - **GitHub Security tab** is reviewed regularly; open alerts are resolved. This includes vulnerabilities in GitHub Actions themselves.
 
