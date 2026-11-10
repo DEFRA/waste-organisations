@@ -1,67 +1,110 @@
 ---
 name: commit
-description: >
-  Commit finished work in this repository as one or more atomic commits with messages in the
-  DEFRA style (capitalised imperative subject of at most 50 characters, blank line, body saying
-  what and why with the Jira story key). Use whenever asked to commit, save, or check in changes, and
-  at the end of a Ralph build iteration. Stages explicit paths only and never commits the loop
-  artefacts.
+description: Use this skill when you need to commit code changes with properly formatted commit messages that follow conventional commit standards. Use it when you have finished implementing a feature, fixed a bug, or have any other change ready to save. Produces fine-grained atomic commits with short imperative subjects and an optional short body.
 allowed-tools: Bash
 ---
 
-You are committing changes in this repository. Follow the DEFRA pull request process as
-recorded in `doc/rules/git-workflow.md`. Use plain `git` commands.
+You are an expert Git committer who creates commit messages following the Conventional Commits specification (https://www.conventionalcommits.org/en/v1.0.0/).
 
-## Commit message format
+Use plain Bash `git` commands. No MCP servers required — this skill is self-contained.
+
+## Commit Message Format
 
 ```
-Capitalised imperative subject, 50 characters max
+<type>[optional scope]: <description>
 
-Jira: REGEN-NNN
+[optional short body — up to 3 bulleted lines]
 
-Why this change is needed and, briefly, what it changes. Wrap at 72 characters.
+[optional footer(s)]
 ```
 
-Rules for the message:
+## Commit Types
 
-1. Separate the subject from the body with a blank line.
-2. Limit the subject to 50 characters.
-3. Capitalise the subject.
-4. Do not end the subject with a period.
-5. Use the imperative mood (_Add ability_, not _Added ability_).
-6. Use the body to explain _what and why_, not _how_. Name the Jira story key when one exists (a repository autolink makes it clickable); take the key from the branch name (`REGEN-141-create-an-organisation` or `feature/REGEN-141` gives `REGEN-141`). On a branch with no story key, omit it rather than invent one.
-7. A single-commit PR is squash-merged under its commit subject, so when the branch will have only this commit, prefix the subject with the story key: `REGEN-141: Create an organisation`.
+| Type       | Purpose                                           | SemVer   |
+|------------|---------------------------------------------------|----------|
+| feat       | New feature                                       | MINOR    |
+| fix        | Bug fix                                           | PATCH    |
+| docs       | Documentation only                                | -        |
+| style      | Formatting/linting, whitespace (no code change)   | -        |
+| refactor   | Code restructuring (no feature/fix)               | -        |
+| perf       | Performance improvement                           | -        |
+| test       | Adding or correcting tests                        | -        |
+| build      | Build system or dependencies                      | -        |
+| ci         | CI configuration                                  | -        |
+| chore      | Maintenance tasks                                 | -        |
 
-## Procedure
+## Breaking Changes
 
-1. **Analyse the changes**: `git status` and `git diff` before composing anything.
-2. **Atomic commits**: each commit captures one logical change. If the working tree holds separable concerns (a refactor _and_ the feature it enables, or two unrelated fixes), produce one commit per concern rather than a grab-bag commit.
-3. **Stage selectively**: `git add -- <paths>` with explicit paths. Never `git add -A` or `git add .` when the diff spans more than one concern.
-4. **Never stage loop or local artefacts**: `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `PROMPT_*.md`, `.ralph/`, `*.received.*`. They are gitignored; if one shows as tracked, stop and ask.
-5. **Check recent commits** (`git log --oneline -10`) to stay consistent with the branch.
-6. **Verify first**: do not commit a change that has not passed the gate in `AGENTS.md` ("Local Build And Test Checks"). If a v1 test is red, stop; never commit a v1 test or snapshot change to get green.
-7. **Commit** with a heredoc so the subject, blank line and body keep their newlines:
+Indicate breaking changes (MAJOR version bump) using either:
+- Append `!` after type/scope (e.g., `feat!: remove deprecated API`)
+- Add footer with `BREAKING CHANGE: description of what broke`
 
-   ```bash
-   git commit -m "$(cat <<'MSG'
-   Add organisation type seed changeset
+## Rules
 
-   Jira: REGEN-141
+1. **Analyse changes**: review `git status` and `git diff` before composing anything.
+2. **Atomic commits**: each commit captures one logical change. If the working tree contains separable concerns (e.g. a refactor *and* the feature it enables, or two unrelated fixes), produce multiple commits — one per concern — rather than a single grab-bag commit.
+3. **Stage selectively**: pass explicit paths to `git add -- <paths>`. Never use `git add -A` or `git add .` when the diff spans multiple logical changes.
+4. **Check recent commits**: `git log --oneline -10` to match the project's prevailing style before writing your own subject.
+5. **Select type**: pick the most specific type that fits the change.
+6. **Optional scope**: parenthetical, lowercase, names the affected area (e.g. `feat(sandbox):`).
+7. **Subject**: imperative mood, lowercase, ≤50 characters, no trailing period.
+8. **Body (optional)**: at most **3 short bulleted lines** summarising what was implemented. Use a body only when the subject alone doesn't make the change self-evident. Skip the body entirely for trivial or self-describing diffs.
+9. **Single-commit pull request**: a pull request with one commit is squash-merged under that commit's subject, so when the branch will have only this commit, use the pull request title form instead: `REGEN-141: Create an organisation`.
+10. **Never stage loop or local artefacts**: `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `PROMPT_*.md`, `.ralph/`, `*.received.*`. They are gitignored; if one shows as tracked, stop and ask.
+11. **Commit immediately**: do not seek approval before committing — the user invoked this skill *because* they want a commit.
 
-   The v2 POST needs the 40 organisation type codes present before the
-   endpoint can map a request; this adds them as Liquibase 1.2 so every
-   environment seeds them the same way.
-   MSG
-   )"
-   ```
+## Quality Standards
 
-8. **Commit immediately** once the message is composed: the user invoked this skill because they want a commit. Respect hooks (never `--no-verify`), never amend or rewrite a pushed commit, never create an empty commit except the PR-opening one described in `doc/rules/git-workflow.md`.
+- No tool signatures or co-author trailers in commit messages
+- Keep the subject ≤50 characters where possible
+- One logical change per commit — split larger diffs into multiple atomic commits in a single skill invocation
+- The body, when present, is **at most 3 bulleted lines**; no prose paragraphs, no long explanations
+- Ignore previous commit messages when composing new ones — match style, not content
 
-## Quality standards
+## Examples
 
-- No tool signatures or co-author trailers in commit messages; the message carries the subject, the story key and the body, nothing else.
-- One logical change per commit; split larger diffs into several atomic commits in a single invocation.
-- Body in sentences, two to five lines; no bullet dumps of file names, which the diff already shows.
-- Match the branch's style, not its content: do not copy earlier messages.
+Subject only (preferred for self-evident diffs):
+
+```
+feat: add user authentication module
+```
+
+```
+fix(api): resolve null pointer in login validation
+```
+
+Subject with short bulleted body (when the diff isn't self-explanatory):
+
+```
+feat(sandbox): mount ssh agent socket
+
+- bind /tmp/ssh-agent.sock into container
+- forward SSH_AUTH_SOCK env var
+- guard empty array under bash 3.2
+```
+
+Breaking change:
+
+```
+refactor!: restructure database schema
+```
+
+## Tool reference
+
+- `git status` — inspect the working tree
+- `git diff` / `git diff --staged` — review unstaged and staged changes
+- `git log --oneline -10` — recent commit style
+- `git add -- <paths>` — stage specific paths only (never `-A` / `.` for multi-concern diffs)
+- Use a HEREDOC for the commit message so the subject and body bullets keep their newlines:
+
+  ```bash
+  git commit -m "$(cat <<'EOF'
+  <type>(<scope>): <subject>
+
+  - bullet one
+  - bullet two
+  EOF
+  )"
+  ```
 
 If the intent or scope of the changes is unclear, ask specific questions before committing.

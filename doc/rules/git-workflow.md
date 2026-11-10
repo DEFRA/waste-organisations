@@ -27,11 +27,11 @@ Goals: focused PRs, simple reviews, a clean commit history, and respect for revi
    Cover **the actual change you intend to make**, not a repeat of the backlog story; the Jira story key provides that context.
 
 3. **Push immediately and open the PR** (`git push -u origin REGEN-NNN-short-slug`). Title it `REGEN-NNN: summary` and fill in `.github/PULL_REQUEST_TEMPLATE.md`, which GitHub offers in place of the commit message; the empty commit still carries the why in the history. Assign yourself. Open it as a draft until it is ready for review, and complete the "How to test" section before you request review.
-4. **Code, committing frequently.** Interim messages can be informal but keep `WIP` noise to a minimum; they are visible in the PR.
+4. **Code, committing frequently** with the `commit` skill: Conventional Commits subjects and short bulleted bodies (see "Commit messages" below). Keep `WIP` noise to a minimum; the messages are visible in the PR.
 5. **Keep your branch up to date** with `git rebase origin/main` (preferred over merge, to keep the PR history clean). Never rebase or force-push a branch someone else is working on.
 6. **Keep the PR small.** One spec slice or one plan item per PR. A PR that mixes a schema change, an endpoint and a refactor is three PRs. Size guide: at most about 800 non-generated changed lines (generated means `*.verified.*` snapshots and lock files); above that, split by spec slice before asking for review. The `pr-review` and `pr-preflight` skills flag a PR over the guide with a suggested split point. The figure was proposed in November 2026 and the team can revise it here.
 7. **Get it reviewed.** At least one other developer must review and approve before merge. A v1 test or snapshot change also needs the v1 code owner's approval. AI review (the `pr-preflight` and `pr-review` skills) prepares for the human review and never replaces or approves it.
-8. **Squash and merge**, rewording the combined text into a single clean commit message, then **delete the branch**. With one commit in the PR, GitHub uses that commit's subject, so give it the `REGEN-NNN: ` prefix too (see "Commits And Pull Requests" in `AGENTS.md`).
+8. **Squash and merge**, then **delete the branch**. The squash commit is what `main` records: its subject is the PR title and its body is the Why and What changed of the PR description, not GitHub's default list of every branch commit message, which would also carry any co-author trailers onto `main`. With one commit in the PR, GitHub uses that commit's subject, so give it the `REGEN-NNN: ` prefix too (see "Commits And Pull Requests" in `AGENTS.md`).
 
 ## Pull request description
 
@@ -44,7 +44,11 @@ The description follows `.github/PULL_REQUEST_TEMPLATE.md`:
 
 This is how the repo meets the DEFRA quality assurance standard's expectation that each story's testing is documented alongside the story. The `pr-review` and `pr-preflight` skills check that "How to test" is present, matches the diff and could be followed without reading the code.
 
-## Commit message rules
+## Commit messages
+
+**Branch commits** follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <subject>` with an imperative subject of at most 50 characters and an optional body of at most three short bullets. The `commit` skill in `.agents/skills/commit` produces this format. Branch commits never reach `main`, so they carry no Jira key, and the DEFRA process asks only that interim messages are not ignored. No tool signatures or co-author trailers.
+
+**The PR title and the squash commit** are what `main` records, so the DEFRA commit message rules apply to them, and to the empty commit that opens the PR:
 
 1. Separate subject from body with a blank line
 2. Limit the subject line to 50 characters
@@ -53,7 +57,7 @@ This is how the repo meets the DEFRA quality assurance standard's expectation th
 5. Use the imperative mood in the subject line (_Add ability_, not _Added ability_)
 6. Use the body to explain _what and why_, not _how_, and name the Jira story key
 
-Source: [How to write a Git commit message](https://chris.beams.io/posts/git-commit/). The `commit` skill in `.agents/skills/commit` produces this format.
+Source: [How to write a Git commit message](https://chris.beams.io/posts/git-commit/), as adopted by the DEFRA pull requests process.
 
 ## Ralph loop commits
 

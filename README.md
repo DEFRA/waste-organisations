@@ -163,7 +163,7 @@ The rules every developer and AI coding tool follows are in [AGENTS.md](AGENTS.m
 - [spec-breakdown](.agents/skills/spec-breakdown/README.md): split a large spec into child specs, one pull request each
 - [pr-preflight](.agents/skills/pr-preflight/README.md): check your own pull request before asking for review
 - [pr-review](.agents/skills/pr-review/README.md): review a colleague's pull request against its story and these rules
-- `commit`: commit in the DEFRA message style
+- `commit`: commit with Conventional Commits messages
 
 ## Licence Information
 

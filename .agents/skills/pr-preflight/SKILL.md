@@ -139,8 +139,8 @@ it needs a decision.
    Confirm coverage has not dropped below its previous figure, not just above
    90% (`doc/rules/quality-assurance.md`). If a fix fails the gate, revert that
    edit and report the finding as unfixed, with what you tried.
-4. Commit as a **new commit** with the `commit` skill (DEFRA-style message; note
-   in the body that it was caught in self-review). Plain `git push` to the PR's
+4. Commit as a **new commit** with the `commit` skill (note in the
+   body that it was caught in self-review). Plain `git push` to the PR's
    head branch.
 5. Record the new head SHA for the report.
 

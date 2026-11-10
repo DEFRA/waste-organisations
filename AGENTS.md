@@ -20,7 +20,7 @@ Agent-invocable procedures live in `.agents/skills/` in the open Agent Skills fo
 
 - `spec-clarify`: turn a Jira story, bug or idea into a spec in `specs/`, in the repo's format, by asking the author questions; the first step of every story.
 - `spec-breakdown`: split a spec that needs more than one pull request into child specs, one per slice, with dependencies and order.
-- `commit`: stage and commit finished work as atomic commits with DEFRA-style messages.
+- `commit`: stage and commit finished work as atomic commits with Conventional Commits messages.
 - `pr-review`: review a colleague's PR against the linked Jira story and these standards. Findings are reported for a human to act on; the AI never approves, requests changes, or comments.
 - `pr-preflight`: pre-flight check of your own PR before requesting human review; may fix mechanical, in-spec blocking findings (new commit, plain push, full gate first).
 
@@ -65,8 +65,8 @@ Both review skills enforce scope discipline: AI-suggested changes must be in spe
 ## Git workflow
 
 - All work happens on a branch named `REGEN-NNN-short-slug`; never commit directly to `main`. Main is always shippable.
-- Commit messages: imperative mood, capitalised subject of at most 50 characters, no trailing period, blank line, then a body explaining _what and why_ with the Jira story key.
-- PRs are small and focused on one change, titled `REGEN-NNN: summary`, described with `.github/PULL_REQUEST_TEMPLATE.md` including its "How to test" section, squash-merged, and the branch deleted after merge (see "Commits And Pull Requests" below).
+- Branch commits follow Conventional Commits (`type(scope): subject`, imperative, at most 50 characters, optional body of up to three bullets), made with the `commit` skill, with no tool signatures or co-author trailers. They never reach `main`.
+- PRs are small and focused on one change, titled `REGEN-NNN: summary`, described with `.github/PULL_REQUEST_TEMPLATE.md` including its "How to test" section, squash-merged with the PR title and description as the commit message, and the branch deleted after merge (see "Commits And Pull Requests" below).
 - A human developer reviews and approves every PR. AI review supplements that review and never approves.
 
 ## AI-assisted development
@@ -202,6 +202,6 @@ Branches are named after the Jira story: the key followed by a short slug, for e
 
 Start every pull request title with the Jira story number, a colon and a short summary, for example `REGEN-141: Create an organisation through v2 POST /organisations`. Take the story number from the branch name; if the branch has none, ask rather than guess. Dependabot pull requests are exempt. The description follows `.github/PULL_REQUEST_TEMPLATE.md`; its "How to test" section is required for any behaviour, schema or configuration change, so QA or another developer can verify the change without reading the code.
 
-Commit messages follow the DEFRA pull request process: imperative mood, capitalised subject of at most 50 characters, no trailing period, a blank line, then a body that explains what and why and names the Jira story key. The `commit` skill produces this format; see `doc/rules/git-workflow.md` for the full process.
+Commits on a feature branch keep their conventional-commit subjects (`feat(create): ...`), since they do not reach `main` on their own; the `commit` skill produces them. The squash commit is what `main` records: use the pull request title as its subject and the Why and What changed of the description as its body, not the default list of branch commit messages. See `doc/rules/git-workflow.md` for the full process.
 
 The repository only allows squash merges, so each pull request becomes one commit on `main`. GitHub names it after the pull request title when the pull request has several commits, but after the commit subject when it has only one: give a single commit the same `REGEN-NNN: ` prefix.
