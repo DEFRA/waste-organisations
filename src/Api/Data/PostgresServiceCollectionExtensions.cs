@@ -52,8 +52,10 @@ public static class PostgresServiceCollectionExtensions
         // service (Unhealthy) or only shows in /health/all and the logs (Degraded). A check is
         // registered before options can be resolved, so it is read from configuration here;
         // ValidateOnStart above still rejects an invalid value
-        var healthCheckFailureStatus =
-            configuration.GetSection(PostgresOptions.SectionName).Get<PostgresOptions>()?.HealthCheckFailureStatus
+        var healthCheckFailureStatus = configuration
+            .GetSection(PostgresOptions.SectionName)
+            .Get<PostgresOptions>()
+            ?.HealthCheckFailureStatus
             ?? HealthStatus.Degraded;
 
         services
