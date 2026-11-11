@@ -49,12 +49,13 @@ Indicate breaking changes (MAJOR version bump) using either:
 6. **Optional scope**: parenthetical, lowercase, names the affected area (e.g. `feat(sandbox):`).
 7. **Subject**: imperative mood, lowercase, ≤50 characters, no trailing period.
 8. **Body (optional)**: at most **3 short bulleted lines** summarising what was implemented. Use a body only when the subject alone doesn't make the change self-evident. Skip the body entirely for trivial or self-describing diffs.
-9. **Commit immediately**: do not seek approval before committing — the user invoked this skill *because* they want a commit.
+9. **Single-commit pull request**: a pull request with one commit is squash-merged under that commit's subject, so when the branch will have only this commit, use the pull request title form instead: `REGEN-141: Create an organisation`.
+10. **Never stage loop or local artefacts**: `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `PROMPT_*.md`, `.ralph/`, `*.received.*`. They are gitignored; if one shows as tracked, stop and ask.
+11. **Commit immediately**: do not seek approval before committing — the user invoked this skill *because* they want a commit.
 
 ## Quality Standards
 
-- **Always include** footer: `Co-Authored-By: Claude <noreply@anthropic.com>`
-- **Never include** "Generated with Claude Code" signatures
+- No tool signatures or co-author trailers in commit messages
 - Keep the subject ≤50 characters where possible
 - One logical change per commit — split larger diffs into multiple atomic commits in a single skill invocation
 - The body, when present, is **at most 3 bulleted lines**; no prose paragraphs, no long explanations
@@ -94,7 +95,7 @@ refactor!: restructure database schema
 - `git diff` / `git diff --staged` — review unstaged and staged changes
 - `git log --oneline -10` — recent commit style
 - `git add -- <paths>` — stage specific paths only (never `-A` / `.` for multi-concern diffs)
-- Use a HEREDOC for the commit message so the subject, body bullets, and footer keep their newlines:
+- Use a HEREDOC for the commit message so the subject and body bullets keep their newlines:
 
   ```bash
   git commit -m "$(cat <<'EOF'
@@ -102,8 +103,6 @@ refactor!: restructure database schema
 
   - bullet one
   - bullet two
-
-  Co-Authored-By: Claude <noreply@anthropic.com>
   EOF
   )"
   ```
