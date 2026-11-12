@@ -159,7 +159,7 @@ Work follows GitHub flow: every change is made on a branch named after its Jira 
 
 The rules every developer and AI coding tool follows are in [AGENTS.md](AGENTS.md), with the DEFRA software development standards adapted for this repo in [doc/rules](doc/rules/). Reusable procedures live in [.agents/skills](.agents/skills/) and work in Claude Code and Codex:
 
-- [spec-clarify](.agents/skills/spec-clarify/README.md): turn a Jira story into a spec in `specs/`, the first step of every story; larger work is sliced in the spec's Work breakdown, one pull request per slice
+- [spec-clarify](.agents/skills/spec-clarify/README.md): turn a Jira story into a spec in `specs/`, the first step of every story; every spec has a Work breakdown, one pull request per slice
 - [pr-preflight](.agents/skills/pr-preflight/README.md): check your own pull request before asking for review
 - [pr-review](.agents/skills/pr-review/README.md): review a colleague's pull request against its story and these rules
 - `commit`: commit with Conventional Commits messages

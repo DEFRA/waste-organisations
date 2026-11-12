@@ -34,9 +34,10 @@ title and date.
    Problem/Opportunity, Proposed Solution, Acceptance Criteria, Out of Scope, Decisions, Open
    Questions, Dependencies, Risks, Notes.
 3. It shows you the summary and adjusts until the spec says what you meant.
-4. It tells you whether the work fits one pull request. If not, it agrees the slices with you and
-   writes them in the spec's "Work breakdown" table, one pull request each; the spec stays one
-   file.
+4. It tells you how many pull requests the work needs and writes them in the spec's "Work
+   breakdown" table, one slice each. Every spec has the table, with a single slice when the work
+   fits one pull request. With more than one, it agrees the slices with you first; the spec stays
+   one file.
 
 It never writes code, never touches another spec, and never edits a delivered spec; a change to
 something an earlier spec decided is recorded in the new spec's Decisions, naming that spec.
@@ -53,5 +54,5 @@ of a task spec.
   the plan before the code.
 - Start development, by hand or with an AI coding tool; the review skills check the pull request
   against the spec's acceptance criteria.
-- When the spec has a Work breakdown, build one slice at a time ("build slice 1 of spec NNNN")
-  and open a pull request per slice. Development is complete when every slice is merged.
+- Build one slice of the spec's Work breakdown at a time ("build slice 1 of spec NNNN") and open
+  a pull request per slice. Development is complete when every slice is merged.

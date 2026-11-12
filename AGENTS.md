@@ -18,7 +18,7 @@ The rules below are the always-applicable summary. The full standards, tailored 
 
 Agent-invocable procedures live in `.agents/skills/` in the open Agent Skills format (`SKILL.md`). Codex reads that directory natively; Claude Code reads the same skills through the `.claude/skills/` symlinks. When a task matches one of these skills, follow the skill rather than improvising:
 
-- `spec-clarify`: turn a Jira story, bug or idea into a spec in `specs/`, in the repo's format, by asking the author questions; the first step of every story. Work that needs more than one pull request is sliced in the spec's Work breakdown.
+- `spec-clarify`: turn a Jira story, bug or idea into a spec in `specs/`, in the repo's format, by asking the author questions; the first step of every story. Every spec has a Work breakdown, one slice per pull request; work that needs more than one pull request is sliced there.
 - `commit`: stage and commit finished work as atomic commits with Conventional Commits messages.
 - `pr-review`: review a colleague's PR against the linked Jira story and these standards. Findings are reported for a human to act on; the AI never approves, requests changes, or comments.
 - `pr-preflight`: pre-flight check of your own PR before requesting human review; may fix mechanical, in-spec blocking findings (new commit, plain push, full gate first).
@@ -193,7 +193,7 @@ In the sandbox environment, Api.V1.Tests need escalation because the tests call 
 
 Specs live in `specs/` and are named `NNNN-TICKET-ID-slug.md`. A spec whose development is done (its story is delivered and the changes are merged, for example specs 0001 to 0004) is a record of what was built and why. Never edit such a spec, not even its Open Questions or Decisions, while doing new development or writing a new spec. When new work changes something an earlier spec decided, such as a column or a rule it introduced, record the change and its reason in the new spec, name the earlier spec it supersedes and in what, and leave the earlier spec as it is. Edit a spec only while its own story is still in progress.
 
-A new spec is written with the `spec-clarify` skill, so it has the sections, the sources and the positive and negative acceptance criteria the team expects. A spec whose work would exceed the pull request size guide in `doc/rules/git-workflow.md`, or that mixes a schema change with behaviour, stays one spec: `spec-clarify` slices it in the spec's "Work breakdown" table before development starts, one pull request per slice, built in order. Each skill has a README for developers in its folder under `.agents/skills/`.
+A new spec is written with the `spec-clarify` skill, so it has the sections, the sources and the positive and negative acceptance criteria the team expects. A spec whose work would exceed the pull request size guide in `doc/rules/git-workflow.md`, or that mixes a schema change with behaviour, stays one spec: `spec-clarify` slices it in the spec's "Work breakdown" table before development starts, one pull request per slice, built in order. Every spec has that table, with a single slice when the work is one pull request. Each skill has a README for developers in its folder under `.agents/skills/`.
 
 ## Commits And Pull Requests
 

@@ -6,13 +6,14 @@ description: >
   criteria with negative cases, risks, priority, size. Writes specs/NNNN-REGEN-NNN-slug.md and
   nothing else; never implements and never edits a delivered spec. Use whenever asked to write,
   draft, refine or clarify a spec or story, for example "/spec-clarify REGEN-150 ...", "/clarify",
-  "write the spec for REGEN-150", "turn this story into a spec", "refine this idea". Work that
-  needs more than one pull request is sliced in the spec's Work breakdown, never into child specs.
+  "write the spec for REGEN-150", "turn this story into a spec", "refine this idea". Every spec
+  has a Work breakdown, one slice per pull request, also when there is only one; work is never
+  split into child specs.
 ---
 
 # Spec clarify
 
-Last reviewed 9 November 2026. This skill produces a spec in the format this repo already uses
+Last reviewed 12 November 2026. This skill produces a spec in the format this repo already uses
 (`specs/0005-REGEN-141-create-an-organisation.md` is the fullest example).
 
 You are running an idea refinement workshop with the developer. The output is a spec that a
@@ -82,13 +83,18 @@ P0 critical (blocking), P1 high, P2 medium (default), P3 low, P4 backlog, with t
 
 ### 7. Size
 
-Estimate the pull requests the work needs. A spec is one pull request when its non-generated
-change stays within the size guide in `doc/rules/git-workflow.md` and mixes no unrelated concerns
-(schema change, endpoint, documentation). If it needs more, write the Work breakdown table: the
-spec stays one file and is never split into child specs. Each slice is one pull request, built on its
-own and in order ("build slice 1 of spec NNNN"); when every slice is merged, the spec's
+Estimate the pull requests the work needs and write the Work breakdown table in every spec, also
+when the work is one pull request: the table then has one slice. The reader finds the number of
+pull requests in the same place in every spec, and "build slice 1 of spec NNNN" always works. A
+spec is one pull request when its non-generated change stays within the size guide in
+`doc/rules/git-workflow.md` and mixes no unrelated concerns (schema change, endpoint,
+documentation); say so, with the estimate, in a line above the table. If it needs more, slice it:
+the spec stays one file and is never split into child specs. Each slice is one pull request, built
+on its own and in order ("build slice 1 of spec NNNN"); when every slice is merged, the spec's
 development is complete. Write each slice to stand alone:
 
+- **One slice is still a table.** Its Work names what the pull request builds, as any slice does,
+  and its Verified by names the test projects and every acceptance criterion.
 - **Slice a pull request, not a task.** A slice has its own observable result and its own tests.
   Never a "README", "tests" or "run the full suite" slice: documentation, tests and the full gate
   belong to every slice.
@@ -127,7 +133,8 @@ exactly as written:
 ## Proposed Solution
 
 (subsections as needed: request, response, errors, validation, persistence, schema, code layout,
-OpenAPI, tests; end with "### Work breakdown" when the work is more than one slice)
+OpenAPI, tests; always end with "### Work breakdown", one slice per pull request, a single slice
+when the work is one pull request)
 
 ## Acceptance Criteria
 
@@ -161,8 +168,8 @@ whether the spec says what they meant. Adjust until it does.
 
 ### 10. Next steps
 
-Say which applies: the spec is one pull request and development can start; it has several slices
-and development starts with slice 1; it needs a spike first; or open questions block it and who
+Say which applies: the Work breakdown has one slice and development can start; it has several
+slices and development starts with slice 1; it needs a spike first; or open questions block it and who
 can answer them. A
 spec can be reviewed as its own pull request before implementation starts; recommend that for
 anything larger than one slice.
@@ -175,8 +182,8 @@ Do:
 - Make exclusions explicit; Out of Scope is where scope creep is stopped.
 - Name the earlier spec whenever a decision changes something it decided.
 - Record who decided what and when in Decisions, so the spec is a record, not just a plan.
-- Keep the spec within one pull request, or slice it in the Work breakdown so each pull request
-  stands alone.
+- Write the Work breakdown in every spec: one slice when the work fits one pull request,
+  otherwise slices that each stand alone.
 
 Do not:
 
