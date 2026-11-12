@@ -34,7 +34,8 @@ die() {
 }
 
 have() {
-    command -v "$1" > /dev/null 2>&1
+    local tool=$1
+    command -v "$tool" > /dev/null 2>&1
 }
 
 enter_repo_root() {
@@ -44,8 +45,9 @@ enter_repo_root() {
 }
 
 state_get() {
+    local key=$1
     [[ -f $STATE_FILE ]] || return 0
-    sed -n "s/^$1=//p" "$STATE_FILE" | tail -n 1
+    sed -n "s/^$key=//p" "$STATE_FILE" | tail -n 1
 }
 
 state_set() {
@@ -74,13 +76,15 @@ resolve_spec() {
 }
 
 story_key() {
-    basename "$1" | grep -oE '[A-Z]+-[0-9]+' | head -n 1 || true
+    local spec=$1
+    basename "$spec" | grep -oE '[A-Z]+-[0-9]+' | head -n 1 || true
 }
 
 # Prints slice_total, slice_work and slice_verified_by for one row of the
 # spec's "Work breakdown" table. slice_work is empty when the row is missing.
 read_slice() {
-    awk -v want="$2" '
+    local spec=$1 wanted=$2
+    awk -v want="$wanted" '
         function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
         /^### Work breakdown[ \t]*$/ { in_section = 1; next }
         in_section && /^(#|##|###) / { in_section = 0 }
@@ -102,12 +106,13 @@ read_slice() {
             print "slice_work=" work
             print "slice_verified_by=" verified
         }
-    ' "$1"
+    ' "$spec"
 }
 
 # Counts plan items the way ralph does: below "## Items" when that heading
 # exists, so the entry template above it never counts as work.
 plan_count() {
+    local marker=$1
     [[ -f $PLAN_FILE ]] || {
         echo 0
         return
@@ -116,7 +121,7 @@ plan_count() {
         sed -n '/^## Items[[:space:]]*$/,$p' "$PLAN_FILE"
     else
         cat "$PLAN_FILE"
-    fi | grep -c "$1" || true
+    fi | grep -c "$marker" || true
 }
 
 ralph_alive() {
@@ -159,9 +164,10 @@ ralph_backend() {
 run_with_terminal_environment() {
     local name unset_args=()
     while IFS= read -r name; do
+        [[ $name == CLAUDE* ]] || continue
         case $name in
             CLAUDE_CODE_OAUTH_TOKEN | CLAUDE_CODE_USE_* | CLAUDE_CONFIG_DIR) ;;
-            CLAUDE*) unset_args+=(-u "$name") ;;
+            *) unset_args+=(-u "$name") ;;
         esac
     done < <(env | cut -d= -f1)
     env ${unset_args[@]+"${unset_args[@]}"} "$@"
@@ -170,9 +176,9 @@ run_with_terminal_environment() {
 # Sets the facts every subcommand needs. Dies when the spec or slice is wrong,
 # because nothing else can be trusted after that.
 load_facts() {
-    local slice_facts
-    spec_file=$(resolve_spec "$1")
-    slice=$2
+    local spec_arg=$1 slice_arg=$2 slice_facts
+    spec_file=$(resolve_spec "$spec_arg")
+    slice=$slice_arg
     [[ $slice =~ ^[0-9]+$ ]] || die "slice '$slice' is not a number"
     story=$(story_key "$spec_file")
     slice_facts=$(read_slice "$spec_file" "$slice")
@@ -204,11 +210,13 @@ blockers=()
 warnings=()
 
 block() {
-    blockers+=("$1")
+    local message=$1
+    blockers+=("$message")
 }
 
 warn() {
-    warnings+=("$1")
+    local message=$1
+    warnings+=("$message")
 }
 
 # The pull request for the branch, newest first; closed and merged ones are
@@ -337,16 +345,12 @@ collect_blockers() {
         build-running | build-failed | build-incomplete) ;;
         *) [[ $tree_dirty == no ]] || block "tree: uncommitted changes; commit or stash them first" ;;
     esac
-    case $stage in
-        checks | build-failed | build-incomplete)
-            [[ $specs_dirty == no ]] || block "specs: specs/ has uncommitted changes; ralph refuses to plan over them"
-            ;;
-    esac
-    case $stage in
-        push | gate | pr)
-            [[ ${ahead_of_main:-0} -gt 0 ]] || block "git: no commits ahead of origin/main, so there is nothing to open a pull request for"
-            ;;
-    esac
+    if [[ $stage == checks || $stage == build-failed || $stage == build-incomplete ]]; then
+        [[ $specs_dirty == no ]] || block "specs: specs/ has uncommitted changes; ralph refuses to plan over them"
+    fi
+    if [[ $stage == push || $stage == gate || $stage == pr ]]; then
+        [[ ${ahead_of_main:-0} -gt 0 ]] || block "git: no commits ahead of origin/main, so there is nothing to open a pull request for"
+    fi
 
     if have docker; then
         if ! docker info > /dev/null 2>&1; then
@@ -366,7 +370,8 @@ collect_blockers() {
 
 cmd_status() {
     [[ $# -eq 2 ]] || die "usage: slice.sh status <spec> <slice>"
-    load_facts "$1" "$2"
+    local spec_arg=$1 slice_arg=$2
+    load_facts "$spec_arg" "$slice_arg"
     load_git_position
     load_pull_request
     compute_stage
@@ -430,7 +435,8 @@ cmd_probe() {
 
 cmd_run() {
     [[ $# -eq 2 ]] || die "usage: slice.sh run <spec> <slice>"
-    load_facts "$1" "$2"
+    local spec_arg=$1 slice_arg=$2
+    load_facts "$spec_arg" "$slice_arg"
     load_git_position
     load_pull_request
     compute_stage
@@ -507,14 +513,15 @@ cmd_wait() {
 
 cmd_record() {
     [[ $# -eq 2 ]] || die "usage: slice.sh record <key> <value>"
+    local key=$1 value=$2
     enter_repo_root
     case " $RECORD_KEYS " in
-        *" $1 "*) ;;
-        *) die "unknown key '$1' (one of: $RECORD_KEYS)" ;;
+        *" $key "*) ;;
+        *) die "unknown key '$key' (one of: $RECORD_KEYS)" ;;
     esac
     [[ -f $STATE_FILE ]] || die "no slice in flight; nothing to record against"
-    state_set "$1" "$2"
-    echo "recorded $1=$2"
+    state_set "$key" "$value"
+    echo "recorded $key=$value"
 }
 
 cmd_reset() {
