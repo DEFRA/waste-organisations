@@ -86,8 +86,7 @@ public static class CreateOrganisationExtensions
     /// </summary>
     public static CreateOrganisationResponse ToResponse(this Organisation organisation)
     {
-        var organisationType =
-            organisation.OrganisationType
+        var organisationType = organisation.OrganisationType
             ?? throw new InvalidOperationException("The organisation's OrganisationType is not loaded.");
 
         var addresses = organisation

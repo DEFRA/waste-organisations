@@ -9,15 +9,12 @@ public class EnumCommaSeparatedListAttribute<T> : BaseCommaSeparatedListAttribut
 {
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        var invalidValues = ParseInvalidValues(
-            value,
-            val =>
-            {
-                val.FromJsonValue<T>();
+        var invalidValues = ParseInvalidValues(value, val =>
+        {
+            val.FromJsonValue<T>();
 
-                return true;
-            }
-        );
+            return true;
+        });
 
         return HandleInvalidValues(invalidValues);
     }

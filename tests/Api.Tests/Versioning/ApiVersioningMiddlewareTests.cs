@@ -116,15 +116,12 @@ public class ApiVersioningMiddlewareTests
     {
         var nextCalled = false;
 
-        await _subject.InvokeAsync(
-            context,
-            _ =>
-            {
-                nextCalled = true;
+        await _subject.InvokeAsync(context, _ =>
+        {
+            nextCalled = true;
 
-                return Task.CompletedTask;
-            }
-        );
+            return Task.CompletedTask;
+        });
 
         return nextCalled;
     }

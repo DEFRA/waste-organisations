@@ -9,15 +9,12 @@ public class NumericCommaSeparatedListAttribute(int minimum, int maximum) : Base
 
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        var invalidValues = ParseInvalidValues(
-            value,
-            val =>
-            {
-                var parsed = int.Parse(val);
+        var invalidValues = ParseInvalidValues(value, val =>
+        {
+            var parsed = int.Parse(val);
 
-                return _range.IsValid(parsed);
-            }
-        );
+            return _range.IsValid(parsed);
+        });
 
         return HandleInvalidValues(invalidValues);
     }
