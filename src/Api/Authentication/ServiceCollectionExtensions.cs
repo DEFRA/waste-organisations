@@ -17,42 +17,35 @@ public static class ServiceCollectionExtensions
                 BasicAuthenticationHandler.SchemeName,
                 _ => { }
             )
-            .AddScheme<JwtBearerOptions, JwtAuthenticationHandler>(
-                JwtAuthenticationHandler.SchemeName,
-                options =>
+            .AddScheme<JwtBearerOptions, JwtAuthenticationHandler>(JwtAuthenticationHandler.SchemeName, options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        SignatureValidator = (token, _) => new JsonWebToken(token),
-                        ValidateAudience = false,
-                        ValidateIssuer = false,
-                    };
-                }
-            );
+                    SignatureValidator = (token, _) => new JsonWebToken(token),
+                    ValidateAudience = false,
+                    ValidateIssuer = false,
+                };
+            });
 
         services
             .AddAuthorizationBuilder()
-            .AddPolicy(
-                PolicyNames.Read,
-                builder =>
-                    builder
-                        .RequireAuthenticatedUser()
-                        .AddAuthenticationSchemes(
-                            BasicAuthenticationHandler.SchemeName,
-                            JwtAuthenticationHandler.SchemeName
-                        )
-                        .RequireClaim(Claims.Scope, Scopes.Read)
+            .AddPolicy(PolicyNames.Read, builder =>
+                builder
+                    .RequireAuthenticatedUser()
+                    .AddAuthenticationSchemes(
+                        BasicAuthenticationHandler.SchemeName,
+                        JwtAuthenticationHandler.SchemeName
+                    )
+                    .RequireClaim(Claims.Scope, Scopes.Read)
             )
-            .AddPolicy(
-                PolicyNames.Write,
-                builder =>
-                    builder
-                        .RequireAuthenticatedUser()
-                        .AddAuthenticationSchemes(
-                            BasicAuthenticationHandler.SchemeName,
-                            JwtAuthenticationHandler.SchemeName
-                        )
-                        .RequireClaim(Claims.Scope, Scopes.Write)
+            .AddPolicy(PolicyNames.Write, builder =>
+                builder
+                    .RequireAuthenticatedUser()
+                    .AddAuthenticationSchemes(
+                        BasicAuthenticationHandler.SchemeName,
+                        JwtAuthenticationHandler.SchemeName
+                    )
+                    .RequireClaim(Claims.Scope, Scopes.Write)
             );
 
         return services;
