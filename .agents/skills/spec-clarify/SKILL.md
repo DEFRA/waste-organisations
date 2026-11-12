@@ -6,8 +6,8 @@ description: >
   criteria with negative cases, risks, priority, size. Writes specs/NNNN-REGEN-NNN-slug.md and
   nothing else; never implements and never edits a delivered spec. Use whenever asked to write,
   draft, refine or clarify a spec or story, for example "/spec-clarify REGEN-150 ...", "/clarify",
-  "write the spec for REGEN-150", "turn this story into a spec", "refine this idea". For splitting
-  a spec that is too big for one pull request, use spec-breakdown.
+  "write the spec for REGEN-150", "turn this story into a spec", "refine this idea". Work that
+  needs more than one pull request is sliced in the spec's Work breakdown, never into child specs.
 ---
 
 # Spec clarify
@@ -16,8 +16,8 @@ Last reviewed 9 November 2026. This skill produces a spec in the format this rep
 (`specs/0005-REGEN-141-create-an-organisation.md` is the fullest example).
 
 You are running an idea refinement workshop with the developer. The output is a spec that a
-reviewer can approve and that the Ralph build loop, or a developer, can implement without
-asking the author what was meant.
+reviewer can approve and that a developer, or an AI coding tool, can implement without asking
+the author what was meant.
 
 ## Usage
 
@@ -54,7 +54,7 @@ file names.
 ### 2. Classify
 
 Feature, Bug, Improvement, Spike (time-boxed research), Task (no direct user impact), or Epic.
-An Epic is not one spec: say so and point at `spec-breakdown`.
+An Epic is not one spec: say so and ask which of its stories to specify first.
 
 ### 3. Scope
 
@@ -84,9 +84,26 @@ P0 critical (blocking), P1 high, P2 medium (default), P3 low, P4 backlog, with t
 
 Estimate the pull requests the work needs. A spec is one pull request when its non-generated
 change stays within the size guide in `doc/rules/git-workflow.md` and mixes no unrelated concerns
-(schema change, endpoint, documentation). If it needs more, either write the Work breakdown table
-(slices with what each is verified by, as spec 0005 does) or stop and recommend `spec-breakdown`
-on the finished spec.
+(schema change, endpoint, documentation). If it needs more, write the Work breakdown table: the
+spec stays one file and is never split into child specs. Each slice is one pull request, built on its
+own and in order ("build slice 1 of spec NNNN"); when every slice is merged, the spec's
+development is complete. Write each slice to stand alone:
+
+- **Slice a pull request, not a task.** A slice has its own observable result and its own tests.
+  Never a "README", "tests" or "run the full suite" slice: documentation, tests and the full gate
+  belong to every slice.
+- **Work says what the slice builds and where it stops.** Name the files, types, changesets or
+  endpoints, and the Proposed Solution subsections it implements. Where a reader could expect
+  more, say what is left to a later slice.
+- **Verified by is provable.** Name the test project and the result it shows, and the acceptance
+  criteria the slice satisfies.
+- **Order is build order.** A slice may rely only on earlier slices, and every slice leaves main
+  shippable: nothing needs a later slice to compile, pass the gate or keep v1 frozen.
+- **Do not over-slice.** Split only for the size guide or for mixed concerns. Fold a slice with
+  nothing of its own to verify into its neighbour; prefer fewer, well-bounded slices to many small
+  ones, since each costs a review.
+- **Every acceptance criterion is covered by a slice.** Confirm the slices with the author before
+  writing them.
 
 ### 8. Write the spec
 
@@ -144,8 +161,9 @@ whether the spec says what they meant. Adjust until it does.
 
 ### 10. Next steps
 
-Say which applies: the spec is one pull request and development can start; it needs
-`spec-breakdown`; it needs a spike first; or open questions block it and who can answer them. A
+Say which applies: the spec is one pull request and development can start; it has several slices
+and development starts with slice 1; it needs a spike first; or open questions block it and who
+can answer them. A
 spec can be reviewed as its own pull request before implementation starts; recommend that for
 anything larger than one slice.
 
@@ -157,7 +175,8 @@ Do:
 - Make exclusions explicit; Out of Scope is where scope creep is stopped.
 - Name the earlier spec whenever a decision changes something it decided.
 - Record who decided what and when in Decisions, so the spec is a record, not just a plan.
-- Keep the spec within one pull request or hand over to `spec-breakdown`.
+- Keep the spec within one pull request, or slice it in the Work breakdown so each pull request
+  stands alone.
 
 Do not:
 
