@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="AwesomeAssertions" Version="9.6.0" />
     <PackageReference Include="MartinCostello.Logging.XUnit.v3" Version="0.7.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.15" />
     <!-- Microsoft.AspNetCore.WebUtilities explicitly referenced to update transitive dependencies
     This explicit reference can be removed when dependencies are updated  -->
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.15" />
