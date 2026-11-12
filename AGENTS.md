@@ -19,6 +19,7 @@ The rules below are the always-applicable summary. The full standards, tailored 
 Agent-invocable procedures live in `.agents/skills/` in the open Agent Skills format (`SKILL.md`). Codex reads that directory natively; Claude Code reads the same skills through the `.claude/skills/` symlinks. When a task matches one of these skills, follow the skill rather than improvising:
 
 - `spec-clarify`: turn a Jira story, bug or idea into a spec in `specs/`, in the repo's format, by asking the author questions; the first step of every story. Every spec has a Work breakdown, one slice per pull request; work that needs more than one pull request is sliced there.
+- `slice-deliver`: deliver one slice of a spec's Work breakdown as a pull request ready for review: ralph build, the full gate, a draft pull request, `pr-preflight`, CI. It stops and reports when a step fails or needs a decision, continues from that step when run again, and never merges or requests reviewers.
 - `commit`: stage and commit finished work as atomic commits with Conventional Commits messages.
 - `pr-review`: review a colleague's PR against the linked Jira story and these standards. Findings are reported for a human to act on; the AI never approves, requests changes, or comments.
 - `pr-preflight`: pre-flight check of your own PR before requesting human review; may fix mechanical, in-spec blocking findings (new commit, plain push, full gate first).
