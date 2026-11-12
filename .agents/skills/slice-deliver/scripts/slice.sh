@@ -214,7 +214,7 @@ warn() {
 # The pull request for the branch, newest first; closed and merged ones are
 # included so a reused branch is noticed.
 load_pull_request() {
-    local json
+    local json pr_head
     pr_number="" pr_url="" pr_state="" pr_draft="" pr_mergeable="" ci=""
     gh_login="" repo=$(origin_repo)
     have gh || return 0
@@ -222,8 +222,16 @@ load_pull_request() {
     [[ -n $gh_login && -n $repo && -n $branch ]] || return 0
     gh_can_push=$(gh api "repos/$repo" --jq .permissions.push 2> /dev/null || true)
     json=$(gh pr list -R "$repo" --head "$branch" --state all --limit 1 \
-        --json number,url,state,isDraft,mergeable 2> /dev/null || true)
+        --json number,url,state,isDraft,mergeable,headRefOid 2> /dev/null || true)
     [[ -n $json && $json != "[]" ]] || return 0
+    # A merged or closed pull request belongs to this branch only while the
+    # branch still holds its commits. A branch made again from main under the
+    # same name, as after a squash merge, starts without one.
+    pr_head=$(printf '%s' "$json" | jq -r '.[0].headRefOid // empty')
+    if [[ $(printf '%s' "$json" | jq -r '.[0].state') != OPEN && -n $pr_head ]] &&
+        ! git merge-base --is-ancestor "$pr_head" HEAD 2> /dev/null; then
+        return 0
+    fi
     pr_number=$(printf '%s' "$json" | jq -r '.[0].number')
     pr_url=$(printf '%s' "$json" | jq -r '.[0].url')
     pr_state=$(printf '%s' "$json" | jq -r '.[0].state')

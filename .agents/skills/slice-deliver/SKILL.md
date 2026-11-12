@@ -105,7 +105,9 @@ allows and stop on the rest.
 2. **Branch.** If you are on `main` with a clean tree, create the slice's branch from
    `origin/main` and run `status` again: for slice 1 the branch named in the spec's Notes
    (`Branch: ...`), or `<story>-<slug>` from the spec's file name when it names none; for a later
-   slice the same name with `-slice-<n>`. On any other branch that draws a `blocker=branch`, stop.
+   slice the same name with `-slice-<n>`. If a local branch of that name already exists, stop:
+   it is left over from earlier work and the developer removes or renames it. On any other branch
+   that draws a `blocker=branch`, stop.
 3. **Earlier slices.** For slice 2 or later, confirm each earlier slice is merged
    (`gh pr list -R <repo> --state merged --search "<story> in:title"`) and that the branch is not
    behind `origin/main`. If you cannot tell, ask the developer once.
