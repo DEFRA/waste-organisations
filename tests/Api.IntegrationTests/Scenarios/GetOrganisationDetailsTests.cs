@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
+using AutoFixture;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organisation;
@@ -12,7 +14,7 @@ using StoredAddress = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Addres
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
-// The v2 read against the Compose stack, of organisations this class creates through the v2 POST.
+// The v2 read against the Compose stack, mostly of organisations this class creates through the v2 POST.
 // Address rows are shared and never cleaned up, so every test sends address values unique to it
 public class GetOrganisationDetailsTests : IntegrationTestBase
 {
@@ -194,6 +196,90 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         read.Id.Should().Be(created.Organisation.Id);
         read.ValidTo.Should().Be(new DateTimeOffset(validTo));
         read.ValidTo.Value.Offset.Should().Be(TimeSpan.Zero);
+    }
+
+    [Theory]
+    [InlineData("new")]
+    [InlineData("empty")]
+    public async Task UnknownId_ShouldBeNotFoundWithEmptyBody(string kind)
+    {
+        var id = kind switch
+        {
+            "new" => Guid.NewGuid(),
+            "empty" => Guid.Empty,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+
+        var response = await GetAsync(Testing.Endpoints.Organisations.Get(id));
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        content.Should().BeEmpty();
+    }
+
+    // The v1 PUT writes MongoDB only, and the v2 read looks in Postgres only
+    [Fact]
+    public async Task OrganisationCreatedThroughV1_ShouldBeNotFoundInV2()
+    {
+        var id = Guid.NewGuid();
+        using var client = CreateClient();
+        var put = await client.PutAsJsonAsync(
+            Testing.Endpoints.Organisations.Put(id),
+            OrganisationRegistrationDtoFixtures.Default().Create(),
+            TestContext.Current.CancellationToken
+        );
+        put.StatusCode.Should().Be(HttpStatusCode.Created);
+        var path = Testing.Endpoints.Organisations.Get(id);
+
+        var v2 = await GetAsync(path);
+        var v1 = await GetAsync(path, accept: null);
+
+        v2.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        v1.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // Empty bodies, as v1 (spec 0001, X-BODY-01)
+    [Theory]
+    [InlineData(null, HttpStatusCode.Unauthorized)]
+    // See compose.yml: an OAuth client with the write scope only
+    [InlineData("WriteOnlyOAuth", HttpStatusCode.Forbidden)]
+    public async Task WithoutReadAccess_ShouldBeRejectedWithEmptyBody(string? clientId, HttpStatusCode expected)
+    {
+        using var client = CreateClient(clientId);
+
+        var response = await GetAsync(Testing.Endpoints.Organisations.Get(Guid.NewGuid()), client: client);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(expected);
+        content.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Version3Requested_ShouldBeNotAcceptable()
+    {
+        var response = await GetAsync(
+            Testing.Endpoints.Organisations.Get(Guid.NewGuid()),
+            "application/vnd.defra.waste-organisations+json; version=3"
+        );
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotAcceptable, content);
+        JsonNode.Parse(content)!["detail"]!.GetValue<string>().Should().Be("Unsupported API version");
+    }
+
+    // The {id:guid} constraint matches no endpoint, so routing answers before authentication
+    [Theory]
+    [InlineData("IntegrationTest")]
+    [InlineData(null)]
+    public async Task IdNotAGuid_ShouldBeNotFoundWithEmptyBody(string? clientId)
+    {
+        using var client = CreateClient(clientId);
+
+        var response = await GetAsync(Testing.Endpoints.Organisations.Get("not-a-guid"), client: client);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        content.Should().BeEmpty();
     }
 
     // Unique per test and per run, so a test never meets an address row another stored
