@@ -102,6 +102,23 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
         return organisation;
     }
 
+    public Task<Organisation?> GetAsync(Guid id, CancellationToken cancellationToken) =>
+        OrganisationWithCurrentAddresses(id).SingleOrDefaultAsync(cancellationToken);
+
+    /// <summary>
+    /// The organisation with the given id, untracked, with its organisation type and its current
+    /// links. EF Core merges the two identical filtered includes into one filtered join.
+    /// </summary>
+    protected IQueryable<Organisation> OrganisationWithCurrentAddresses(Guid id) =>
+        context
+            .Organisations.AsNoTracking()
+            .Where(organisation => organisation.Id == id)
+            .Include(organisation => organisation.OrganisationType)
+            .Include(organisation => organisation.Addresses.Where(link => link.ValidTo == null))
+                .ThenInclude(link => link.Address)
+            .Include(organisation => organisation.Addresses.Where(link => link.ValidTo == null))
+                .ThenInclude(link => link.UsageType);
+
     /// <summary>The <c>organisation_type</c> row with the given id, untracked.</summary>
     protected virtual Task<OrganisationType?> FindOrganisationTypeAsync(Guid id, CancellationToken cancellationToken) =>
         context.OrganisationTypes.AsNoTracking().SingleOrDefaultAsync(type => type.Id == id, cancellationToken);

@@ -28,4 +28,11 @@ public interface IPostgresOrganisationService
     /// types and addresses set, as the v2 response needs them.
     /// </summary>
     Task<Organisation> CreateAsync(Organisation organisation, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The organisation with the given id, untracked, with its organisation type and only its
+    /// current links (<c>valid_to IS NULL</c>), each with its address and usage type; null when no
+    /// row has the id.
+    /// </summary>
+    Task<Organisation?> GetAsync(Guid id, CancellationToken cancellationToken);
 }

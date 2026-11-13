@@ -204,6 +204,14 @@ public class PostgresOrganisationServiceTests
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*'AUDIT'*");
     }
 
+    [Fact]
+    public void GetAsync_ShouldReadOnlyLinksWithNoValidTo()
+    {
+        var sql = Subject.CurrentAddressesSql(Guid.NewGuid());
+
+        sql.Split("valid_to IS NULL").Should().HaveCount(2);
+    }
+
     private static Organisation NewOrganisation(params AddressRequest[] items) =>
         new OrganisationRequest
         {
@@ -295,6 +303,8 @@ public class PostgresOrganisationServiceTests
         public Queue<Address?> StoredAddresses { get; } = new();
 
         public int AddressLookups { get; private set; }
+
+        public string CurrentAddressesSql(Guid id) => OrganisationWithCurrentAddresses(id).ToQueryString();
 
         protected override Task<OrganisationType?> FindOrganisationTypeAsync(
             Guid id,
