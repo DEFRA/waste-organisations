@@ -526,14 +526,14 @@
               "null",
               "string"
             ],
-            "description": "The registered name; absent when none is stored."
+            "description": "The registered name; absent when none was sent."
           },
           "tradingName": {
             "type": [
               "null",
               "string"
             ],
-            "description": "The name the organisation trades under; absent when none is stored."
+            "description": "The name the organisation trades under; absent when none was sent."
           },
           "companiesHouseNumber": {
             "type": [
