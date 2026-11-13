@@ -2,7 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Defra.WasteOrganisations.Api.Dtos;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organisation;
+using StoredAddress = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Address;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
@@ -61,6 +67,133 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.OK, content);
         JsonNode.Parse(content)!["organisations"]![0]!["id"]!.GetValue<string>().Should().Be(id.ToString("D"));
+    }
+
+    // A link with a valid_to is history: its kind is no longer one of the organisation's addresses
+    [Fact]
+    public async Task EndedLink_ShouldNotBeReturned()
+    {
+        var registeredSuffix = NewSuffix();
+        var created = await CreateAsync(
+            Ltd(Address(registeredSuffix, "REGISTERED", "PRINCIPAL"), Address(NewSuffix(), "CORRESPONDENCE"))
+        );
+        var id = created.Organisation.Id;
+
+        await ChangeStoredAsync(id, organisation => End(LinkOf(organisation, "CORRESPONDENCE")));
+
+        var response = await GetAsync(created.Location);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var address = (await ReadOrganisationAsync(response)).Addresses.Should().ContainSingle().Subject;
+        address.Street.Should().Be($"High Street {registeredSuffix}");
+        address.AddressTypes.Should().BeEquivalentTo([AddressType.Registered, AddressType.Principal]);
+    }
+
+    [Fact]
+    public async Task EveryLinkEnded_ShouldReturnEmptyAddresses()
+    {
+        var created = await CreateAsync(
+            Ltd(Address(NewSuffix(), "REGISTERED", "PRINCIPAL"), Address(NewSuffix(), "CORRESPONDENCE"))
+        );
+
+        await ChangeStoredAsync(created.Organisation.Id, organisation => organisation.Addresses.ForEach(End));
+
+        var response = await GetAsync(created.Location);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, content);
+        JsonNode.Parse(content)!["organisations"]![0]!["addresses"]!.AsArray().Should().BeEmpty();
+    }
+
+    // Two saves, since the database allows one current link per organisation and kind
+    [Fact]
+    public async Task KindRelinkedToAnotherAddress_ShouldReturnOnlyTheNewAddress()
+    {
+        var registeredSuffix = NewSuffix();
+        var created = await CreateAsync(
+            Ltd(Address(registeredSuffix, "REGISTERED"), Address(NewSuffix(), "CORRESPONDENCE"))
+        );
+        var id = created.Organisation.Id;
+        var newSuffix = NewSuffix();
+
+        await ChangeStoredAsync(id, organisation => End(LinkOf(organisation, "CORRESPONDENCE")));
+        await ChangeStoredAsync(id, organisation =>
+        {
+            var ended = organisation.Addresses.Single(link => link.ValidTo is not null);
+            organisation.Addresses.Add(
+                new OrganisationAddress
+                {
+                    Id = Guid.NewGuid(),
+                    UsageTypeId = ended.UsageTypeId,
+                    Address = new StoredAddress
+                    {
+                        Id = Guid.NewGuid(),
+                        BuildingNumber = "34",
+                        Street = $"Low Road {newSuffix}",
+                        Locality = "Testville",
+                        PostalCode = "AB3 4CD",
+                        CountryIso = "GB",
+                    },
+                }
+            );
+        });
+
+        var response = await GetAsync(created.Location);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var addresses = (await ReadOrganisationAsync(response)).Addresses;
+        addresses.Should().HaveCount(2);
+        addresses
+            .Should()
+            .ContainSingle(address => address.AddressTypes.Contains(AddressType.Correspondence))
+            .Which.Street.Should()
+            .Be($"Low Road {newSuffix}");
+        addresses
+            .Should()
+            .ContainSingle(address => address.AddressTypes.Contains(AddressType.Registered))
+            .Which.Street.Should()
+            .Be($"High Street {registeredSuffix}");
+    }
+
+    // The links' valid_from is not part of the response, so it never splits an address in two
+    [Fact]
+    public async Task KindsOfOneAddressWithDifferentValidFrom_ShouldBeOneItem()
+    {
+        var created = await CreateAsync(Ltd(Address(NewSuffix(), "REGISTERED", "PRINCIPAL")));
+
+        await ChangeStoredAsync(created.Organisation.Id, organisation =>
+        {
+            var principal = LinkOf(organisation, "PRINCIPAL");
+            principal.ValidFrom = principal.ValidFrom.AddDays(-1);
+        });
+
+        var response = await GetAsync(created.Location);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var address = (await ReadOrganisationAsync(response)).Addresses.Should().ContainSingle().Subject;
+        address.AddressTypes.Should().BeEquivalentTo([AddressType.Registered, AddressType.Principal]);
+    }
+
+    // The read has no notion of an ended organisation: it returns the row with its validTo
+    [Fact]
+    public async Task OrganisationWithValidTo_ShouldStillBeReturned()
+    {
+        var created = await CreateAsync(Ltd(Address(NewSuffix(), "REGISTERED")));
+        var validTo = default(DateTime);
+
+        await ChangeStoredAsync(created.Organisation.Id, organisation =>
+        {
+            validTo = organisation.ValidFrom.AddDays(30);
+            organisation.ValidTo = validTo;
+        });
+
+        var response = await GetAsync(created.Location);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var read = await ReadOrganisationAsync(response);
+        read.Id.Should().Be(created.Organisation.Id);
+        read.ValidTo.Should().Be(new DateTimeOffset(validTo));
+        read.ValidTo.Value.Offset.Should().Be(TimeSpan.Zero);
     }
 
     // Unique per test and per run, so a test never meets an address row another stored
@@ -144,4 +277,26 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         foreach (var propertyName in propertyNames)
             json.ContainsKey(propertyName).Should().BeFalse(propertyName);
     }
+
+    // Changes the stored rows directly, since no v2 endpoint changes an organisation yet
+    private static async Task ChangeStoredAsync(Guid id, Action<Organisation> change)
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        var organisation = await context
+            .Organisations.Include(o => o.Addresses)
+                .ThenInclude(a => a.UsageType)
+            .SingleAsync(o => o.Id == id, TestContext.Current.CancellationToken);
+        change(organisation);
+
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    // Just after the link started: the database requires valid_to to be later than valid_from
+    private static void End(OrganisationAddress link) => link.ValidTo = link.ValidFrom.AddSeconds(1);
+
+    private static OrganisationAddress LinkOf(Organisation organisation, string usageType) =>
+        organisation.Addresses.Single(a => a.UsageType.Name == usageType);
 }
