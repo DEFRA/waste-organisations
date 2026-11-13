@@ -49,7 +49,7 @@ Indicate breaking changes (MAJOR version bump) using either:
 6. **Optional scope**: parenthetical, lowercase, names the affected area (e.g. `feat(sandbox):`).
 7. **Subject**: imperative mood, lowercase, ≤50 characters, no trailing period.
 8. **Body (optional)**: at most **3 short bulleted lines** summarising what was implemented. Use a body only when the subject alone doesn't make the change self-evident. Skip the body entirely for trivial or self-describing diffs.
-9. **Single-commit pull request**: a pull request with one commit is squash-merged under that commit's subject, so when the branch will have only this commit, use the pull request title form instead: `REGEN-141: Create an organisation`.
+9. **Single-commit pull request**: a pull request with one commit is squash-merged under that commit's subject, so when the branch will have only this commit, use the pull request title form instead: `<ticket-id>: Create an organisation`.
 10. **Never stage loop or local artefacts**: `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `PROMPT_*.md`, `.ralph/`, `*.received.*`. They are gitignored; if one shows as tracked, stop and ask.
 11. **Commit immediately**: do not seek approval before committing — the user invoked this skill *because* they want a commit.
 

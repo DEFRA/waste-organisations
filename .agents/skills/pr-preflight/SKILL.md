@@ -70,9 +70,9 @@ review lenses in parallel; otherwise work through them in order.
    size guide in `doc/rules/git-workflow.md`. An over-budget PR is a blocking
    PR hygiene finding that needs a manual split; do not try to fix it.
 2. **Establish the spec.** Read the PR description, the linked Jira story and
-   the matching `specs/NNNN-REGEN-NNN-*.md`, and list the acceptance criteria
+   the matching `specs/NNNN-<ticket-id>-*.md`, and list the acceptance criteria
    for step 5. When the work has a Jira story, a title without the
-   `REGEN-NNN: ` prefix or a body without the Jira link is itself a finding
+   `<ticket-id>: ` prefix or a body without the Jira link is itself a finding
    (`doc/rules/git-workflow.md`); work with no story needs neither and says
    `Jira: none` with the reason.
 3. **Tiny-PR shortcut.** Under about 30 changed lines across at most 2 files:
@@ -151,7 +151,7 @@ it needs a decision.
 ```
 ### PR <number>: <title>  (preflight)
 <base> → <head>  •  <files> files (+<adds>/−<dels>, <n> generated)  •  CI: <passing/failing>
-Spec: <REGEN-NNN and specs/NNNN-… file | "no Jira story — <reason>" | "no Jira link — add one before requesting review">
+Spec: <ticket id and specs/NNNN-… file | "no Jira story — <reason>" | "no Jira link — add one before requesting review">
 Size: <within budget | over budget: <n> non-generated lines — split at <boundary> before requesting review>
 Reviewed: <n> of <m> files in full  (skimmed: <files — reason>; not reviewed: <generated snapshots, lock files>)
 Lenses: <applied>  (scoped out: <lens — reason>)

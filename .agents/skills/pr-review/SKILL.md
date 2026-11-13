@@ -65,10 +65,10 @@ otherwise work through them in order. The result must be the same either way.
    `doc/rules/git-workflow.md`. An over-budget PR is a PR hygiene finding with a
    suggested split point.
 2. **Establish the spec.** Read the PR description, the linked Jira story and the
-   matching `specs/NNNN-REGEN-NNN-*.md`, and list the acceptance criteria from
+   matching `specs/NNNN-<ticket-id>-*.md`, and list the acceptance criteria from
    the spec (or the story) for step 6. Together with the repo standards these
    define what "in spec" means for this PR. When the work has a Jira story, a
-   title without the `REGEN-NNN: ` prefix or a body without the Jira link is
+   title without the `<ticket-id>: ` prefix or a body without the Jira link is
    itself a finding (`doc/rules/git-workflow.md`); work with no story needs
    neither and says `Jira: none` with the reason. If you cannot read the story,
    judge against the acceptance criteria in the spec file and say so.
@@ -91,7 +91,7 @@ otherwise work through them in order. The result must be the same either way.
    | data         | New changeset file included in the master changelog, no edit to a published changeset, entities match the schema, parameterised access, `TimeProvider` for timestamps | `doc/rules/csharp-dotnet.md`, README "Postgres schema changes" |
    | architecture | Endpoints, Services, Dtos, Mapping layout; thin handlers; options validated on start; DI registration                      | `doc/rules/csharp-dotnet.md`                                            |
    | dependencies | Vetting rationale for a new package, exact versions, Dependabot groups updated, audit suppressions justified               | `AGENTS.md` ("Dependencies", "Updating Dependabot"), `doc/rules/csharp-dotnet.md` |
-   | PR hygiene   | Commit message rules, `REGEN-NNN: ` title and Jira link when the work has a story, description matches the diff, "How to test" present and runnable by QA, PR within the size guide, no loop artefacts | `doc/rules/git-workflow.md`                                        |
+   | PR hygiene   | Commit message rules, `<ticket-id>: ` title and Jira link when the work has a story, description matches the diff, "How to test" present and runnable by QA, PR within the size guide, no loop artefacts | `doc/rules/git-workflow.md`                                        |
    | spec         | For changes under `specs/`: the standard sections present (metadata table, Problem/Opportunity, Proposed Solution, Acceptance Criteria, Out of Scope, Decisions, Open Questions, Dependencies, Risks), acceptance criteria testable with negative cases, sources cited, delivered specs untouched, a Work breakdown present, with more than one slice when the work exceeds the size guide | `AGENTS.md` ("Specs"), `.agents/skills/spec-clarify/SKILL.md` |
 
    Only apply a rule to lines the PR touches. Pre-existing violations nearby are
@@ -137,7 +137,7 @@ references. No praise section, no extra prose.
 ```
 ### PR <number>: <title>
 Author: <login>  •  <base> → <head>  •  <files> files (+<adds>/−<dels>, <n> generated)  •  CI: <passing/failing>
-Spec: <REGEN-NNN and specs/NNNN-… file | "no Jira story — <reason>" | "no Jira link — flagged">
+Spec: <ticket id and specs/NNNN-… file | "no Jira story — <reason>" | "no Jira link — flagged">
 Size: <within budget | over budget: <n> non-generated lines — suggest splitting at <boundary>>
 Reviewed: <n> of <m> files in full  (skimmed: <files — reason>; not reviewed: <generated snapshots, lock files>)
 Lenses: <applied>  (scoped out: <lens — reason>)

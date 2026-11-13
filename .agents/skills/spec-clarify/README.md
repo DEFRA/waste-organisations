@@ -15,11 +15,11 @@ The agent-facing procedure is in [SKILL.md](SKILL.md); this file is for develope
 
 ## How to start it
 
-| Tool        | How                                                                                   |
-| ----------- | ------------------------------------------------------------------------------------- |
-| Claude Code | `/spec-clarify REGEN-150 Return an organisation by id through v2`                      |
-| Codex       | `$spec-clarify` (or pick it from `/skills`), then give the story key and one line        |
-| Either      | Ask in plain words: "write the spec for REGEN-150"; the skill loads from its description |
+| Tool        | How                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| Claude Code | `/spec-clarify <ticket-id> Return an organisation by id through v2`                          |
+| Codex       | `$spec-clarify` (or pick it from `/skills`), then give the story key and one line            |
+| Either      | Ask in plain words: "write the spec for `<ticket-id>`"; the skill loads from its description |
 
 Have the Jira story text, its comments and the relevant Confluence section to hand. The agent
 cannot read Jira or Confluence, so it will ask you to paste what matters and will cite them by
@@ -30,7 +30,7 @@ title and date.
 1. It reads `AGENTS.md`, the latest specs and the code the story touches, then asks about the
    problem, who benefits, scope, acceptance criteria, risks, priority and size. Answer one topic
    at a time; say "don't know" where you don't and it becomes an Open Question.
-2. It writes `specs/NNNN-REGEN-NNN-slug.md` with the standard sections: metadata table,
+2. It writes `specs/NNNN-<ticket-id>-slug.md` with the standard sections: metadata table,
    Problem/Opportunity, Proposed Solution, Acceptance Criteria, Out of Scope, Decisions, Open
    Questions, Dependencies, Risks, Notes.
 3. It shows you the summary and adjusts until the spec says what you meant.

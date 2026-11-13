@@ -3,12 +3,12 @@ name: spec-clarify
 description: >
   Turn a Jira story, bug or rough idea for this API into a spec in specs/, in the repo's spec
   format, by asking the author questions one topic at a time: problem, scope, testable acceptance
-  criteria with negative cases, risks, priority, size. Writes specs/NNNN-REGEN-NNN-slug.md and
-  nothing else; never implements and never edits a delivered spec. Use whenever asked to write,
-  draft, refine or clarify a spec or story, for example "/spec-clarify REGEN-150 ...", "/clarify",
-  "write the spec for REGEN-150", "turn this story into a spec", "refine this idea". Every spec
-  has a Work breakdown, one slice per pull request, also when there is only one; work is never
-  split into child specs.
+  criteria with negative cases, risks, priority, size. Writes one spec file in specs/, named with
+  the story's ticket id, and nothing else; never implements and never edits a delivered spec. Use
+  whenever asked to write, draft, refine or clarify a spec or story, for example
+  "/spec-clarify ABC-123 ...", "/clarify", "write the spec for ABC-123", "turn this story into a
+  spec", "refine this idea". Every spec has a Work breakdown, one slice per pull request, also
+  when there is only one; work is never split into child specs.
 ---
 
 # Spec clarify
@@ -22,7 +22,7 @@ the author what was meant.
 
 ## Usage
 
-`/spec-clarify REGEN-NNN <one-line idea>` in Claude Code, or `$spec-clarify` in Codex. Without
+`/spec-clarify <ticket-id> <one-line idea>` in Claude Code, or `$spec-clarify` in Codex. Without
 an argument, ask for the story key and a one-line description first.
 
 ## Ground rules
@@ -113,12 +113,12 @@ development is complete. Write each slice to stand alone:
 
 ### 8. Write the spec
 
-Path: `specs/NNNN-REGEN-NNN-slug.md`, where `NNNN` is the next number after the highest in
+Path: `specs/NNNN-<ticket-id>-slug.md`, where `NNNN` is the next number after the highest in
 `specs/` and the slug comes from the story title. Use this structure, with the section headings
 exactly as written:
 
 ```markdown
-# REGEN-NNN: Title
+# <ticket-id>: Title
 
 | | |
 |---|---|
