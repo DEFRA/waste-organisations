@@ -6,7 +6,7 @@ This repo is a backend API with no user interface. The DEFRA criteria about scre
 
 ## Acceptance criteria
 
-- Every story has positive **and** negative acceptance criteria written in its spec (`specs/NNNN-REGEN-NNN-slug.md`) before development starts. The spec names the scenarios; the tests pin them.
+- Every story has positive **and** negative acceptance criteria written in its spec (`specs/NNNN-<ticket-id>-slug.md`) before development starts. The spec names the scenarios; the tests pin them.
 - Default criteria for an API story: the contract matches the spec (status codes, problem details, response shape, OpenAPI document); server-side validation exists for every field; unauthorised and forbidden callers get `401`/`403`; no obvious performance issue (most requests well under a second); no existing behaviour has regressed, which the v1 tests prove.
 - **Negative scenarios are as important as positive ones.** "A write client can create an organisation" implies "a read-only client cannot", "a missing required member is a `400` naming the JSON path" and "a version the endpoint does not support is a `406`". Test all of them.
 
