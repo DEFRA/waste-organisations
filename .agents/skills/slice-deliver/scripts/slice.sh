@@ -7,7 +7,9 @@
 # Usage:
 #   slice.sh status <spec> <slice>   facts, blockers, warnings and the stage
 #   slice.sh probe                   check the agent ralph uses can run headless
-#   slice.sh run <spec> <slice>      start or continue ralph for the slice
+#   slice.sh run <spec> <slice> [base]  start ralph, or continue it. A new slice
+#                                    names its base: current, or main or a branch
+#                                    to make the slice's branch from
 #   slice.sh wait [seconds]          wait for ralph to exit (default 540)
 #   slice.sh record <key> <value>    record a stage result (see RECORD_KEYS)
 #   slice.sh reset                   forget the slice in flight (plan untouched)
@@ -78,6 +80,41 @@ resolve_spec() {
 story_key() {
     local spec=$1
     basename "$spec" | grep -oE '[A-Z]+-[0-9]+' | head -n 1 || true
+}
+
+# The branch a slice gets by convention: the one the spec's Notes name, or the
+# story key and the spec's slug, with -slice-<n> from the second slice on.
+slice_branch_name() {
+    local number=$1 name
+    name=$(sed -n 's/^- Branch[^`]*`\([^`]*\)`.*/\1/p' "$spec_file" | head -n 1 || true)
+    if [[ -z $name || $name != "$story"-* ]]; then
+        name=$(basename "$spec_file" .md)
+        name=${name#*-}
+    fi
+    [[ $number -le 1 ]] || name="$name-slice-$number"
+    echo "$name"
+}
+
+# Prints local, remote or no for a branch name.
+branch_location() {
+    local name=$1
+    if git show-ref --verify --quiet "refs/heads/$name"; then
+        echo local
+    elif git show-ref --verify --quiet "refs/remotes/origin/$name"; then
+        echo remote
+    else
+        echo no
+    fi
+}
+
+# Prints "<state> <url>" for the newest pull request whose head is the branch,
+# or nothing when there is none.
+head_pull_request() {
+    local head=$1 json
+    [[ -n $gh_login && -n $repo ]] || return 0
+    json=$(gh pr list -R "$repo" --head "$head" --state all --limit 1 --json state,url 2> /dev/null || true)
+    [[ -n $json && $json != "[]" ]] || return 0
+    printf '%s' "$json" | jq -r '.[0] | "\(.state) \(.url)"'
 }
 
 # Prints slice_total, slice_work and slice_verified_by for one row of the
@@ -198,6 +235,12 @@ load_facts() {
     state_done=$(state_get done)
     state_is_this_slice=no
     [[ $state_spec == "$spec_file" && $state_slice == "$slice" ]] && state_is_this_slice=yes
+    # Where the slice's branch started: main, current (the branch as it was) or
+    # the branch of the slice it is stacked on.
+    base=""
+    [[ $state_is_this_slice == no ]] || base=$(state_get base)
+    stacked=no
+    [[ -z $base || $base == main || $base == current ]] || stacked=yes
 
     plan_open=$(plan_count '^- \[ \]')
     plan_done=$(plan_count '^- \[x\]')
@@ -254,6 +297,38 @@ load_pull_request() {
     [[ -n $ci ]] || ci=none
 }
 
+# A stacked slice waits for the pull request of the branch it was built on.
+load_base_pull_request() {
+    local found
+    base_pr_state="" base_pr_url=""
+    [[ $stacked == yes ]] || return 0
+    found=$(head_pull_request "$base")
+    base_pr_state=none
+    if [[ -n $found ]]; then
+        base_pr_state=${found%% *}
+        base_pr_url=${found#* }
+    fi
+}
+
+# What the developer can choose between when a slice starts.
+load_branch_options() {
+    local found
+    slice_branch="" slice_branch_exists=""
+    previous_branch="" previous_branch_exists="" previous_pr_state="" previous_pr_url=""
+    [[ $stage == checks ]] || return 0
+    slice_branch=$(slice_branch_name "$slice")
+    slice_branch_exists=$(branch_location "$slice_branch")
+    [[ $slice -gt 1 ]] || return 0
+    previous_branch=$(slice_branch_name "$((slice - 1))")
+    previous_branch_exists=$(branch_location "$previous_branch")
+    found=$(head_pull_request "$previous_branch")
+    previous_pr_state=none
+    if [[ -n $found ]]; then
+        previous_pr_state=${found%% *}
+        previous_pr_url=${found#* }
+    fi
+}
+
 load_git_position() {
     local counts
     upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2> /dev/null || true)
@@ -292,6 +367,10 @@ compute_stage() {
         stage=gate
     elif [[ $pr_state != OPEN ]]; then
         stage=pr
+    elif [[ $stacked == yes ]] && [[ $base_pr_state != MERGED || ${behind_main:-0} -gt 0 ]]; then
+        # Until the slice below is in main and main is merged in here, the
+        # pull request's diff holds both slices and cannot be reviewed as one.
+        stage=stacked-waiting
     elif [[ $(state_get preflight_sha) != "$head_sha" ]]; then
         stage=preflight
     elif [[ $(state_get preflight_verdict) != ready ]]; then
@@ -362,20 +441,63 @@ collect_blockers() {
 
     [[ ${behind_main:-0} -eq 0 ]] || warn "git: branch is $behind_main commit(s) behind origin/main"
     [[ ${ahead_of_main:-0} -ne 1 ]] || warn "git: one commit on the branch; a squash merge would take its subject, not the pull request title"
+    if [[ $stage == checks && $pr_state == OPEN ]]; then
+        warn "github: pull request $pr_number is already open for '$branch'; a slice built on this branch is added to it"
+    fi
     if [[ $stage == checks && $plan_open -gt 0 ]]; then
         warn "ralph: the current plan has $plan_open open item(s); starting archives it under .ralph/"
     fi
     return 0
 }
 
-cmd_status() {
-    [[ $# -eq 2 ]] || die "usage: slice.sh status <spec> <slice>"
+assess() {
     local spec_arg=$1 slice_arg=$2
+    blockers=()
+    warnings=()
     load_facts "$spec_arg" "$slice_arg"
     load_git_position
     load_pull_request
+    load_base_pull_request
     compute_stage
+    load_branch_options
     collect_blockers
+}
+
+# Makes the slice's branch from the base the developer chose, so the base that
+# is recorded is true by construction. Nothing is pushed here.
+create_slice_branch() {
+    local chosen=$1 ref
+    ref=$chosen
+    if [[ $chosen == main ]]; then
+        ref=origin/main
+    elif ! git show-ref --verify --quiet "refs/heads/$chosen"; then
+        ref=origin/$chosen
+    fi
+    git rev-parse --verify --quiet "$ref^{commit}" > /dev/null || die "base '$chosen' is not a branch here or on origin"
+    [[ $slice_branch_exists == no ]] || die "branch '$slice_branch' already exists ($slice_branch_exists); check it out and use base 'current', or remove it"
+    [[ $tree_dirty == no ]] || die "uncommitted changes; commit or stash them before the slice's branch is made"
+    git cat-file -e "$ref:$spec_file" 2> /dev/null || die "$ref does not contain $spec_file; the spec must be on the base first"
+    git switch --quiet --no-track --create "$slice_branch" "$ref"
+    echo "branch=$slice_branch (from $ref)"
+}
+
+# Stops when a blocker stands. Blockers that start with the given prefix are
+# passed over: before the slice gets its own branch, those about the current
+# branch do not matter.
+refuse_on_blockers() {
+    local passed_over=${1:-} line standing=no
+    for line in ${blockers[@]+"${blockers[@]}"}; do
+        [[ -n $passed_over && $line == "$passed_over"* ]] && continue
+        echo "blocker=$line" >&2
+        standing=yes
+    done
+    [[ $standing == no ]] || die "not started: resolve the blockers above"
+}
+
+cmd_status() {
+    [[ $# -eq 2 ]] || die "usage: slice.sh status <spec> <slice>"
+    local spec_arg=$1 slice_arg=$2
+    assess "$spec_arg" "$slice_arg"
 
     cat << EOF
 spec_file=$spec_file
@@ -402,6 +524,15 @@ pr_state=$pr_state
 pr_draft=$pr_draft
 pr_mergeable=$pr_mergeable
 ci=$ci
+base=$base
+base_pr_state=$base_pr_state
+base_pr_url=$base_pr_url
+slice_branch=$slice_branch
+slice_branch_exists=$slice_branch_exists
+previous_branch=$previous_branch
+previous_branch_exists=$previous_branch_exists
+previous_pr_state=$previous_pr_state
+previous_pr_url=$previous_pr_url
 gate_sha=$(state_get gate_sha)
 preflight_sha=$(state_get preflight_sha)
 preflight_verdict=$(state_get preflight_verdict)
@@ -434,23 +565,25 @@ cmd_probe() {
 }
 
 cmd_run() {
-    [[ $# -eq 2 ]] || die "usage: slice.sh run <spec> <slice>"
-    local spec_arg=$1 slice_arg=$2
-    load_facts "$spec_arg" "$slice_arg"
-    load_git_position
-    load_pull_request
-    compute_stage
-    collect_blockers
+    [[ $# -eq 2 || $# -eq 3 ]] || die "usage: slice.sh run <spec> <slice> [base]"
+    local spec_arg=$1 slice_arg=$2 base_arg=${3:-}
+    assess "$spec_arg" "$slice_arg"
 
     case $stage in
         checks | build-failed | build-incomplete) ;;
         build-running) die "ralph is already running for this slice; use 'slice.sh wait'" ;;
         *) die "nothing to run: the slice is at stage '$stage'" ;;
     esac
-    if [[ ${#blockers[@]} -gt 0 ]]; then
-        printf 'blocker=%s\n' "${blockers[@]}" >&2
-        die "not started: resolve the blockers above"
+    if [[ $stage != checks ]]; then
+        [[ -z $base_arg || $base_arg == "$base" ]] || die "this slice was started with base '$base'; it cannot change to '$base_arg'"
+    elif [[ -z $base_arg ]]; then
+        die "a new slice names its base: current, or main or a branch to make the slice's branch from (slice.sh run <spec> <slice> <base>)"
+    elif [[ $base_arg != current ]]; then
+        refuse_on_blockers "branch:"
+        create_slice_branch "$base_arg"
+        assess "$spec_arg" "$slice_arg"
     fi
+    refuse_on_blockers
 
     # ralph auto refuses to run outside a container unless it is forced.
     local force=()
@@ -466,6 +599,7 @@ cmd_run() {
         state_set spec_file "$spec_file"
         state_set slice "$slice"
         state_set branch "$branch"
+        state_set base "$base_arg"
         state_set started_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
         command=(ralph auto -g "$goal" ${force[@]+"${force[@]}"})
     elif [[ -f $AUTO_STATE_FILE && -f $PLAN_FILE && -f PROGRESS.md ]]; then
@@ -558,7 +692,7 @@ case "${1:-}" in
         run_with_terminal_environment "$@"
         ;;
     *)
-        sed -n '2,15p' "$SCRIPT_PATH" | sed 's/^# \{0,1\}//'
+        sed -n '2,17p' "$SCRIPT_PATH" | sed 's/^# \{0,1\}//'
         exit 1
         ;;
 esac

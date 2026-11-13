@@ -12,6 +12,7 @@ The agent-facing procedure is in [SKILL.md](SKILL.md); this file is for develope
 
 - A spec is written and committed, and you want slice 1 built and put up for review.
 - The previous slice is merged and you want the next one.
+- The previous slice is still in review and you want the next one built on top of it meanwhile.
 - An earlier run stopped, you have dealt with what it reported, and you want it to carry on.
 
 It replaces running `ralph archive`, `ralph init`, `ralph plan`, `ralph build`, opening the pull
@@ -34,8 +35,10 @@ request, `pr-preflight` and marking it ready by hand. It does not replace the hu
   Liquibase" in `AGENTS.md`).
 - **The spec is committed and the tree is clean.** ralph refuses to plan over uncommitted changes
   in `specs/`.
-- **You are on the slice's branch, or on an up-to-date `main`.** From `main` the skill creates the
-  branch: the one the spec's Notes name for slice 1, the same name with `-slice-<n>` after that.
+- **Know where the slice's branch should start.** The skill asks when there is a real choice: a
+  new branch from `main`, a new branch on top of the previous slice's branch, or the branch you
+  are on. A new branch gets the name in the spec's Notes for slice 1 and the same name with
+  `-slice-<n>` after that, and its base must already hold the spec.
 
 ## How to start it
 
@@ -45,12 +48,14 @@ request, `pr-preflight` and marking it ready by hand. It does not replace the hu
 | Codex       | `$slice-deliver` (or pick it from `/skills`), then give the spec and slice   |
 | Either      | Ask in plain words: "complete slice 1 in spec 5"                             |
 
-To continue after a stop, give the same request again.
+To skip the branch question, say it in the request: "... from main", "... on top of slice 1" or
+"... on this branch". To continue after a stop, give the same request again.
 
 ## What happens
 
-1. **Checks.** Nothing is changed until the spec, the slice, the branch, `gh`, Docker, port 5432
-   and the agent login are all in order.
+1. **Checks and branch.** Nothing is changed until the spec, the slice, `gh`, Docker, port 5432
+   and the agent login are all in order. It then asks where the branch starts, if that is a real
+   choice, and makes the slice's branch.
 2. **Build.** `ralph auto` plans the slice, builds it one plan item per commit, reviews the result
    and fixes what the review found. It runs detached and logs to `.ralph/slice-deliver/ralph.log`;
    expect an hour or more.
@@ -65,6 +70,18 @@ To continue after a stop, give the same request again.
 It marks the pull request ready only when the gate passed on the current commit, `pr-preflight`
 left nothing to fix on it, and CI is green.
 
+## Building on a slice that is not merged yet
+
+When the next slice needs the previous one and that is still in review, choose "on top of the
+previous slice's branch". The skill builds the slice, runs the gate and opens a draft pull
+request, then stops and waits: until the previous slice is merged, the diff holds both slices and
+cannot be reviewed as one. The pull request still targets `main`, because the checks run only for
+pull requests into `main`.
+
+When the previous slice is merged, press "Update branch" on the waiting pull request, `git pull`,
+and ask for the slice again. It re-runs the gate on the updated branch and carries on with
+`pr-preflight`, CI and ready. The skill never merges `main` into the branch itself.
+
 ## What you get
 
 A few lines in chat: the pull request link, what was built and checked, anything you should know,
@@ -74,7 +91,7 @@ focus, ready to paste. The skill does not send it and does not request reviewers
 ## If it stops
 
 The report says where it stopped, why, what is already done and what you need to do. There are
-three kinds of stop:
+four kinds of stop:
 
 - **Blocked before start:** a check failed and nothing has changed. Fix it and ask again.
 - **Failed step:** ralph failed or left plan items open, the gate or CI is red, or a push was
@@ -83,6 +100,8 @@ three kinds of stop:
 - **Needs your decision:** a v1 test or verified snapshot would have to change, an acceptance
   criterion cannot be met, `pr-preflight` reported a `[NEEDS MANUAL FIX]` finding, the pull
   request is over the size guide or conflicts with `main`. The pull request stays a draft.
+- **Waiting on the previous slice:** the slice was built on top of one that is not in `main` yet.
+  Nothing failed; see "Building on a slice that is not merged yet".
 
 To see where a slice is without changing anything:
 
@@ -100,7 +119,7 @@ bash .agents/skills/slice-deliver/scripts/slice.sh reset
 ## Afterwards
 
 - Paste the message for the team where the team asks for reviews.
-- When the pull request is merged, pull `main` and ask for the next slice. The spec's development
-  is complete when its last slice is merged.
+- Ask for the next slice: from `main` once this one is merged, or on top of this one while it is
+  in review. The spec's development is complete when its last slice is merged.
 - If review asks for changes, commit them and ask for the slice again: the skill re-runs the gate
   and `pr-preflight` on the new commit.
