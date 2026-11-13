@@ -21,7 +21,7 @@ public class OpenApiDocumentTransformer : IOpenApiDocumentTransformer
                 Title = "Waste Organisations REST API",
                 Version = "2.0.0",
                 Description =
-                    $"Create organisations with their addresses. Select v2 with the header `Accept: {AcceptHeaderVersionResolver.MediaType}; version=2`. "
+                    $"Create organisations with their addresses and read one by its id. Select v2 with the header `Accept: {AcceptHeaderVersionResolver.MediaType}; version=2`. "
                     + "A request without that media type, or without a `version`, is served v1. "
                     + "An unsupported, malformed or ambiguous version returns `406 Not Acceptable`.",
             },

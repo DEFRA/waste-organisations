@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Waste Organisations REST API",
-    "description": "Create organisations with their addresses. Select v2 with the header `Accept: application/vnd.defra.waste-organisations+json; version=2`. A request without that media type, or without a `version`, is served v1. An unsupported, malformed or ambiguous version returns `406 Not Acceptable`.",
+    "description": "Create organisations with their addresses and read one by its id. Select v2 with the header `Accept: application/vnd.defra.waste-organisations+json; version=2`. A request without that media type, or without a `version`, is served v1. An unsupported, malformed or ambiguous version returns `406 Not Acceptable`.",
     "version": "2.0.0"
   },
   "servers": [
