@@ -34,10 +34,13 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.OK, content);
         var read = await ReadOrganisationAsync(response);
         read.Id.Should().Be(created.Organisation.Id);
+        created.Organisation.TradingName.Should().Be("Acme");
         read.Name.Should().Be(created.Organisation.Name);
+        read.TradingName.Should().Be(created.Organisation.TradingName);
         read.CompaniesHouseNumber.Should().Be(created.Organisation.CompaniesHouseNumber);
         read.RegulatorNation.Should().Be(created.Organisation.RegulatorNation);
         read.OrganisationType.Should().Be(created.Organisation.OrganisationType);
+        read.ValidTo.Should().Be(created.Organisation.ValidTo);
         read.Addresses.Should().BeEquivalentTo(created.Organisation.Addresses);
 
         var organisation = JsonNode.Parse(content)!["organisations"]!.AsArray().Single()!.AsObject();
@@ -302,6 +305,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
             organisation = new
             {
                 name = "Acme Waste Ltd",
+                tradingName = "Acme",
                 companiesHouseNumber = "12345678",
                 regulatorNation = "GB-ENG",
                 organisationType = "LTD",
