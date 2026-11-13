@@ -121,7 +121,8 @@ public class GetDetailsTests(ApiWebApplicationFactory factory, ITestOutputHelper
     private async Task ShouldNotHaveCalledThePostgresService() =>
         await MockPostgresOrganisationService.DidNotReceive().GetAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
 
-    // Every date member is set, so the snapshot shows that none of them reaches the response
+    // ValidFrom, CreatedAt and UpdatedAt are set where a row has them,
+    // so the snapshot shows that none of them reaches the response
     private static Organisation StoredOrganisation()
     {
         var organisationType = new OrganisationType { Id = Guid.NewGuid(), Code = "LTD" };
