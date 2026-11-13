@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Defra.WasteOrganisations.Api.Dtos;
@@ -65,6 +66,99 @@ public class OrganisationDetailsExtensionsTests
         var organisation = StoredOrganisation();
 
         organisation.ToDetailsResponse().Organisations[0].Addresses.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ToDetailsResponse_WithKindsOfOneAddressInSeparateInstances_ShouldGiveOneItem()
+    {
+        var registered = StoredAddress("12A", "High Street");
+        var principal = StoredAddress("12A", "High Street");
+        principal.Id = registered.Id;
+        var organisation = StoredOrganisation((registered, "REGISTERED"), (principal, "PRINCIPAL"));
+        organisation.Addresses[0].ValidFrom = new DateTime(2026, 11, 1, 9, 0, 0, DateTimeKind.Utc);
+        organisation.Addresses[1].ValidFrom = new DateTime(2026, 11, 5, 14, 30, 0, DateTimeKind.Utc);
+
+        var addresses = organisation.ToDetailsResponse().Organisations[0].Addresses;
+
+        addresses
+            .Should()
+            .ContainSingle()
+            .Which.AddressTypes.Should()
+            .BeEquivalentTo([AddressType.Registered, AddressType.Principal]);
+    }
+
+    [Fact]
+    public void ToDetailsResponse_WhenSerialised_ShouldOmitNullMembers()
+    {
+        var address = new Address
+        {
+            Id = Guid.CreateVersion7(),
+            BuildingNumber = "12",
+            Street = "Harbour Road",
+            PostalCode = "AB1 2CD",
+        };
+        var organisation = StoredOrganisation((address, "PRINCIPAL"));
+        organisation.OrganisationType = null;
+        organisation.OrganisationTypeId = null;
+
+        var json = JsonSerializer.SerializeToElement(organisation.ToDetailsResponse());
+
+        var body = json.GetProperty("organisations")[0];
+        body.TryGetProperty("validTo", out _).Should().BeFalse();
+        body.TryGetProperty("organisationType", out _).Should().BeFalse();
+        body.TryGetProperty("tradingName", out _).Should().BeFalse();
+        body.GetProperty("name").GetString().Should().Be("Acme Waste Ltd");
+
+        var item = body.GetProperty("addresses")[0];
+        foreach (var absent in new[] { "subBuildingName", "buildingName", "poBox", "locality", "region", "countryIso" })
+            item.TryGetProperty(absent, out _).Should().BeFalse(absent);
+        item.GetProperty("street").GetString().Should().Be("Harbour Road");
+        item.GetProperty("addressTypes")[0].GetString().Should().Be("PRINCIPAL");
+    }
+
+    [Fact]
+    public void ToDetailsResponse_WithAnUnspecifiedValidTo_ShouldGiveAUtcOffset()
+    {
+        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        organisation.ValidTo = new DateTime(2026, 7, 2, 10, 15, 30, DateTimeKind.Unspecified);
+
+        var validTo = organisation.ToDetailsResponse().Organisations[0].ValidTo;
+
+        validTo.Should().Be(new DateTimeOffset(2026, 7, 2, 10, 15, 30, TimeSpan.Zero));
+        validTo.Value.Offset.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void ToDetailsResponse_WhenSerialised_ShouldCarryNoOrganisationOrAddressDates()
+    {
+        var registered = StoredAddress("12A", "High Street");
+        var correspondence = StoredAddress("12", "Harbour Road");
+        var organisation = StoredOrganisation((registered, "REGISTERED"), (correspondence, "CORRESPONDENCE"));
+        var stamp = new DateTime(2026, 11, 2, 10, 15, 30, DateTimeKind.Utc);
+        organisation.ValidFrom = stamp;
+        organisation.CreatedAt = stamp;
+        organisation.UpdatedAt = stamp;
+        foreach (var link in organisation.Addresses)
+        {
+            link.ValidFrom = stamp;
+            link.ValidTo = stamp.AddDays(1);
+            link.CreatedAt = stamp;
+            link.UpdatedAt = stamp;
+        }
+
+        var json = JsonSerializer.SerializeToElement(organisation.ToDetailsResponse());
+
+        var body = json.GetProperty("organisations")[0];
+        body.TryGetProperty("validFrom", out _).Should().BeFalse();
+        body.TryGetProperty("createdAt", out _).Should().BeFalse();
+        body.TryGetProperty("updatedAt", out _).Should().BeFalse();
+        var items = body.GetProperty("addresses").EnumerateArray().ToArray();
+        items.Should().HaveCount(2);
+        foreach (var item in items)
+        {
+            item.TryGetProperty("validFrom", out _).Should().BeFalse();
+            item.TryGetProperty("validTo", out _).Should().BeFalse();
+        }
     }
 
     private static Address StoredAddress(string buildingNumber, string street) =>
