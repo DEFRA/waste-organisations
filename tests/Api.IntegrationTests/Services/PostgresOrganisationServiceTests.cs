@@ -109,8 +109,6 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
         await AssertNothingStoredAsync(provider, organisation.Id, suffix, expectedAddresses: 1);
     }
 
-    private static string NewSuffix() => Guid.NewGuid().ToString("N")[..12];
-
     // Each create in its own scope, so its own context, as each request has
     private static async Task<(Organisation Organisation, MissingLookUpsService Service)> CreateAsync(
         ServiceProvider provider,

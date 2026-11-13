@@ -13,7 +13,6 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 public class CreateOrganisationErrorTests : IntegrationTestBase
 {
     private const string MediaType = "application/vnd.defra.waste-organisations+json";
-    private const string AcceptV2 = $"{MediaType}; version=2";
 
     private const string ValidBody = """
         {"organisation":{"name":"Acme Waste Ltd","companiesHouseNumber":"12345678","regulatorNation":"GB-ENG","organisationType":"LTD","addresses":[{"addressTypes":["REGISTERED"],"buildingNumber":"12","street":"High Street","locality":"Testville","postalCode":"AB1 2CD","countryIso":"GB"}]}}

@@ -18,8 +18,6 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 // Address rows are shared and never cleaned up, so every test sends address values unique to it
 public class GetOrganisationDetailsTests : IntegrationTestBase
 {
-    private const string AcceptV2 = "application/vnd.defra.waste-organisations+json; version=2";
-
     // Following the Location of a create returns what the 201 returned, without the dates the read
     // leaves out
     [Fact]
@@ -284,9 +282,6 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         content.Should().BeEmpty();
     }
-
-    // Unique per test and per run, so a test never meets an address row another stored
-    private static string NewSuffix() => Guid.NewGuid().ToString("N")[..12];
 
     private static object Address(string suffix, params string[] addressTypes) =>
         new
