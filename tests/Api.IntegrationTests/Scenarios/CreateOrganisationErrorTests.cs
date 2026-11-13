@@ -99,20 +99,6 @@ public class CreateOrganisationErrorTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // The accepted gap until REGEN-140 adds a v2 GET: `Location` cannot be followed with version=2
-    [Fact]
-    public async Task Created_ShouldNotBeReadableByV2GetYet()
-    {
-        var id = await CreateAsync();
-        using var client = CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, Testing.Endpoints.Organisations.Get(id));
-        request.Headers.TryAddWithoutValidation("Accept", AcceptV2);
-
-        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotAcceptable);
-    }
-
     private static async Task ShouldBeBadRequestWithDetail(string body, string scenario)
     {
         var response = await PostAsync(JsonBody(body));

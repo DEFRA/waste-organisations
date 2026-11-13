@@ -86,10 +86,162 @@
           }
         }
       }
+    },
+    "/organisations/{id}": {
+      "get": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Get organisation details",
+        "description": "Returns the stored organisation with the given id as it is, with its current addresses.",
+        "operationId": "GetOrganisationDetails",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "description": "Selects v2 of the API: `application/vnd.defra.waste-organisations+json; version=2`. Without it, or with `version=1`, the request is served v1.",
+            "required": true,
+            "schema": {
+              "enum": [
+                "application/vnd.defra.waste-organisations+json; version=2"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetOrganisationDetailsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Not Acceptable: the `Accept` header asks for an unsupported or malformed API version.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AddressDetailsResponse": {
+        "required": [
+          "addressTypes",
+          "addressLine"
+        ],
+        "type": "object",
+        "properties": {
+          "addressTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressType"
+            },
+            "description": "Every kind of address this currently is for the organisation. The order is not guaranteed."
+          },
+          "addressLine": {
+            "type": "string",
+            "description": "The address on one line, computed in postal order with blank parts skipped and without the\ncountry; never stored."
+          },
+          "subBuildingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A flat or unit within the building."
+          },
+          "buildingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name of the building."
+          },
+          "buildingNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The building number."
+          },
+          "street": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The street."
+          },
+          "poBox": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A PO box."
+          },
+          "locality": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The town or city."
+          },
+          "region": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The county, state or province."
+          },
+          "postalCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The postcode."
+          },
+          "countryIso": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The country as an ISO 3166-1 alpha-2 code, upper-case. `GB` is the United Kingdom,\nNorthern Ireland included."
+          }
+        },
+        "description": "A current address of an organisation and the kinds of address it is for the organisation now.\nAbsent parts are omitted."
+      },
       "AddressRequest": {
         "required": [
           "addressTypes",
@@ -293,6 +445,22 @@
         },
         "description": "The body of a `201` from `POST /organisations`: the stored organisation, in the same\nenvelope as the request."
       },
+      "GetOrganisationDetailsResponse": {
+        "required": [
+          "organisations"
+        ],
+        "type": "object",
+        "properties": {
+          "organisations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationDetailsResponse"
+            },
+            "description": "The organisation with the requested id: always exactly one item."
+          }
+        },
+        "description": "The body of a `200` from the v2 `GET /organisations/{id}`."
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -339,6 +507,69 @@
             }
           }
         }
+      },
+      "OrganisationDetailsResponse": {
+        "required": [
+          "id",
+          "regulatorNation",
+          "addresses"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The id, a UUIDv7 generated by the API.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The registered name; absent when none is stored."
+          },
+          "tradingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name the organisation trades under; absent when none is stored."
+          },
+          "companiesHouseNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The Companies House number; absent for a type not registered at Companies House."
+          },
+          "regulatorNation": {
+            "description": "The nation whose regulator the organisation deals with.",
+            "$ref": "#/components/schemas/RegulatorNation"
+          },
+          "organisationType": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The organisation type code; absent when the organisation has no type."
+          },
+          "validTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When this version of the organisation stopped being valid; absent while it is current.\nISO 8601 extended format with offset.",
+            "format": "date-time"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressDetailsResponse"
+            },
+            "description": "One item per current address, carrying every kind it currently is for the organisation; an\nempty array when there is none. The order is not guaranteed."
+          }
+        },
+        "description": "A stored organisation with its current addresses. Null members are omitted rather than written\nas null, so consumers must treat an absent member as null."
       },
       "OrganisationRequest": {
         "required": [
