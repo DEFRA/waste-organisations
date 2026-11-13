@@ -3,25 +3,26 @@ name: spec-clarify
 description: >
   Turn a Jira story, bug or rough idea for this API into a spec in specs/, in the repo's spec
   format, by asking the author questions one topic at a time: problem, scope, testable acceptance
-  criteria with negative cases, risks, priority, size. Writes specs/NNNN-REGEN-NNN-slug.md and
-  nothing else; never implements and never edits a delivered spec. Use whenever asked to write,
-  draft, refine or clarify a spec or story, for example "/spec-clarify REGEN-150 ...", "/clarify",
-  "write the spec for REGEN-150", "turn this story into a spec", "refine this idea". For splitting
-  a spec that is too big for one pull request, use spec-breakdown.
+  criteria with negative cases, risks, priority, size. Writes one spec file in specs/, named with
+  the story's ticket id, and nothing else; never implements and never edits a delivered spec. Use
+  whenever asked to write, draft, refine or clarify a spec or story, for example
+  "/spec-clarify ABC-123 ...", "/clarify", "write the spec for ABC-123", "turn this story into a
+  spec", "refine this idea". Every spec has a Work breakdown, one slice per pull request, also
+  when there is only one; work is never split into child specs.
 ---
 
 # Spec clarify
 
-Last reviewed 9 November 2026. This skill produces a spec in the format this repo already uses
+Last reviewed 12 November 2026. This skill produces a spec in the format this repo already uses
 (`specs/0005-REGEN-141-create-an-organisation.md` is the fullest example).
 
 You are running an idea refinement workshop with the developer. The output is a spec that a
-reviewer can approve and that the Ralph build loop, or a developer, can implement without
-asking the author what was meant.
+reviewer can approve and that a developer, or an AI coding tool, can implement without asking
+the author what was meant.
 
 ## Usage
 
-`/spec-clarify REGEN-NNN <one-line idea>` in Claude Code, or `$spec-clarify` in Codex. Without
+`/spec-clarify <ticket-id> <one-line idea>` in Claude Code, or `$spec-clarify` in Codex. Without
 an argument, ask for the story key and a one-line description first.
 
 ## Ground rules
@@ -54,7 +55,7 @@ file names.
 ### 2. Classify
 
 Feature, Bug, Improvement, Spike (time-boxed research), Task (no direct user impact), or Epic.
-An Epic is not one spec: say so and point at `spec-breakdown`.
+An Epic is not one spec: say so and ask which of its stories to specify first.
 
 ### 3. Scope
 
@@ -82,20 +83,42 @@ P0 critical (blocking), P1 high, P2 medium (default), P3 low, P4 backlog, with t
 
 ### 7. Size
 
-Estimate the pull requests the work needs. A spec is one pull request when its non-generated
-change stays within the size guide in `doc/rules/git-workflow.md` and mixes no unrelated concerns
-(schema change, endpoint, documentation). If it needs more, either write the Work breakdown table
-(slices with what each is verified by, as spec 0005 does) or stop and recommend `spec-breakdown`
-on the finished spec.
+Estimate the pull requests the work needs and write the Work breakdown table in every spec, also
+when the work is one pull request: the table then has one slice. The reader finds the number of
+pull requests in the same place in every spec, and "build slice 1 of spec NNNN" always works. A
+spec is one pull request when its non-generated change stays within the size guide in
+`doc/rules/git-workflow.md` and mixes no unrelated concerns (schema change, endpoint,
+documentation); say so, with the estimate, in a line above the table. If it needs more, slice it:
+the spec stays one file and is never split into child specs. Each slice is one pull request, built
+on its own and in order ("build slice 1 of spec NNNN"); when every slice is merged, the spec's
+development is complete. Write each slice to stand alone:
+
+- **One slice is still a table.** Its Work names what the pull request builds, as any slice does,
+  and its Verified by names the test projects and every acceptance criterion.
+- **Slice a pull request, not a task.** A slice has its own observable result and its own tests.
+  Never a "README", "tests" or "run the full suite" slice: documentation, tests and the full gate
+  belong to every slice.
+- **Work says what the slice builds and where it stops.** Name the files, types, changesets or
+  endpoints, and the Proposed Solution subsections it implements. Where a reader could expect
+  more, say what is left to a later slice.
+- **Verified by is provable.** Name the test project and the result it shows, and the acceptance
+  criteria the slice satisfies.
+- **Order is build order.** A slice may rely only on earlier slices, and every slice leaves main
+  shippable: nothing needs a later slice to compile, pass the gate or keep v1 frozen.
+- **Do not over-slice.** Split only for the size guide or for mixed concerns. Fold a slice with
+  nothing of its own to verify into its neighbour; prefer fewer, well-bounded slices to many small
+  ones, since each costs a review.
+- **Every acceptance criterion is covered by a slice.** Confirm the slices with the author before
+  writing them.
 
 ### 8. Write the spec
 
-Path: `specs/NNNN-REGEN-NNN-slug.md`, where `NNNN` is the next number after the highest in
+Path: `specs/NNNN-<ticket-id>-slug.md`, where `NNNN` is the next number after the highest in
 `specs/` and the slug comes from the story title. Use this structure, with the section headings
 exactly as written:
 
 ```markdown
-# REGEN-NNN: Title
+# <ticket-id>: Title
 
 | | |
 |---|---|
@@ -110,7 +133,8 @@ exactly as written:
 ## Proposed Solution
 
 (subsections as needed: request, response, errors, validation, persistence, schema, code layout,
-OpenAPI, tests; end with "### Work breakdown" when the work is more than one slice)
+OpenAPI, tests; always end with "### Work breakdown", one slice per pull request, a single slice
+when the work is one pull request)
 
 ## Acceptance Criteria
 
@@ -144,8 +168,9 @@ whether the spec says what they meant. Adjust until it does.
 
 ### 10. Next steps
 
-Say which applies: the spec is one pull request and development can start; it needs
-`spec-breakdown`; it needs a spike first; or open questions block it and who can answer them. A
+Say which applies: the Work breakdown has one slice and development can start; it has several
+slices and development starts with slice 1; it needs a spike first; or open questions block it and who
+can answer them. A
 spec can be reviewed as its own pull request before implementation starts; recommend that for
 anything larger than one slice.
 
@@ -157,7 +182,8 @@ Do:
 - Make exclusions explicit; Out of Scope is where scope creep is stopped.
 - Name the earlier spec whenever a decision changes something it decided.
 - Record who decided what and when in Decisions, so the spec is a record, not just a plan.
-- Keep the spec within one pull request or hand over to `spec-breakdown`.
+- Write the Work breakdown in every spec: one slice when the work fits one pull request,
+  otherwise slices that each stand alone.
 
 Do not:
 
