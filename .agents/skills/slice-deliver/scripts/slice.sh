@@ -82,8 +82,9 @@ story_key() {
     basename "$spec" | grep -oE '[A-Z]+-[0-9]+' | head -n 1 || true
 }
 
-# The branch a slice gets by convention: the one the spec's Notes name, or the
-# story key and the spec's slug, with -slice-<n> from the second slice on.
+# The branch a slice gets by convention, <ticket-id>-<slug>-slice-<n>: the name
+# the spec's Notes give, or the spec's file name without its number, then the
+# slice. Slice 1 has the suffix too, so a slice never takes the spec's own branch.
 slice_branch_name() {
     local number=$1 name
     name=$(sed -n 's/^- Branch[^`]*`\([^`]*\)`.*/\1/p' "$spec_file" | head -n 1 || true)
@@ -91,8 +92,7 @@ slice_branch_name() {
         name=$(basename "$spec_file" .md)
         name=${name#*-}
     fi
-    [[ $number -le 1 ]] || name="$name-slice-$number"
-    echo "$name"
+    echo "$name-slice-$number"
 }
 
 # Prints local, remote or no for a branch name.

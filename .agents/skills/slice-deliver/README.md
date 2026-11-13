@@ -37,8 +37,9 @@ request, `pr-preflight` and marking it ready by hand. It does not replace the hu
   in `specs/`.
 - **Know where the slice's branch should start.** The skill asks when there is a real choice: a
   new branch from `main`, a new branch on top of the previous slice's branch, or the branch you
-  are on. A new branch gets the name in the spec's Notes for slice 1 and the same name with
-  `-slice-<n>` after that, and its base must already hold the spec.
+  are on. A new branch is named `<ticket-id>-<slug>-slice-<n>`, also for slice 1: the branch name
+  in the spec's Notes, or the spec's file name without its number, then the slice. Its base must
+  already hold the spec.
 
 ## How to start it
 

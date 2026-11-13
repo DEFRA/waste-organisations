@@ -128,7 +128,8 @@ than `blocker=branch`, which the choice of branch below may resolve.
    - Put the start you recommend first: from `main` for slice 1 and when
      `previous_pr_state=MERGED`; from the previous slice's branch while that pull request is not
      merged.
-   - Say in a few words what each start means. A new branch is named `slice_branch`. A slice
+   - Say in a few words what each start means. A new branch is named `slice_branch`, which is
+     `<ticket-id>-<slug>-slice-<n>` for every slice, slice 1 included. A slice
      built on the previous slice's branch waits as a draft until that slice is merged (stage 6).
      The branch you are on is used as it is.
    - If the previous slice lives on a branch `status` did not find, the developer names it, and
