@@ -1,7 +1,9 @@
 using System.Net;
+using System.Net.Http.Json;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Defra.WasteOrganisations.Api.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Address = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Address;
@@ -76,6 +78,44 @@ public class GetDetailsTests(ApiWebApplicationFactory factory, ITestOutputHelper
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         content.Should().BeEmpty();
         await ShouldNotHaveCalledThePostgresService();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData($"{MediaType}; version=1")]
+    public async Task WhenVersion2NotRequested_ShouldCallTheV1Service(string? acceptHeaderValue)
+    {
+        var response = await SendGet(s_id.ToString(), acceptHeaderValue: acceptHeaderValue);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await MockOrganisationService.Received(1).Get(s_id, Arg.Any<CancellationToken>());
+        await ShouldNotHaveCalledThePostgresService();
+    }
+
+    [Fact]
+    public async Task WhenVersion3Requested_ShouldBeNotAcceptable()
+    {
+        var response = await SendGet(s_id.ToString(), acceptHeaderValue: $"{MediaType}; version=3");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotAcceptable);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(TestContext.Current.CancellationToken);
+        problem!.Detail.Should().Be("Unsupported API version");
+        await ShouldNotHaveCalledThePostgresService();
+    }
+
+    // The {id:guid} constraint means no endpoint matches, so routing answers before authentication
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task WhenIdIsNotAGuid_ShouldBeNotFoundWithEmptyBody(bool addAuthorizationHeader)
+    {
+        var response = await SendGet("not-a-guid", CreateClient(addAuthorizationHeader: addAuthorizationHeader));
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        content.Should().BeEmpty();
+        await ShouldNotHaveCalledThePostgresService();
+        await MockOrganisationService.DidNotReceive().Get(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     private async Task ShouldNotHaveCalledThePostgresService() =>
