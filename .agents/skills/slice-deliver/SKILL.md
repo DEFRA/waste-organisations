@@ -186,8 +186,10 @@ plan alone.
 - **Title:** `<story>: <summary>`, imperative, capitalised, no full stop, short
   (`doc/rules/git-workflow.md`).
 - **Description:** `.github/PULL_REQUEST_TEMPLATE.md` with every section filled and no placeholder
-  comment left. "Why" carries `Jira: <story>`, `Spec: <spec_file>` and, when the spec has more
-  than one slice, "Slice n of m". "How to test" must be followable without reading the code.
+  comment left. "Why" carries `Jira: <story>`, `Spec: <spec_file>`, `Size:` with the
+  non-generated changed lines against the size guide, counted as `doc/rules/git-workflow.md`
+  says, and, when the spec has more than one slice, "Slice n of m". "How to test" must be
+  followable without reading the code.
   Tick a checklist line only when a stage gave you the evidence for it.
 - Write the description to `.ralph/slice-deliver/pr-body.md`, then:
   `gh pr create -R <repo> --draft --base main --head <branch> --title "<title>" --body-file .ralph/slice-deliver/pr-body.md --assignee @me`

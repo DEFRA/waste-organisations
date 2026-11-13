@@ -4,8 +4,8 @@ using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organis
 namespace Defra.WasteOrganisations.Api.Services;
 
 /// <summary>
-/// Stores v2 organisations in Postgres. Named after its store so it does not collide with the
-/// Mongo-backed v1 <see cref="IOrganisationService"/>, which is not extended.
+/// Stores and reads v2 organisations in Postgres. Named after its store so it does not collide
+/// with the Mongo-backed v1 <see cref="IOrganisationService"/>, which is not extended.
 /// </summary>
 public interface IPostgresOrganisationService
 {
@@ -28,4 +28,11 @@ public interface IPostgresOrganisationService
     /// types and addresses set, as the v2 response needs them.
     /// </summary>
     Task<Organisation> CreateAsync(Organisation organisation, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The organisation with the given id, untracked, with its organisation type and only its
+    /// current links (<c>valid_to IS NULL</c>), each with its address and usage type; null when no
+    /// row has the id.
+    /// </summary>
+    Task<Organisation?> GetAsync(Guid id, CancellationToken cancellationToken);
 }

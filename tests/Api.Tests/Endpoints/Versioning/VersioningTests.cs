@@ -53,7 +53,11 @@ public class VersioningTests(ApiWebApplicationFactory factory, ITestOutputHelper
     [Fact]
     public async Task WhenVersion2Requested_ShouldBeNotAcceptable()
     {
-        var response = await SendGetOrganisation($"{MediaType}; version=2");
+        var client = CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Put, Testing.Endpoints.Organisations.Put(s_organisationId));
+        request.Headers.TryAddWithoutValidation("Accept", $"{MediaType}; version=2");
+
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotAcceptable);
@@ -91,7 +95,7 @@ public class VersioningTests(ApiWebApplicationFactory factory, ITestOutputHelper
     public async Task WhenNoCredentials_AndVersion2Requested_ShouldBeUnauthorized_NotNotAcceptable()
     {
         var client = CreateClient(addAuthorizationHeader: false);
-        var request = new HttpRequestMessage(HttpMethod.Get, Testing.Endpoints.Organisations.Get(s_organisationId));
+        var request = new HttpRequestMessage(HttpMethod.Put, Testing.Endpoints.Organisations.Put(s_organisationId));
         request.Headers.TryAddWithoutValidation("Accept", $"{MediaType}; version=2");
 
         var response = await client.SendAsync(request, TestContext.Current.CancellationToken);

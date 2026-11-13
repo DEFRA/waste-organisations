@@ -12,6 +12,8 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests;
 [Collection("Integration Tests")]
 public abstract class IntegrationTestBase
 {
+    protected const string AcceptV2 = "application/vnd.defra.waste-organisations+json; version=2";
+
     protected static ServiceProvider BuildServiceProvider(TimeProvider? timeProvider = null)
     {
         // The Postgres section of src/Api/appsettings.Development.json, which compose.yml matches
@@ -53,6 +55,9 @@ public abstract class IntegrationTestBase
 
         return client;
     }
+
+    // Unique per test and per run, so a test never meets an address row another stored
+    protected static string NewSuffix() => Guid.NewGuid().ToString("N")[..12];
 
     private static string GenerateJwt(string clientId)
     {

@@ -10,9 +10,10 @@ using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organis
 namespace Defra.WasteOrganisations.Api.Services;
 
 /// <summary>
-/// Stores v2 organisations through the request's <see cref="PostgresDbContext"/> (spec 0005,
-/// Persistence). The reference rows are read untracked and attached on save, so this service sets
-/// every navigation the response needs itself rather than relying on what the context tracks.
+/// Stores and reads v2 organisations through the request's <see cref="PostgresDbContext"/>
+/// (spec 0005, Persistence). On a create, the reference rows are read untracked and attached on
+/// save, so this service sets every navigation the response needs itself rather than relying on
+/// what the context tracks.
 /// </summary>
 public class PostgresOrganisationService(PostgresDbContext context, ILogger<PostgresOrganisationService> logger)
     : IPostgresOrganisationService
@@ -101,6 +102,23 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
 
         return organisation;
     }
+
+    public Task<Organisation?> GetAsync(Guid id, CancellationToken cancellationToken) =>
+        OrganisationWithCurrentAddresses(id).SingleOrDefaultAsync(cancellationToken);
+
+    /// <summary>
+    /// The organisation with the given id, untracked, with its organisation type and its current
+    /// links. EF Core merges the two identical filtered includes into one filtered join.
+    /// </summary>
+    protected IQueryable<Organisation> OrganisationWithCurrentAddresses(Guid id) =>
+        context
+            .Organisations.AsNoTracking()
+            .Where(organisation => organisation.Id == id)
+            .Include(organisation => organisation.OrganisationType)
+            .Include(organisation => organisation.Addresses.Where(link => link.ValidTo == null))
+                .ThenInclude(link => link.Address)
+            .Include(organisation => organisation.Addresses.Where(link => link.ValidTo == null))
+                .ThenInclude(link => link.UsageType);
 
     /// <summary>The <c>organisation_type</c> row with the given id, untracked.</summary>
     protected virtual Task<OrganisationType?> FindOrganisationTypeAsync(Guid id, CancellationToken cancellationToken) =>
