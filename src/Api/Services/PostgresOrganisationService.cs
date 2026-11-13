@@ -10,9 +10,10 @@ using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organis
 namespace Defra.WasteOrganisations.Api.Services;
 
 /// <summary>
-/// Stores v2 organisations through the request's <see cref="PostgresDbContext"/> (spec 0005,
-/// Persistence). The reference rows are read untracked and attached on save, so this service sets
-/// every navigation the response needs itself rather than relying on what the context tracks.
+/// Stores and reads v2 organisations through the request's <see cref="PostgresDbContext"/>
+/// (spec 0005, Persistence). On a create, the reference rows are read untracked and attached on
+/// save, so this service sets every navigation the response needs itself rather than relying on
+/// what the context tracks.
 /// </summary>
 public class PostgresOrganisationService(PostgresDbContext context, ILogger<PostgresOrganisationService> logger)
     : IPostgresOrganisationService

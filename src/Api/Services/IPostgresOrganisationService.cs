@@ -4,8 +4,8 @@ using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organis
 namespace Defra.WasteOrganisations.Api.Services;
 
 /// <summary>
-/// Stores v2 organisations in Postgres. Named after its store so it does not collide with the
-/// Mongo-backed v1 <see cref="IOrganisationService"/>, which is not extended.
+/// Stores and reads v2 organisations in Postgres. Named after its store so it does not collide
+/// with the Mongo-backed v1 <see cref="IOrganisationService"/>, which is not extended.
 /// </summary>
 public interface IPostgresOrganisationService
 {
