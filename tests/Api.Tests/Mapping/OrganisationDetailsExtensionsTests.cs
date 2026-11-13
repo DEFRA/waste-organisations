@@ -117,6 +117,32 @@ public class OrganisationDetailsExtensionsTests
     }
 
     [Fact]
+    public void ToDetailsResponse_WithAPoBoxOnlyAddress_ShouldGiveThePoBoxAndOmitNullMembers()
+    {
+        var address = new Address
+        {
+            Id = Guid.CreateVersion7(),
+            PoBox = "PO Box 99",
+            Locality = "Testville",
+            PostalCode = "AB1 2CD",
+        };
+        var organisation = StoredOrganisation((address, "CORRESPONDENCE"));
+        organisation.Name = null;
+        organisation.CompaniesHouseNumber = null;
+
+        var json = JsonSerializer.SerializeToElement(organisation.ToDetailsResponse());
+
+        var body = json.GetProperty("organisations")[0];
+        body.TryGetProperty("name", out _).Should().BeFalse();
+        body.TryGetProperty("companiesHouseNumber", out _).Should().BeFalse();
+
+        var item = body.GetProperty("addresses")[0];
+        item.GetProperty("poBox").GetString().Should().Be("PO Box 99");
+        item.TryGetProperty("buildingNumber", out _).Should().BeFalse();
+        item.TryGetProperty("street", out _).Should().BeFalse();
+    }
+
+    [Fact]
     public void ToDetailsResponse_WithAnUnspecifiedValidTo_ShouldGiveAUtcOffset()
     {
         var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
