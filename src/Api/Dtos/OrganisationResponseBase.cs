@@ -17,13 +17,13 @@ public abstract record OrganisationResponseBase
     [JsonPropertyOrder(-1)]
     public required Guid Id { get; init; }
 
-    /// <summary>The registered name; absent when none was sent.</summary>
+    /// <summary>The registered name; absent when the organisation has none.</summary>
     [JsonPropertyName("name")]
     [JsonPropertyOrder(-1)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Name { get; init; }
 
-    /// <summary>The name the organisation trades under; absent when none was sent.</summary>
+    /// <summary>The name the organisation trades under; absent when the organisation has none.</summary>
     [JsonPropertyName("tradingName")]
     [JsonPropertyOrder(-1)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
