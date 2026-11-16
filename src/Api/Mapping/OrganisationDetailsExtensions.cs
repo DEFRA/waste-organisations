@@ -28,9 +28,7 @@ public static class OrganisationDetailsExtensions
         var addresses = organisation
             .Addresses.GroupBy(link => link.AddressId)
             .Select(group =>
-                group
-                    .First()
-                    .Address.ToDetailsResponse(group.Select(link => link.UsageType.Name.FromJsonValue<AddressType>()))
+                group.First().Address.ToResponse(group.Select(link => link.UsageType.Name.FromJsonValue<AddressType>()))
             )
             .ToArray();
 
@@ -52,25 +50,6 @@ public static class OrganisationDetailsExtensions
             ],
         };
     }
-
-    private static AddressDetailsResponse ToDetailsResponse(
-        this Address address,
-        IEnumerable<AddressType> addressTypes
-    ) =>
-        new()
-        {
-            AddressTypes = addressTypes.ToArray(),
-            AddressLine = AddressLine.Build(address),
-            SubBuildingName = address.SubBuildingName,
-            BuildingName = address.BuildingName,
-            BuildingNumber = address.BuildingNumber,
-            Street = address.Street,
-            PoBox = address.PoBox,
-            Locality = address.Locality,
-            Region = address.Region,
-            PostalCode = address.PostalCode,
-            CountryIso = address.CountryIso,
-        };
 
     // Npgsql reads timestamptz as UTC; the kind is set explicitly so an unspecified kind is never
     // taken as local time

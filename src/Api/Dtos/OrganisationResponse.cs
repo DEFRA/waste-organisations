@@ -37,7 +37,8 @@ public record OrganisationResponse : OrganisationResponseBase
 
     /// <summary>
     /// One item per stored address, in the order each first appeared in the request. Two request
-    /// items holding the same address come back as one item carrying the kinds of both.
+    /// items holding the same address come back as one item carrying the kinds of both. The kinds
+    /// of an item are in request order.
     /// </summary>
     [JsonPropertyName("addresses")]
     public required AddressResponse[] Addresses { get; init; }

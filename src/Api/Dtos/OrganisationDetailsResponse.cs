@@ -23,8 +23,9 @@ public record OrganisationDetailsResponse : OrganisationResponseBase
 
     /// <summary>
     /// One item per current address, carrying every kind it currently is for the organisation; an
-    /// empty array when there is none. The order is not guaranteed.
+    /// empty array when there is none. The order of the items, and of the kinds within an item, is
+    /// not guaranteed.
     /// </summary>
     [JsonPropertyName("addresses")]
-    public required AddressDetailsResponse[] Addresses { get; init; }
+    public required AddressResponse[] Addresses { get; init; }
 }
