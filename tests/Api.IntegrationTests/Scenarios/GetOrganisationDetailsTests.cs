@@ -1,5 +1,7 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json.Nodes;
 using AutoFixture;
 using AwesomeAssertions;
@@ -252,6 +254,21 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(expected);
+        content.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task WrongSecret_ShouldBeUnauthorizedWithEmptyBody()
+    {
+        // A client that exists (see appsettings.Development.json), with a secret that is not its own
+        var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes("Developer:not-the-developer-secret"));
+        using var client = CreateClient(null);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+
+        var response = await GetAsync(Testing.Endpoints.Organisations.Get(Guid.NewGuid()), client: client);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         content.Should().BeEmpty();
     }
 
