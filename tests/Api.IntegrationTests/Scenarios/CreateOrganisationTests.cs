@@ -18,8 +18,6 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 // whole address table
 public class CreateOrganisationTests : IntegrationTestBase
 {
-    private const string AcceptV2 = "application/vnd.defra.waste-organisations+json; version=2";
-
     public static TheoryData<string> OrganisationTypes => new(OrganisationTypeCodes.All.Select(t => t.Code));
 
     // The full contract in one request: a Companies House type, one UK address carrying two kinds
@@ -493,9 +491,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         secondStored.Addresses.Single().AddressId.Should().NotBe(firstStored.Addresses.Single().AddressId);
         (await CountAddressesAsync(suffix)).Should().Be(2);
     }
-
-    // Unique per test and per run, so a test never meets an address row another stored
-    private static string NewSuffix() => Guid.NewGuid().ToString("N")[..12];
 
     private static bool IsRegisteredAtCompaniesHouse(string code) =>
         OrganisationTypeCodes.All.Single(t => t.Code == code).RegisteredAtCompaniesHouse;

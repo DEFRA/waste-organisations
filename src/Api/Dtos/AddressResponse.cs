@@ -3,11 +3,12 @@ using System.Text.Json.Serialization;
 namespace Defra.WasteOrganisations.Api.Dtos;
 
 /// <summary>
-/// A stored address and the kinds of address it is for the organisation. Absent parts are omitted.
+/// An address of an organisation and the kinds of address it is for the organisation. Absent parts
+/// are omitted.
 /// </summary>
 public record AddressResponse
 {
-    /// <summary>Every kind of address this is for the organisation, in the order they were sent.</summary>
+    /// <summary>Every kind of address this is for the organisation.</summary>
     [JsonPropertyName("addressTypes")]
     public required AddressType[] AddressTypes { get; init; }
 

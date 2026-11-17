@@ -6,6 +6,7 @@
 
 Jira: <!-- the ticket id, or "none" with the reason when the work has no Jira story -->
 Spec: <!-- specs/NNNN-<ticket-id>-slug.md -->
+Size: <!-- N non-generated changed lines (added plus removed, without `*.verified.*` snapshots and lock files), against the guide of about 800. See "Keep the PR small" in doc/rules/git-workflow.md for the command -->
 
 ## What changed
 
@@ -38,6 +39,7 @@ Spec: <!-- specs/NNNN-<ticket-id>-slug.md -->
 
 ## Checklist
 
+- [ ] Within the size guide of about 800 non-generated changed lines; a larger change is split by spec slice before review
 - [ ] Full gate run locally: CSharpier, build, Api.Tests, then Api.IntegrationTests and Api.V1.Tests against Docker Compose
 - [ ] Tests added or updated; coverage not decreased
 - [ ] No PII or secrets in code, logs or test data

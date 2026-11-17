@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Waste Organisations REST API",
-    "description": "Create organisations with their addresses. Select v2 with the header `Accept: application/vnd.defra.waste-organisations+json; version=2`. A request without that media type, or without a `version`, is served v1. An unsupported, malformed or ambiguous version returns `406 Not Acceptable`.",
+    "description": "Create organisations with their addresses and read one by its id. Select v2 with the header `Accept: application/vnd.defra.waste-organisations+json; version=2`. A request without that media type, or without a `version`, is served v1. An unsupported, malformed or ambiguous version returns `406 Not Acceptable`.",
     "version": "2.0.0"
   },
   "servers": [
@@ -63,6 +63,74 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Not Acceptable: the `Accept` header asks for an unsupported or malformed API version.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organisations/{id}": {
+      "get": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Get organisation details",
+        "description": "Returns the stored organisation with the given id as it is, with its current addresses.",
+        "operationId": "GetOrganisationDetails",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "description": "Selects v2 of the API: `application/vnd.defra.waste-organisations+json; version=2`. Without it, or with `version=1`, the request is served v1.",
+            "required": true,
+            "schema": {
+              "enum": [
+                "application/vnd.defra.waste-organisations+json; version=2"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetOrganisationDetailsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "500": {
             "description": "Internal Server Error",
@@ -185,7 +253,7 @@
             "items": {
               "$ref": "#/components/schemas/AddressType"
             },
-            "description": "Every kind of address this is for the organisation, in the order they were sent."
+            "description": "Every kind of address this is for the organisation."
           },
           "addressLine": {
             "type": "string",
@@ -255,7 +323,7 @@
             "description": "The country as an ISO 3166-1 alpha-2 code, upper-case. `GB` is the United Kingdom,\nNorthern Ireland included."
           }
         },
-        "description": "A stored address and the kinds of address it is for the organisation. Absent parts are omitted."
+        "description": "An address of an organisation and the kinds of address it is for the organisation. Absent parts\nare omitted."
       },
       "AddressType": {
         "enum": [
@@ -292,6 +360,22 @@
           }
         },
         "description": "The body of a `201` from `POST /organisations`: the stored organisation, in the same\nenvelope as the request."
+      },
+      "GetOrganisationDetailsResponse": {
+        "required": [
+          "organisations"
+        ],
+        "type": "object",
+        "properties": {
+          "organisations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationDetailsResponse"
+            },
+            "description": "The organisation with the requested id: always exactly one item."
+          }
+        },
+        "description": "The body of a `200` from the v2 `GET /organisations/{id}`."
       },
       "HttpValidationProblemDetails": {
         "type": "object",
@@ -339,6 +423,69 @@
             }
           }
         }
+      },
+      "OrganisationDetailsResponse": {
+        "required": [
+          "id",
+          "regulatorNation",
+          "addresses"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The id, a UUIDv7 generated by the API.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The registered name; absent when the organisation has none."
+          },
+          "tradingName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name the organisation trades under; absent when the organisation has none."
+          },
+          "companiesHouseNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The Companies House number; absent for a type not registered at Companies House."
+          },
+          "regulatorNation": {
+            "description": "The nation whose regulator the organisation deals with.",
+            "$ref": "#/components/schemas/RegulatorNation"
+          },
+          "organisationType": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The organisation type code; absent when the organisation has no type."
+          },
+          "validTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When this version of the organisation stopped being valid; absent while it is current.\nISO 8601 extended format with offset.",
+            "format": "date-time"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressResponse"
+            },
+            "description": "One item per current address, carrying every kind it currently is for the organisation; an\nempty array when there is none. The order of the items, and of the kinds within an item, is\nnot guaranteed."
+          }
+        },
+        "description": "A stored organisation with its current addresses. Null members are omitted rather than written\nas null, so consumers must treat an absent member as null."
       },
       "OrganisationRequest": {
         "required": [
@@ -431,14 +578,14 @@
               "null",
               "string"
             ],
-            "description": "The registered name; absent when none was sent."
+            "description": "The registered name; absent when the organisation has none."
           },
           "tradingName": {
             "type": [
               "null",
               "string"
             ],
-            "description": "The name the organisation trades under; absent when none was sent."
+            "description": "The name the organisation trades under; absent when the organisation has none."
           },
           "companiesHouseNumber": {
             "type": [
@@ -483,7 +630,7 @@
             "items": {
               "$ref": "#/components/schemas/AddressResponse"
             },
-            "description": "One item per stored address, in the order each first appeared in the request. Two request\nitems holding the same address come back as one item carrying the kinds of both."
+            "description": "One item per stored address, in the order each first appeared in the request. Two request\nitems holding the same address come back as one item carrying the kinds of both. The kinds\nof an item are in request order."
           }
         },
         "description": "A stored organisation, with every string as it was stored: trimmed, and\n`companiesHouseNumber` upper-cased."

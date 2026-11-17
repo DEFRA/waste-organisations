@@ -130,7 +130,8 @@ public static class CreateOrganisationExtensions
             CountryIso = Normalise(item.CountryIso)?.ToUpperInvariant(),
         };
 
-    private static AddressResponse ToResponse(this Address address, IEnumerable<AddressType> addressTypes) =>
+    // Also the address item of the v2 read (OrganisationDetailsExtensions)
+    internal static AddressResponse ToResponse(this Address address, IEnumerable<AddressType> addressTypes) =>
         new()
         {
             AddressTypes = addressTypes.ToArray(),

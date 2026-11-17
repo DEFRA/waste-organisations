@@ -11,8 +11,6 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 // the type-dependent rules with it. Validation runs before the handler, so nothing is stored
 public class CreateOrganisationValidationTests : IntegrationTestBase
 {
-    private const string AcceptV2 = "application/vnd.defra.waste-organisations+json; version=2";
-
     private sealed record ValidationCase(Func<JsonObject> Body, string[] ExpectedKeys);
 
     private static readonly Dictionary<string, ValidationCase> s_cases = new()
