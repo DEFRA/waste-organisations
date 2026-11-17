@@ -44,6 +44,9 @@ Put new code in the existing folder for its role. Do not add parallel folders (`
 
 - Request and response DTOs are records in `Dtos/` with `[JsonPropertyName]` and data annotations. Members the client cannot set do not exist on the request record.
 - v2 requests use nullable members with `[Required]`, so a missing member is a validation error keyed by JSON path (spec 0005, Decisions). v1 DTOs use the C# `required` modifier and are frozen.
+- A v2 response envelope, the record an endpoint returns, is named after the endpoint: its `.WithName(...)` value followed by `Response`, which gives `<Verb><Resource>Response`. `CreateOrganisation` returns `CreateOrganisationResponse` and `GetOrganisationDetails` returns `GetOrganisationDetailsResponse`. v1 response names are frozen with the rest of v1.
+- A v2 response item, a record inside an envelope, is named after the resource, `<Resource>Response`, and is shared between endpoints when the shape is the same: the create and the read both use `AddressResponse`. Add a qualifier only when an endpoint's shape differs, as `OrganisationDetailsResponse` does for the read, and declare the members the shapes have in common once in a base record (`OrganisationResponseBase`).
+- `OrganisationResponse` is the create's item, not yet the general one. Leave it and `OrganisationDetailsResponse` as they are until the next v2 endpoint that returns an organisation shows which shape is the general one; that endpoint's spec decides any rename.
 - Validate at the boundary through the endpoint filter and validator pair (`CreateOrganisationValidationFilter`, `CreateOrganisationRequestValidator`): trim before pattern checks, validate every array item, return all errors at once.
 - Configuration binds to options classes validated on start (`AddOptions<T>().Bind(...).ValidateDataAnnotations().ValidateOnStart()`, `PostgresOptionsValidator`). Fail fast on missing configuration; never read `IConfiguration` ad hoc in a service.
 
