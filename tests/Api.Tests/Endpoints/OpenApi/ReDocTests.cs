@@ -36,8 +36,9 @@ public partial class ReDocTests(ApiWebApplicationFactory factory, ITestOutputHel
         using var response = await client.GetAsync("redoc/redoc.standalone.js", TestContext.Current.CancellationToken);
         var bundle = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        // No test runs the page's script, so this pins what the script relies on: the bundle the package
-        // serves exports init. The page rendered nothing when a package update replaced a global with this export
+        // No test in this project runs the page's script (ReDocPageTests in Api.IntegrationTests does), so this
+        // pins what the script relies on: the bundle the package serves exports init. The page rendered nothing
+        // when a package update replaced a global with this export
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         ExportsInit().IsMatch(bundle).Should().BeTrue("the page imports init from the bundle");
     }
