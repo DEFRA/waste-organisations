@@ -26,7 +26,7 @@
 </head>
 <body>
     <!--
-    Copied from the default template of Swashbuckle.AspNetCore.ReDoc 10.3.1, with a version dropdown added.
+    Copied from the default template of Swashbuckle.AspNetCore.ReDoc 11.0.1, with a version dropdown added.
     Open-source ReDoc renders one document per page, so the page renders the document picked in the dropdown.
     The documents come from window.openApiDocuments, set by Program.cs through ReDocOptions.HeadContent.
     -->
@@ -37,8 +37,10 @@
     <div id="redoc-container"></div>
     <!-- The two JSON placeholders live in a JSON block, not in the script, so the script is valid JavaScript before substitution -->
     <script id="redoc-settings" type="application/json">{ "specUrl": %(SpecUrl), "config": %(ConfigObject) }</script>
-    <script src="redoc.standalone.js"></script>
-    <script>
+    <script type="module">
+        // redoc.standalone.js is an ES module that exports init; it defines no global to call
+        import { init } from "./redoc.standalone.js";
+
         (function () {
             var settings = JSON.parse(document.getElementById("redoc-settings").textContent);
             var specUrl = settings.specUrl;
@@ -63,8 +65,7 @@
                 var fresh = document.createElement("div");
                 fresh.id = container.id;
                 container.parentNode.replaceChild(fresh, container);
-                // Redoc is the global that redoc.standalone.js defines
-                window.Redoc.init(doc.url, config, fresh);
+                init(doc.url, config, fresh);
             }
 
             var requested = find(new URLSearchParams(window.location.search).get("spec"));

@@ -30,6 +30,7 @@ updates:
           - 'Microsoft.AspNetCore.Mvc.Testing'
           - 'Microsoft.Extensions.TimeProvider.Testing'
           - 'Microsoft.NET.Test.Sdk'
+          - 'Microsoft.Playwright'
           - 'Microsoft.Testing.Extensions.CodeCoverage'
           - 'NSubstitute'
           - 'System.IdentityModel.Tokens.Jwt'
