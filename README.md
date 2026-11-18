@@ -90,7 +90,7 @@ v2 has two endpoints: `POST /organisations`, which creates an organisation in Po
 
 ## Tests
 
-Tests with the `IntegrationTests` trait require additional local dependencies - either the API running in Docker, or the API running via .NET with Mongo, Postgres and Liquibase started in Docker.
+Tests with the `IntegrationTests` trait require additional local dependencies - either the API running in Docker, or the API running via .NET with Mongo, Postgres and Liquibase started in Docker. `ReDocPageTests` also opens the ReDoc page in headless Google Chrome through Playwright, so Chrome must be installed where the integration tests run (the GitHub runner image has it). It uses the installed browser; no `playwright install` is needed.
 
 Running unit tests:
 

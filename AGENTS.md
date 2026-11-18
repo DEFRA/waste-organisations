@@ -142,7 +142,7 @@ DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test --test-modules tests/Api
 
 In the sandbox environment, Api.Tests may need escalation because the test application can bind local sockets.
 
-For integration tests, run the local environment first:
+For integration tests, run the local environment first. `ReDocPageTests` also needs Google Chrome installed (see the README, "Tests"):
 
 ```bash
 docker compose up --build -d
