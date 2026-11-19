@@ -1,4 +1,4 @@
-<!-- Title: <ticket-id>: Short summary (imperative, 50 characters). No prefix when the work has no Jira story. See doc/rules/git-workflow.md. -->
+<!-- Title: <ticket-id>: Short summary (imperative, capitalised, 50 characters, no trailing period). No prefix when the work has no Jira story. See rules/shared/git-workflow.md in the AI toolkit (https://github.com/DEFRA/waste-manage-account-ai-toolkit). -->
 
 ## Why
 
@@ -6,7 +6,7 @@
 
 Jira: <!-- the ticket id, or "none" with the reason when the work has no Jira story -->
 Spec: <!-- specs/NNNN-<ticket-id>-slug.md -->
-Size: <!-- N non-generated changed lines (added plus removed, without `*.verified.*` snapshots and lock files), against the guide of about 800. See "Keep the PR small" in doc/rules/git-workflow.md for the command -->
+Size: <!-- N non-generated changed lines (added plus removed, without `*.verified.*` snapshots and lock files), against the guide of about 800. See "Keep the PR small" in the AI toolkit's rules/shared/git-workflow.md for the command -->
 
 ## What changed
 

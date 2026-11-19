@@ -157,11 +157,14 @@ Review CDP documentation and process for relevant portal operations.
 
 Work follows GitHub flow: every change is made on a branch named after its Jira story (`<ticket-id>-<slug>`), opened as a pull request titled `<ticket-id>: summary` (work with no Jira story takes no key), approved by two reviewers (repository ruleset) and squash-merged into `main`, which is always shippable. The pull request template asks for a "How to test" section so QA or another developer can verify the change without reading the code.
 
-The rules every developer and AI coding tool follows are in [AGENTS.md](AGENTS.md), with the DEFRA software development standards adapted for this repo in [doc/rules](doc/rules/). Reusable procedures live in [.agents/skills](.agents/skills/) and work in Claude Code and Codex:
+The rules every developer and AI coding tool follows come from two places. [AGENTS.md](AGENTS.md) is short: it holds this repo's profile (the gate, the test projects, the specs folder) and its most important constraints, and [doc/constraints.md](doc/constraints.md) holds the rest of what is particular to this repo. The shared rules, adapted from the DEFRA software development standards, and the skills live in the [Manage Account AI toolkit](https://github.com/DEFRA/waste-manage-account-ai-toolkit), which each developer installs once; its README gives the install command for Claude Code and for Codex. Claude Code prompts you to install it when you open this repo.
 
-- [spec-clarify](.agents/skills/spec-clarify/README.md): turn a Jira story into a spec in `specs/`, the first step of every story; every spec has a Work breakdown, one pull request per slice
-- [pr-preflight](.agents/skills/pr-preflight/README.md): check your own pull request before asking for review
-- [pr-review](.agents/skills/pr-review/README.md): review a colleague's pull request against its story and these rules
+The toolkit's skills work in Claude Code and Codex:
+
+- [spec-clarify](https://github.com/DEFRA/waste-manage-account-ai-toolkit/blob/main/skills/spec-clarify/README.md): turn a Jira story into a spec in `specs/`, the first step of every story; every spec has a Work breakdown, one pull request per slice
+- [slice-deliver](https://github.com/DEFRA/waste-manage-account-ai-toolkit/blob/main/skills/slice-deliver/README.md): deliver one slice of a spec as a pull request ready for review
+- [pr-preflight](https://github.com/DEFRA/waste-manage-account-ai-toolkit/blob/main/skills/pr-preflight/README.md): check your own pull request before asking for review
+- [pr-review](https://github.com/DEFRA/waste-manage-account-ai-toolkit/blob/main/skills/pr-review/README.md): review a colleague's pull request against its story and these rules
 - `commit`: commit with Conventional Commits messages
 
 ## Licence Information
