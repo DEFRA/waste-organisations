@@ -223,7 +223,7 @@ All taken in refinement on 19 November 2026 unless a date is given.
 | Non-UK addresses | Accepted in the same fields, with `postcode` optional and unchecked and `county` used for a state or province. `OVERSEAS_ORGANISATION` must carry a `PRINCIPAL` address (spec 0005), so they cannot be refused |
 | "Not a real postcode" | A check of the UK format only. Validation against an external service is out of the story's scope, and a list of postcode areas would need maintaining |
 | Postcode input | Every character that is not a letter or digit is ignored, as the pattern asks. This widens spec 0005's rule of 6 November 2026, which upper-cased and collapsed whitespace only |
-| Stored postcode | One form, `AB1 2CD`, so that equality and the response do not depend on how a client typed it |
+| Stored postcode | A `GB` postcode is normalised to the expected format, one space between the outward and the inward part, and its punctuation is not kept: `AB1 2CD` (team decision, reported on 19 November 2026, confirming the refinement answer of that day). Equality and the response then do not depend on how a client typed it. The decision covers `GB` postcodes only: a non-UK postcode has no outward and inward part, and a hyphen can be part of the code, so it keeps its punctuation and is upper-cased with its whitespace collapsed, as before |
 | Messages | The API's existing style, naming the field; not the GOV.UK wording |
 | UPRN | A later story |
 | Free-text cap | 255 characters, as spec 0005; `ux_address_values` still needs it |
