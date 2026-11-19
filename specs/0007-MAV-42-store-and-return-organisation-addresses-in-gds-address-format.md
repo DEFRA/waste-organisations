@@ -234,9 +234,11 @@ All taken in refinement on 19 November 2026 unless a date is given.
 
 ## Open Questions
 
-1. **Jira wording.** The story still lists its six open questions and marks Scenarios 7 and 8 "TBC". It should be updated with the decisions above, and its priority reviewed. Owner: the story's author. Does not block development.
-2. **Confluence.** The "Create Single Organisation" and "Retrieve Single Organisation by ID" sections of the page "Organisations API - waste-organisations" describe the nine-part address. Who updates them, and when? Does not block development.
-3. **Deployed environments.** The reset rests on the answer that no environment holds v2 organisations worth keeping. Whoever deploys slice 1 confirms it for each CDP environment first.
+None is open. All three were answered on 19 November 2026:
+
+1. ~~**Jira wording.**~~ Done: the story's description now carries the answer to each of its six open questions, the postcode and slicing decisions, and Scenarios 7 and 8 without "TBC"; its priority was changed from Lowest to High.
+2. ~~**Confluence.**~~ Done: on the page "Organisations API - waste-organisations", the address placeholder in the examples of "Retrieve Single Organisation by ID" and "Create Single Organisation" was replaced by the GDS fields. The page never listed the nine parts. The examples of "Update Single Organisation" and "Get Subsidiaries for Organisation" keep the placeholder: those endpoints are not part of this story.
+3. ~~**Deployed environments.**~~ Confirmed: no environment holds v2 organisations that must be kept, so the reset can be deployed without a check per environment.
 
 ## Dependencies
 
@@ -248,8 +250,8 @@ All taken in refinement on 19 November 2026 unless a date is given.
 
 | Risk | Level | Mitigation |
 |---|---|---|
-| The reset deletes organisations someone wanted | Medium | Decided on 19 November 2026 on the answer that none is kept; Open Question 3 has each environment checked before slice 1 is deployed; the pull request's "How to test" says the changelog deletes the rows |
-| A service has started to integrate with the nine-part v2 and breaks | Medium | The answer of 19 November 2026 is that none has; the v2 OpenAPI document changes with slice 2, and the Confluence page follows (Open Question 2) |
+| The reset deletes organisations someone wanted | Medium | Decided on 19 November 2026 on the answer that none is kept, confirmed the same day for the deployed environments (Open Question 3); the pull request's "How to test" says the changelog deletes the rows |
+| A service has started to integrate with the nine-part v2 and breaks | Medium | The answer of 19 November 2026 is that none has; the v2 OpenAPI document changes with slice 2, and the Confluence page already shows the GDS fields (Open Question 2) |
 | An organisation is created by the old code between the deployments of slices 1 and 2, and its address has no `address_line_1` | Low | Slice 2 returns such an address with its types and country only; `1.4-delete-nine-part-rows` removes it before the checks are added |
 | Between slices 1 and 3 the database does not enforce the premises or UK postcode rule | Low | The API's validation does, in both the old and the new code; 1.4 adds the final checks |
 | The UK format rejects a genuine but unusual postcode | Low | The pattern covers every current outward form and `GIR 0AA`; `UkPostcodeTests` lists them; a non-UK territory postcode is sent with its own `countryIso` and is not checked |
