@@ -18,6 +18,11 @@ public class Address : ITimestamped
     public string? Locality { get; set; }
     public string? Region { get; set; }
     public string? PostalCode { get; set; }
+    public string? AddressLine1 { get; set; }
+    public string? AddressLine2 { get; set; }
+    public string? TownOrCity { get; set; }
+    public string? County { get; set; }
+    public string? Postcode { get; set; }
 
     /// <summary>ISO 3166-1 alpha-2, for example <c>GB</c>. A UK address is one whose code is <c>GB</c>.</summary>
     public string? CountryIso { get; set; }
@@ -41,12 +46,18 @@ public class AddressConfiguration : IEntityTypeConfiguration<Address>
         builder.Property(a => a.Locality).HasColumnName("locality");
         builder.Property(a => a.Region).HasColumnName("region");
         builder.Property(a => a.PostalCode).HasColumnName("postal_code");
+        builder.Property(a => a.AddressLine1).HasColumnName("address_line_1");
+        builder.Property(a => a.AddressLine2).HasColumnName("address_line_2");
+        builder.Property(a => a.TownOrCity).HasColumnName("town_or_city");
+        builder.Property(a => a.County).HasColumnName("county");
+        builder.Property(a => a.Postcode).HasColumnName("postcode");
         builder.Property(a => a.CountryIso).HasColumnName("country_iso");
         builder.Property(a => a.CreatedAt).HasColumnName("created_at");
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
 
-        // An address is stored once and shared: the nine parts are unique together, a null part
-        // equal to a null part. Liquibase creates the index; declaring it keeps the model true
+        // An address is stored once and shared: the fourteen parts are unique together, a null part
+        // equal to a null part (spec 0007, Decisions). Liquibase creates the index in changelog 1.3;
+        // declaring it keeps the model true
         builder
             .HasIndex(a => new
             {
@@ -59,6 +70,11 @@ public class AddressConfiguration : IEntityTypeConfiguration<Address>
                 a.PostalCode,
                 a.PoBox,
                 a.CountryIso,
+                a.AddressLine1,
+                a.AddressLine2,
+                a.TownOrCity,
+                a.County,
+                a.Postcode,
             })
             .HasDatabaseName("ux_address_values")
             .IsUnique()
