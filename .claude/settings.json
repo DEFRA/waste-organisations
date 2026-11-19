@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "waste-manage-account-ai-toolkit": {
+      "source": {
+        "source": "github",
+        "repo": "DEFRA/waste-manage-account-ai-toolkit"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "wma-ai-toolkit@waste-manage-account-ai-toolkit": true
+  }
+}
