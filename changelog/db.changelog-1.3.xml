@@ -31,7 +31,7 @@
   </changeSet>
 
   <!-- A row written from the GDS fields has none of the old parts; the API validates the premises and UK postcode
-       until changelog 1.4 adds the GDS checks -->
+       until changelog 1.4 adds the GDS checks. The rollback works only while no row holds the GDS fields alone -->
   <changeSet id="1.3-address-drop-part-checks" author="waste-organisations">
     <sql>
       ALTER TABLE address DROP CONSTRAINT ck_address_premises;
