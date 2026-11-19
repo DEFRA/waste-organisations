@@ -72,6 +72,22 @@ public class DatabaseChangelogTests : IntegrationTestBase
         tags.Should().Contain("v1.2.0");
     }
 
+    // The v1.3.0 tag is the last changeset of db.changelog-1.3.xml, so finding it proves the GDS
+    // address columns and the fourteen-column ux_address_values applied in full
+    [Fact]
+    public async Task DatabaseChangelog_ShouldHoldV130Tag()
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        var tags = await context
+            .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        tags.Should().Contain("v1.3.0");
+    }
+
     // The changelog seeds organisation_type with exactly the codes the API publishes, so the
     // contract and the table cannot drift apart
     [Fact]
