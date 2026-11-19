@@ -111,6 +111,7 @@ The gate is the Repo profile's `Gate commands`, run in that order. These notes a
 - NuGet restore will not run successfully in the sandbox without elevated network access. When a restore is required, request escalation instead of repeatedly retrying it in the sandbox.
 - If a build is unexpectedly slow, stop it, run `dotnet build-server shutdown`, and retry.
 - In the sandbox environment, `Api.Tests` may need escalation because the test application can bind local sockets. `Api.IntegrationTests` and `Api.V1.Tests` need escalation because they reach the Docker Compose services.
+- `ReDocPageTests`, in `Api.IntegrationTests`, also needs Google Chrome installed (see the README, "Tests").
 - Always stop the local environment afterwards with the gate's last command, also when a test step fails.
 
 ### Postgres And Liquibase
