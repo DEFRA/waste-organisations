@@ -440,7 +440,8 @@ public class CreateOrganisationRequestValidatorTests
             );
     }
 
-    // Mirrors ck_address_premises; no single field is at fault, so the item itself is the key
+    // Only the API enforces this since changelog 1.3 (spec 0007, Risks); no single field is at
+    // fault, so the item itself is the key
     [Fact]
     public void Validate_AddressWithoutPremises_ShouldReportTheItem()
     {
