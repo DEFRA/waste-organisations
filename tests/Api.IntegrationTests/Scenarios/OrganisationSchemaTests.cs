@@ -440,8 +440,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
     }
 
     // An address is stored once: ux_address_values, over fourteen parts since changelog 1.3, rejects
-    // a second row with the same fourteen parts, and with NULLS NOT DISTINCT an absent part equals an absent part, which a plain unique index
-    // would let through
+    // a second row with the same fourteen parts, and with NULLS NOT DISTINCT an absent part equals an
+    // absent part, which a plain unique index would let through
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
