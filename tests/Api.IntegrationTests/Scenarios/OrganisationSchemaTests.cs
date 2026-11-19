@@ -65,6 +65,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
             actual.Address.Locality.Should().Be(expected.Address.Locality);
             actual.Address.Region.Should().Be(expected.Address.Region);
             actual.Address.PostalCode.Should().Be(expected.Address.PostalCode);
+            actual.Address.AddressLine1.Should().Be(expected.Address.AddressLine1);
+            actual.Address.AddressLine2.Should().Be(expected.Address.AddressLine2);
+            actual.Address.TownOrCity.Should().Be(expected.Address.TownOrCity);
+            actual.Address.County.Should().Be(expected.Address.County);
+            actual.Address.Postcode.Should().Be(expected.Address.Postcode);
             actual.Address.PoBox.Should().Be(expected.Address.PoBox);
             actual.Address.CountryIso.Should().Be(expected.Address.CountryIso);
             actual.Address.CreatedAt.Should().Be(expected.Address.CreatedAt);
@@ -418,13 +423,13 @@ public class OrganisationSchemaTests : IntegrationTestBase
         return address;
     }
 
-    // An address is stored once: ux_address_values rejects a second row with the same nine parts,
-    // and with NULLS NOT DISTINCT an absent part equals an absent part, which a plain unique index
+    // An address is stored once: ux_address_values, over fourteen parts since changelog 1.3, rejects
+    // a second row with the same fourteen parts, and with NULLS NOT DISTINCT an absent part equals an absent part, which a plain unique index
     // would let through
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Address_WithTheSameNineParts_IsRejectedByUniqueIndex(bool withAbsentParts)
+    public async Task Address_WithTheSameFourteenParts_IsRejectedByUniqueIndex(bool withAbsentParts)
     {
         await using var provider = BuildServiceProvider();
         var address = NewAddress("High Street");
@@ -433,6 +438,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
             address.BuildingName = null;
             address.Region = null;
             address.PoBox = null;
+            address.AddressLine2 = null;
+            address.County = null;
         }
 
         await using (var saveScope = provider.CreateAsyncScope())
@@ -450,8 +457,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await ShouldViolateAsync(save, "ux_address_values");
     }
 
-    // Any one part that differs, in value, in presence or only in case, makes another address: the
-    // comparison is exact, so "High Street" and "HIGH STREET" are two rows
+    // Any one of the fourteen parts of changelog 1.3 that differs, in value, in presence or only in
+    // case, makes another address: the comparison is exact, so "High Street" and "HIGH STREET" are two rows
     [Theory]
     [InlineData("subBuildingName")]
     [InlineData("buildingName")]
@@ -463,6 +470,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
     [InlineData("postalCode")]
     [InlineData("poBox")]
     [InlineData("countryIso")]
+    [InlineData("addressLine1")]
+    [InlineData("addressLine2 absent")]
+    [InlineData("townOrCity")]
+    [InlineData("county")]
+    [InlineData("postcode")]
     public async Task Address_DifferingInOnePart_IsAccepted(string part)
     {
         await using var provider = BuildServiceProvider();
@@ -499,6 +511,21 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 break;
             case "countryIso":
                 other.CountryIso = "FR";
+                break;
+            case "addressLine1":
+                other.AddressLine1 = "Unit 5, Mill House";
+                break;
+            case "addressLine2 absent":
+                other.AddressLine2 = null;
+                break;
+            case "townOrCity":
+                other.TownOrCity = "Testham";
+                break;
+            case "county":
+                other.County = "Otherfordshire";
+                break;
+            case "postcode":
+                other.Postcode = "AB1 2CE";
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(part), part, null);
@@ -631,6 +658,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
             PostalCode = "AB1 2CD",
             PoBox = "PO Box 99",
             CountryIso = countryIso,
+            AddressLine1 = "Unit 4, Mill House",
+            AddressLine2 = "12A High Street",
+            TownOrCity = "Testville",
+            County = "Testshire",
+            Postcode = "AB1 2CD",
         };
 
     private static Address CopyOf(Address address) =>
@@ -646,6 +678,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
             PostalCode = address.PostalCode,
             PoBox = address.PoBox,
             CountryIso = address.CountryIso,
+            AddressLine1 = address.AddressLine1,
+            AddressLine2 = address.AddressLine2,
+            TownOrCity = address.TownOrCity,
+            County = address.County,
+            Postcode = address.Postcode,
         };
 
     private static string Unique(string value) => $"{value} {Guid.NewGuid():N}";
