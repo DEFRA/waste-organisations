@@ -365,8 +365,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await ShouldViolateAsync(save, "ck_address_country_iso");
     }
 
-    // Real addresses without a building number, a street or a postcode are accepted: only a UK address
-    // needs a postcode, and any one of number, building name, unit or PO box identifies the premises
+    // Real addresses without a building number, a street or a postcode are accepted: changelog 1.3
+    // dropped the premises and UK postcode checks, and the API validates both
     [Theory]
     [InlineData("named building only")]
     [InlineData("PO box")]
@@ -381,25 +381,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await save.Should().NotThrowAsync();
-    }
-
-    // ck_address_uk_postal_code rejects a UK address with a missing or blank postcode, and
-    // ck_address_premises rejects an address with nothing (or only blanks) to identify the premises
-    [Theory]
-    [InlineData("UK without postcode", "ck_address_uk_postal_code")]
-    [InlineData("UK with blank postcode", "ck_address_uk_postal_code")]
-    [InlineData("no premises", "ck_address_premises")]
-    [InlineData("blank premises", "ck_address_premises")]
-    public async Task Address_WithoutRequiredParts_IsRejectedByCheckConstraint(string kind, string constraintName)
-    {
-        await using var provider = BuildServiceProvider();
-
-        await using var scope = provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        context.Addresses.Add(AddressOfKind(kind));
-
-        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await ShouldViolateAsync(save, constraintName);
     }
 
     // A unique locality keeps the accepted cases clear of ux_address_values on a second run
@@ -430,37 +411,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 Street = "Harbour Road",
                 Locality = "Hong Kong",
                 CountryIso = "HK",
-            },
-            "UK without postcode" => new Address
-            {
-                Id = Guid.CreateVersion7(),
-                BuildingNumber = "1",
-                Street = "High Street",
-                CountryIso = "GB",
-            },
-            "UK with blank postcode" => new Address
-            {
-                Id = Guid.CreateVersion7(),
-                BuildingNumber = "1",
-                Street = "High Street",
-                PostalCode = "  ",
-                CountryIso = "GB",
-            },
-            "no premises" => new Address
-            {
-                Id = Guid.CreateVersion7(),
-                Street = "High Street",
-                PostalCode = "AB1 2CD",
-                CountryIso = "GB",
-            },
-            "blank premises" => new Address
-            {
-                Id = Guid.CreateVersion7(),
-                BuildingNumber = " ",
-                BuildingName = "",
-                Street = "High Street",
-                PostalCode = "AB1 2CD",
-                CountryIso = "GB",
             },
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
