@@ -376,6 +376,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
     [InlineData("named building only")]
     [InlineData("PO box")]
     [InlineData("overseas without postcode")]
+    [InlineData("no premises")]
+    [InlineData("UK without postcode")]
     public async Task Address_WithoutBuildingNumberOrPostcode_IsAccepted(string kind)
     {
         await using var provider = BuildServiceProvider();
@@ -416,6 +418,20 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 Street = "Harbour Road",
                 Locality = "Hong Kong",
                 CountryIso = "HK",
+            },
+            "no premises" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                Street = "High Street",
+                PostalCode = "AB1 2CD",
+                CountryIso = "GB",
+            },
+            "UK without postcode" => new Address
+            {
+                Id = Guid.CreateVersion7(),
+                BuildingNumber = "1",
+                Street = "High Street",
+                CountryIso = "GB",
             },
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
