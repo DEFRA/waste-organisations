@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <!-- Removes what the old code stored between the deployments of slices 1 and 2 (spec 0007, Risks). The links are
+       the only way to find those organisations, so their ids are collected before the links are deleted -->
+  <changeSet id="1.4-delete-nine-part-rows" author="waste-organisations">
+    <sql>
+      CREATE TEMPORARY TABLE nine_part_organisation ON COMMIT DROP AS
+        SELECT DISTINCT organisation_address.organisation_id
+        FROM organisation_address
+        JOIN address ON address.id = organisation_address.address_id
+        WHERE address.address_line_1 IS NULL;
+      DELETE FROM organisation_address WHERE organisation_id IN (SELECT organisation_id FROM nine_part_organisation);
+      DELETE FROM organisation WHERE id IN (SELECT organisation_id FROM nine_part_organisation);
+      DELETE FROM address WHERE address_line_1 IS NULL;
+    </sql>
+    <rollback />
+  </changeSet>
+</databaseChangeLog>
