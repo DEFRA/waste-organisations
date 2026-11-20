@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <!-- v2 addresses are reset, not migrated: no environment holds v2 data to keep (spec 0007, Decisions). The order
+       follows the foreign keys, which restrict; the reference tables are untouched -->
+  <changeSet id="1.3-reset-organisation-rows" author="waste-organisations">
+    <delete tableName="organisation_address" />
+    <delete tableName="organisation" />
+    <delete tableName="address" />
+    <rollback />
+  </changeSet>
+
+  <changeSet id="1.3-address-add-gds-columns" author="waste-organisations">
+    <addColumn tableName="address">
+      <column name="address_line_1" type="text" />
+      <column name="address_line_2" type="text" />
+      <column name="town_or_city" type="text" />
+      <column name="county" type="text" />
+      <column name="postcode" type="text" />
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="address" columnName="address_line_1" />
+      <dropColumn tableName="address" columnName="address_line_2" />
+      <dropColumn tableName="address" columnName="town_or_city" />
+      <dropColumn tableName="address" columnName="county" />
+      <dropColumn tableName="address" columnName="postcode" />
+    </rollback>
+  </changeSet>
+
+  <!-- A row written from the GDS fields has none of the old parts; the API validates the premises and UK postcode
+       until changelog 1.4 adds the GDS checks. The rollback works only while no row holds the GDS fields alone -->
+  <changeSet id="1.3-address-drop-part-checks" author="waste-organisations">
+    <sql>
+      ALTER TABLE address DROP CONSTRAINT ck_address_premises;
+      ALTER TABLE address DROP CONSTRAINT ck_address_uk_postal_code;
+    </sql>
+    <rollback>
+      <sql>
+        ALTER TABLE address ADD CONSTRAINT ck_address_premises CHECK (num_nonnulls(NULLIF(btrim(building_number), ''), NULLIF(btrim(building_name), ''), NULLIF(btrim(sub_building_name), ''), NULLIF(btrim(po_box), '')) &gt; 0);
+        ALTER TABLE address ADD CONSTRAINT ck_address_uk_postal_code CHECK (country_iso IS DISTINCT FROM 'GB' OR COALESCE(btrim(postal_code), '') &lt;&gt; '');
+      </sql>
+    </rollback>
+  </changeSet>
+
+  <!-- The index keeps its name, so the create's retry, which reads it, works with rows written either way -->
+  <changeSet id="1.3-ux-address-values" author="waste-organisations">
+    <sql>
+      DROP INDEX ux_address_values;
+      CREATE UNIQUE INDEX ux_address_values ON address (sub_building_name, building_name, building_number, street, locality, region, postal_code, po_box, country_iso, address_line_1, address_line_2, town_or_city, county, postcode) NULLS NOT DISTINCT;
+    </sql>
+    <rollback>
+      DROP INDEX ux_address_values;
+      CREATE UNIQUE INDEX ux_address_values ON address (sub_building_name, building_name, building_number, street, locality, region, postal_code, po_box, country_iso) NULLS NOT DISTINCT;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.3-tag-v1.3.0" author="waste-organisations">
+    <tagDatabase tag="v1.3.0" />
+  </changeSet>
+</databaseChangeLog>
