@@ -38,20 +38,12 @@ public class PostgresDbContextModelTests
                 "address",
                 [
                     "id",
-                    "sub_building_name",
-                    "building_name",
-                    "building_number",
-                    "street",
-                    "locality",
-                    "region",
-                    "postal_code",
-                    "po_box",
-                    "country_iso",
                     "address_line_1",
                     "address_line_2",
                     "town_or_city",
                     "county",
                     "postcode",
+                    "country_iso",
                     "created_at",
                     "updated_at",
                 ]
@@ -107,11 +99,11 @@ public class PostgresDbContextModelTests
         foreignKeys.Should().AllSatisfy(fk => fk.DeleteBehavior.Should().Be(DeleteBehavior.Restrict));
     }
 
-    // Mirrors ux_address_values from db.changelog-1.3.xml: an address is stored once and shared,
-    // so the model must know the fourteen parts are unique with nulls not distinct. NULLS NOT DISTINCT
+    // Mirrors ux_address_values from db.changelog-1.4.xml: an address is stored once and shared,
+    // so the model must know the six parts are unique with nulls not distinct. NULLS NOT DISTINCT
     // is a design-time annotation, absent from the runtime model, so the design-time model is read
     [Fact]
-    public void Address_ShouldHaveUniqueIndexOverTheFourteenParts()
+    public void Address_ShouldHaveUniqueIndexOverTheSixParts()
     {
         using var context = CreateContext();
         var entityType = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(Address))!;
@@ -123,22 +115,7 @@ public class PostgresDbContextModelTests
         index
             .Properties.Select(p => p.GetColumnName())
             .Should()
-            .Equal(
-                "sub_building_name",
-                "building_name",
-                "building_number",
-                "street",
-                "locality",
-                "region",
-                "postal_code",
-                "po_box",
-                "country_iso",
-                "address_line_1",
-                "address_line_2",
-                "town_or_city",
-                "county",
-                "postcode"
-            );
+            .Equal("address_line_1", "address_line_2", "town_or_city", "county", "postcode", "country_iso");
     }
 
     [Fact]
