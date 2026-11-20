@@ -48,6 +48,8 @@ The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) ch
 
 `db.changelog-1.3.xml` resets the v2 organisation rows (it deletes every `organisation_address`, `organisation` and `address` row) and adds the Government Digital Service (GDS) address columns `address_line_1`, `address_line_2`, `town_or_city`, `county` and `postcode` to `address`.
 
+`db.changelog-1.4.xml` deletes the organisations whose address rows still hold the nine old parts (no `address_line_1`), with their links and those address rows, drops the eight old address columns, rebuilds `ux_address_values` over the six GDS columns, and adds three checks: `address_line_1` and `town_or_city` are not blank, and a `GB` address has a `postcode`.
+
 To change the schema:
 
 - Add a new `changelog/db.changelog-1.N.xml` file (the next number after the latest one) containing the new changesets.
