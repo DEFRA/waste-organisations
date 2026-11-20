@@ -137,10 +137,10 @@ public class CreateOrganisationExtensionsTests
     [Fact]
     public void ToEntity_WithNonUkPostcode_ShouldKeepPunctuationAndUpperCase()
     {
-        var organisation = Request(Item([AddressType.Registered]) with { CountryIso = "US", Postcode = " 12345-6789 " })
+        var organisation = Request(Item([AddressType.Registered]) with { CountryIso = "IE", Postcode = " d02  x-285 " })
             .ToEntity(OrganisationTypeId, UsageTypeIds);
 
-        organisation.Addresses[0].Address.Postcode.Should().Be("12345-6789");
+        organisation.Addresses[0].Address.Postcode.Should().Be("D02 X-285");
     }
 
     [Fact]
@@ -154,7 +154,7 @@ public class CreateOrganisationExtensionsTests
                 AddressLine2 = " Mill Lane ",
                 TownOrCity = " Testville ",
                 County = " Testshire ",
-                Postcode = " ab1\t 2cd ",
+                Postcode = " ab1-2cd ",
                 CountryIso = " gb ",
             }
         ) with

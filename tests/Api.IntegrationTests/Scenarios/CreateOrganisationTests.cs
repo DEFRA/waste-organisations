@@ -251,7 +251,7 @@ public class CreateOrganisationTests : IntegrationTestBase
                         addressLine1 = $"  12 High Street {suffix} ",
                         townOrCity = " Testville ",
                         county = "   ",
-                        postcode = " ab1   2cd ",
+                        postcode = " ab1-2cd ",
                         countryIso = " gb ",
                     },
                 },
