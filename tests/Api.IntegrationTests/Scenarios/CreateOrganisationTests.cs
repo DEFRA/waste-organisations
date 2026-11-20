@@ -543,6 +543,8 @@ public class CreateOrganisationTests : IntegrationTestBase
     [InlineData("other postcode")]
     [InlineData("addressLine2 added")]
     [InlineData("county added")]
+    [InlineData("other townOrCity")]
+    [InlineData("other countryIso")]
     public async Task AddressDifferingInOnePart_ShouldBeStoredAsSecondRow(string difference)
     {
         var suffix = NewSuffix();
@@ -555,6 +557,12 @@ public class CreateOrganisationTests : IntegrationTestBase
                 addressLine2: "Mill House"
             ),
             "county added" => VariantAddress(addressLine1: $"12 High Street {suffix}", county: "Testshire"),
+            "other townOrCity" => VariantAddress(addressLine1: $"12 High Street {suffix}", townOrCity: "Otherville"),
+            "other countryIso" => VariantAddress(
+                addressLine1: $"12 High Street {suffix}",
+                postcode: "AB1 2CD",
+                countryIso: "IE"
+            ),
             _ => throw new ArgumentOutOfRangeException(nameof(difference), difference, null),
         };
 
@@ -591,17 +599,19 @@ public class CreateOrganisationTests : IntegrationTestBase
         string addressLine1,
         string? addressLine2 = null,
         string? county = null,
-        string postcode = "AB1 2CD"
+        string postcode = "AB1 2CD",
+        string townOrCity = "Testville",
+        string countryIso = "GB"
     ) =>
         new
         {
             addressTypes = new[] { "REGISTERED" },
             addressLine1,
             addressLine2,
-            townOrCity = "Testville",
+            townOrCity,
             county,
             postcode,
-            countryIso = "GB",
+            countryIso,
         };
 
     private static object Ltd(params object[] addresses) =>

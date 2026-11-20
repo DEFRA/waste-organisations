@@ -113,6 +113,33 @@ public class CreateOrganisationExtensionsTests
         addresses.Select(a => a.AddressLine1).Should().Equal("12A High Street", "12A HIGH STREET");
     }
 
+    [Theory]
+    [InlineData(nameof(AddressRequest.AddressLine1))]
+    [InlineData(nameof(AddressRequest.AddressLine2))]
+    [InlineData(nameof(AddressRequest.TownOrCity))]
+    [InlineData(nameof(AddressRequest.County))]
+    [InlineData(nameof(AddressRequest.Postcode))]
+    [InlineData(nameof(AddressRequest.CountryIso))]
+    public void ToEntity_WithItemsDifferingInOnePart_ShouldGiveTwoAddresses(string part)
+    {
+        var first = Item([AddressType.Registered]);
+        var second = Item([AddressType.Correspondence]);
+        second = part switch
+        {
+            nameof(AddressRequest.AddressLine1) => second with { AddressLine1 = "12 Harbour Road" },
+            nameof(AddressRequest.AddressLine2) => second with { AddressLine2 = "Mill Lane" },
+            nameof(AddressRequest.TownOrCity) => second with { TownOrCity = "Otherville" },
+            nameof(AddressRequest.County) => second with { County = "Testshire" },
+            nameof(AddressRequest.Postcode) => second with { Postcode = "AB1 2CE" },
+            nameof(AddressRequest.CountryIso) => second with { CountryIso = "IE" },
+            _ => throw new ArgumentOutOfRangeException(nameof(part), part, null),
+        };
+
+        var organisation = Request(first, second).ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.Addresses.Select(link => link.Address).Distinct().Should().HaveCount(2);
+    }
+
     // The postcode alone is normalised (spec 0007, Postcodes), so it merges where the other parts
     // would not
     [Fact]
