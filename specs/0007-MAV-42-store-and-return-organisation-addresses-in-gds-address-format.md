@@ -118,7 +118,7 @@ Two new files, each included at the end of `changelog/db.changelog.xml`. Check c
 
 | Changeset | Change | Rollback |
 |---|---|---|
-| `1.4-delete-nine-part-rows` | Delete every organisation linked to an `address` row whose `address_line_1` is null, with all its links, then those `address` rows: anything the old code stored between the deployment of slice 1 and of slice 2 | None |
+| `1.4-delete-nine-part-rows` | Delete every organisation linked to an `address` row whose `address_line_1` is null, with all its links, then those `address` rows: anything the old code stored between the deployment of slice 1 and of slice 2. The links are the only way to find those organisations, so their ids are first collected into a temporary table (`ON COMMIT DROP`) and the three deletes read it (planning decision, 20 November 2026) | None |
 | `1.4-address-drop-part-columns` | Drop `ux_address_values`, then `dropColumn` `sub_building_name`, `building_name`, `building_number`, `street`, `po_box`, `locality`, `region`, `postal_code`. The index is dropped explicitly rather than left to Postgres's automatic drop with the columns, so the rollback is deterministic | Add the eight columns, `text`, empty, then create the 1.3 index over the fourteen columns |
 | `1.4-ux-address-values` | Create `ux_address_values` over `address_line_1`, `address_line_2`, `town_or_city`, `county`, `postcode`, `country_iso`, `NULLS NOT DISTINCT` | Drop it |
 | `1.4-address-gds-checks` | `ck_address_address_line_1` and `ck_address_town_or_city`: the column is not null and not blank. `ck_address_uk_postcode`: `country_iso IS DISTINCT FROM 'GB' OR COALESCE(btrim(postcode), '') <> ''` | Drop the three checks |
@@ -167,6 +167,7 @@ Two new files, each included at the end of `changelog/db.changelog.xml`. Check c
 | `Api.IntegrationTests` (`Scenarios/CreateOrganisationValidationTests.cs`) | 2 | Scenarios `StreetMissing`, `LocalityMissing`, `GbWithoutPostalCode` and `GbWithBlankPostalCode` become `AddressLine1Missing`, `TownOrCityMissing`, `GbWithoutPostcode` and `GbWithBlankPostcode`; `NoPremises` is removed; new `GbWithMalformedPostcode` and `OldFormatAddress` (only the nine parts sent, with `countryIso` `GB`: `400` naming `addressLine1`, `townOrCity` and, because the item is `GB` without a `postcode`, `postcode`); `SeveralFailures` re-verified |
 | `Api.IntegrationTests` (`Scenarios/GetOrganisationDetailsTests.cs`) | 2 | The addresses of the `200` equal those of the `201`, in the GDS fields, with no `addressLine` |
 | `Api.IntegrationTests` (`Scenarios/OrganisationSchemaTests.cs`) | 3 | The eight old columns are gone; `ck_address_address_line_1`, `ck_address_town_or_city` and `ck_address_uk_postcode` each reject their case; `ux_address_values` rejects a second row with the same six values, including the same nulls, and accepts one that differs in one |
+| `Api.IntegrationTests` (`Scenarios/CreateOrganisationTests.cs`) | 3 | `ServerSetAndUnknownMembers_ShouldBeIgnored` loses its two assertions that the old `Street` and `PostalCode` columns are null, because the properties are gone; the rest of the slice 2 tests pass unchanged (planning decision, 20 November 2026) |
 | `Api.V1.Tests` | all | No test or snapshot changes; every test passes as it is (Jira Scenario 10) |
 
 ### Work breakdown
