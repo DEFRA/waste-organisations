@@ -15,7 +15,7 @@ public class OrganisationDetailsExtensionsTests
     [Fact]
     public void ToDetailsResponse_ShouldHoldTheOrganisationAsTheOneItem()
     {
-        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        var organisation = StoredOrganisation((StoredAddress("12A High Street"), "REGISTERED"));
         organisation.TradingName = "Acme";
 
         var response = organisation.ToDetailsResponse();
@@ -30,19 +30,17 @@ public class OrganisationDetailsExtensionsTests
         item.ValidTo.Should().BeNull();
         var address = item.Addresses.Should().ContainSingle().Subject;
         address.AddressTypes.Should().Equal(AddressType.Registered);
-        address.AddressLine.Should().Be("12A High Street, Testville, AB1 2CD");
-        address.BuildingNumber.Should().Be("12A");
-        address.Street.Should().Be("High Street");
-        address.Locality.Should().Be("Testville");
-        address.PostalCode.Should().Be("AB1 2CD");
+        address.AddressLine1.Should().Be("12A High Street");
+        address.TownOrCity.Should().Be("Testville");
+        address.Postcode.Should().Be("AB1 2CD");
         address.CountryIso.Should().Be("GB");
     }
 
     [Fact]
     public void ToDetailsResponse_WithTwoAddresses_ShouldGiveTwoItems()
     {
-        var shared = StoredAddress("12A", "High Street");
-        var other = StoredAddress("12", "Harbour Road");
+        var shared = StoredAddress("12A High Street");
+        var other = StoredAddress("12 Harbour Road");
         var organisation = StoredOrganisation((shared, "REGISTERED"), (other, "CORRESPONDENCE"), (shared, "PRINCIPAL"));
 
         var addresses = organisation.ToDetailsResponse().Organisations[0].Addresses;
@@ -50,12 +48,12 @@ public class OrganisationDetailsExtensionsTests
         addresses.Should().HaveCount(2);
         addresses
             .Should()
-            .ContainSingle(address => address.Street == "High Street")
+            .ContainSingle(address => address.AddressLine1 == "12A High Street")
             .Which.AddressTypes.Should()
             .BeEquivalentTo([AddressType.Registered, AddressType.Principal]);
         addresses
             .Should()
-            .ContainSingle(address => address.Street == "Harbour Road")
+            .ContainSingle(address => address.AddressLine1 == "12 Harbour Road")
             .Which.AddressTypes.Should()
             .Equal(AddressType.Correspondence);
     }
@@ -71,8 +69,8 @@ public class OrganisationDetailsExtensionsTests
     [Fact]
     public void ToDetailsResponse_WithKindsOfOneAddressInSeparateInstances_ShouldGiveOneItem()
     {
-        var registered = StoredAddress("12A", "High Street");
-        var principal = StoredAddress("12A", "High Street");
+        var registered = StoredAddress("12A High Street");
+        var principal = StoredAddress("12A High Street");
         principal.Id = registered.Id;
         var organisation = StoredOrganisation((registered, "REGISTERED"), (principal, "PRINCIPAL"));
         organisation.Addresses[0].ValidFrom = new DateTime(2026, 11, 1, 9, 0, 0, DateTimeKind.Utc);
@@ -93,9 +91,8 @@ public class OrganisationDetailsExtensionsTests
         var address = new Address
         {
             Id = Guid.CreateVersion7(),
-            BuildingNumber = "12",
-            Street = "Harbour Road",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = "12 Harbour Road",
+            Postcode = "AB1 2CD",
         };
         var organisation = StoredOrganisation((address, "PRINCIPAL"));
         organisation.OrganisationType = null;
@@ -110,21 +107,25 @@ public class OrganisationDetailsExtensionsTests
         body.GetProperty("name").GetString().Should().Be("Acme Waste Ltd");
 
         var item = body.GetProperty("addresses")[0];
-        foreach (var absent in new[] { "subBuildingName", "buildingName", "poBox", "locality", "region", "countryIso" })
+        foreach (var absent in new[] { "addressLine", "addressLine2", "townOrCity", "county", "countryIso" })
             item.TryGetProperty(absent, out _).Should().BeFalse(absent);
-        item.GetProperty("street").GetString().Should().Be("Harbour Road");
+        item.GetProperty("addressLine1").GetString().Should().Be("12 Harbour Road");
+        item.GetProperty("postcode").GetString().Should().Be("AB1 2CD");
         item.GetProperty("addressTypes")[0].GetString().Should().Be("PRINCIPAL");
     }
 
     [Fact]
-    public void ToDetailsResponse_WithAPoBoxOnlyAddress_ShouldGiveThePoBoxAndOmitNullMembers()
+    public void ToDetailsResponse_WithAddressLine2AndCounty_ShouldGiveThemAndOmitNullMembers()
     {
         var address = new Address
         {
             Id = Guid.CreateVersion7(),
-            PoBox = "PO Box 99",
-            Locality = "Testville",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = "Unit 4",
+            AddressLine2 = "Mill Lane",
+            TownOrCity = "Testville",
+            County = "Testshire",
+            Postcode = "AB1 2CD",
+            CountryIso = "GB",
         };
         var organisation = StoredOrganisation((address, "CORRESPONDENCE"));
         organisation.Name = null;
@@ -137,15 +138,15 @@ public class OrganisationDetailsExtensionsTests
         body.TryGetProperty("companiesHouseNumber", out _).Should().BeFalse();
 
         var item = body.GetProperty("addresses")[0];
-        item.GetProperty("poBox").GetString().Should().Be("PO Box 99");
-        item.TryGetProperty("buildingNumber", out _).Should().BeFalse();
-        item.TryGetProperty("street", out _).Should().BeFalse();
+        item.GetProperty("addressLine2").GetString().Should().Be("Mill Lane");
+        item.GetProperty("county").GetString().Should().Be("Testshire");
+        item.TryGetProperty("addressLine", out _).Should().BeFalse();
     }
 
     [Fact]
     public void ToDetailsResponse_WithAnUnspecifiedValidTo_ShouldGiveAUtcOffset()
     {
-        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        var organisation = StoredOrganisation((StoredAddress("12A High Street"), "REGISTERED"));
         organisation.ValidTo = new DateTime(2026, 7, 2, 10, 15, 30, DateTimeKind.Unspecified);
 
         var validTo = organisation.ToDetailsResponse().Organisations[0].ValidTo;
@@ -157,8 +158,8 @@ public class OrganisationDetailsExtensionsTests
     [Fact]
     public void ToDetailsResponse_WhenSerialised_ShouldCarryNoOrganisationOrAddressDates()
     {
-        var registered = StoredAddress("12A", "High Street");
-        var correspondence = StoredAddress("12", "Harbour Road");
+        var registered = StoredAddress("12A High Street");
+        var correspondence = StoredAddress("12 Harbour Road");
         var organisation = StoredOrganisation((registered, "REGISTERED"), (correspondence, "CORRESPONDENCE"));
         var stamp = new DateTime(2026, 11, 2, 10, 15, 30, DateTimeKind.Utc);
         organisation.ValidFrom = stamp;
@@ -187,14 +188,13 @@ public class OrganisationDetailsExtensionsTests
         }
     }
 
-    private static Address StoredAddress(string buildingNumber, string street) =>
+    private static Address StoredAddress(string addressLine1) =>
         new()
         {
             Id = Guid.CreateVersion7(),
-            BuildingNumber = buildingNumber,
-            Street = street,
-            Locality = "Testville",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = addressLine1,
+            TownOrCity = "Testville",
+            Postcode = "AB1 2CD",
             CountryIso = "GB",
         };
 
