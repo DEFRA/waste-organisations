@@ -80,7 +80,7 @@ The check is of the format only. A well-formed postcode that does not exist is a
 
 For any other `countryIso`, `postcode` is optional and is not checked against a format; it is upper-cased with each run of whitespace inside it made one space, as `postalCode` is today. When `countryIso` is missing or invalid, only that error is reported and the postcode is not checked.
 
-The rule lives in one place, `src/Api/Dtos/Validation/UkPostcode.cs` (`static bool TryNormalise(string? value, out string? postcode)`), used by the validation rule on `AddressRequest` and by the mapping.
+The rule lives in one place, `src/Api/Dtos/Validation/UkPostcode.cs` (`static bool TryNormalise(string? value, out string? postcode)`), used by the validation rule on `AddressRequest` and by the mapping. The same class exposes `static bool IsBlank(string? value)`, true when nothing is left after step 1, so the validation rule can tell the "required" case from the "full UK postcode" case (planning decision, 20 November 2026).
 
 ### Address equality
 
@@ -147,7 +147,7 @@ Two new files, each included at the end of `changelog/db.changelog.xml`. Check c
 
 ### OpenAPI
 
-`/openapi/v2.json`: the `AddressRequest` and `AddressResponse` schemas carry the GDS members, `addressLine1`, `townOrCity`, `countryIso` and `addressTypes` required; the `postcode` description states the rules of Postcodes; `addressLine` and the old parts are gone. `OpenApiTests.OpenApiV2_VerifyAsExpected` is re-verified in slice 2 after its diff is read. `/openapi/v1.json` does not change: `OpenApi_VerifyAsExpected` and X-CONTRACT-01 pass with no diff.
+`/openapi/v2.json`: the `AddressRequest` and `AddressResponse` schemas carry the GDS members; in `AddressRequest`, `addressLine1`, `townOrCity`, `countryIso` and `addressTypes` are required; in `AddressResponse`, only `addressTypes` is required and every GDS member is nullable, like `countryIso` today, because until changelog 1.4 adds its checks a row written by the old code has no `address_line_1` (Risks) and is returned with its types and country only (planning decision, 20 November 2026); the `postcode` description states the rules of Postcodes; `addressLine` and the old parts are gone. `OpenApiTests.OpenApiV2_VerifyAsExpected` is re-verified in slice 2 after its diff is read. `/openapi/v1.json` does not change: `OpenApi_VerifyAsExpected` and X-CONTRACT-01 pass with no diff.
 
 ### Tests
 
@@ -164,7 +164,7 @@ Two new files, each included at the end of `changelog/db.changelog.xml`. Check c
 | `Api.Tests` (`Endpoints/Organisations/PostTests.cs`, `GetDetailsTests.cs`, `Endpoints/OpenApi`) | 2 | Payloads and snapshots in the GDS format; `WhenStreetAndTradingNameMissing_ShouldReportBoth` and `WhenSecondAddressIsUkWithoutPostalCode_ShouldBeValidationProblem` renamed after `addressLine1` and `postcode`; the v1 OpenAPI snapshot unchanged |
 | `Api.Tests` (`Services/PostgresOrganisationServiceTests.cs`) | 2 | The look-up and the retry with the new properties |
 | `Api.IntegrationTests` (`Scenarios/CreateOrganisationTests.cs`, `Services/PostgresOrganisationServiceTests.cs`) | 2 | Full payload: `201`, body snapshot, and the `address` rows hold the GDS columns with the eight old columns null. No `addressLine2` and no `county`: `201`, both absent from the body and null in the row. Postcode sent as `ab1-2cd`: returned and stored as `AB1 2CD`. Same address in two items, one with the postcode spelt differently: one row, one item with both kinds. A second organisation with a stored address: still one row. An address that differs in one field, or only in case: a second row. Old parts sent beside the GDS fields: `201`, ignored. A non-UK address without postcode: `201` |
-| `Api.IntegrationTests` (`Scenarios/CreateOrganisationValidationTests.cs`) | 2 | Scenarios `StreetMissing`, `LocalityMissing`, `GbWithoutPostalCode` and `GbWithBlankPostalCode` become `AddressLine1Missing`, `TownOrCityMissing`, `GbWithoutPostcode` and `GbWithBlankPostcode`; `NoPremises` is removed; new `GbWithMalformedPostcode` and `OldFormatAddress` (only the nine parts sent: `400` naming `addressLine1` and `townOrCity`); `SeveralFailures` re-verified |
+| `Api.IntegrationTests` (`Scenarios/CreateOrganisationValidationTests.cs`) | 2 | Scenarios `StreetMissing`, `LocalityMissing`, `GbWithoutPostalCode` and `GbWithBlankPostalCode` become `AddressLine1Missing`, `TownOrCityMissing`, `GbWithoutPostcode` and `GbWithBlankPostcode`; `NoPremises` is removed; new `GbWithMalformedPostcode` and `OldFormatAddress` (only the nine parts sent, with `countryIso` `GB`: `400` naming `addressLine1`, `townOrCity` and, because the item is `GB` without a `postcode`, `postcode`); `SeveralFailures` re-verified |
 | `Api.IntegrationTests` (`Scenarios/GetOrganisationDetailsTests.cs`) | 2 | The addresses of the `200` equal those of the `201`, in the GDS fields, with no `addressLine` |
 | `Api.IntegrationTests` (`Scenarios/OrganisationSchemaTests.cs`) | 3 | The eight old columns are gone; `ck_address_address_line_1`, `ck_address_town_or_city` and `ck_address_uk_postcode` each reject their case; `ux_address_values` rejects a second row with the same six values, including the same nulls, and accepts one that differs in one |
 | `Api.V1.Tests` | all | No test or snapshot changes; every test passes as it is (Jira Scenario 10) |
