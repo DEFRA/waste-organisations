@@ -142,13 +142,11 @@ public class GetDetailsTests(ApiWebApplicationFactory factory, ITestOutputHelper
         var millHouse = new Address
         {
             Id = Guid.NewGuid(),
-            SubBuildingName = "Unit 4",
-            BuildingName = "Mill House",
-            BuildingNumber = "12A",
-            Street = "High Street",
-            Locality = "Testville",
-            Region = "Testshire",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = "Unit 4, Mill House",
+            AddressLine2 = "12A High Street",
+            TownOrCity = "Testville",
+            County = "Testshire",
+            Postcode = "AB1 2CD",
             CountryIso = "GB",
             CreatedAt = s_created,
             UpdatedAt = s_created,
@@ -156,9 +154,8 @@ public class GetDetailsTests(ApiWebApplicationFactory factory, ITestOutputHelper
         var harbourRoad = new Address
         {
             Id = Guid.NewGuid(),
-            BuildingNumber = "12",
-            Street = "Harbour Road",
-            Locality = "Hong Kong",
+            AddressLine1 = "12 Harbour Road",
+            TownOrCity = "Hong Kong",
             CountryIso = "HK",
             CreatedAt = s_created,
             UpdatedAt = s_created,
