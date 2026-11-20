@@ -364,6 +364,94 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await ShouldViolateAsync(save, "ck_address_country_iso");
     }
 
+    // addressLine1 is required: ck_address_address_line_1 rejects a null, empty or blank value
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Address_WithoutAddressLine1_IsRejectedByCheckConstraint(string? addressLine1)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var address = NewAddress("High Street");
+        address.AddressLine1 = addressLine1;
+        context.Addresses.Add(address);
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ck_address_address_line_1");
+    }
+
+    // townOrCity is required: ck_address_town_or_city rejects a null, empty or blank value
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Address_WithoutTownOrCity_IsRejectedByCheckConstraint(string? townOrCity)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var address = NewAddress("High Street");
+        address.TownOrCity = townOrCity;
+        context.Addresses.Add(address);
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ck_address_town_or_city");
+    }
+
+    // A GB address needs a postcode: ck_address_uk_postcode rejects a null, empty or blank value
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Address_GbWithoutPostcode_IsRejectedByCheckConstraint(string? postcode)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var address = NewAddress("High Street");
+        address.Postcode = postcode;
+        context.Addresses.Add(address);
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ck_address_uk_postcode");
+    }
+
+    // Changelog 1.4 drops the eight old address parts: the address table holds the six GDS columns only
+    [Fact]
+    public async Task Address_Table_HasOnlyTheGdsColumns()
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        var columns = await context
+            .Database.SqlQueryRaw<string>(
+                "SELECT column_name AS \"Value\" FROM information_schema.columns WHERE table_name = 'address'"
+            )
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        columns
+            .Should()
+            .NotContain([
+                "sub_building_name",
+                "building_name",
+                "building_number",
+                "street",
+                "po_box",
+                "locality",
+                "region",
+                "postal_code",
+            ]);
+        columns
+            .Should()
+            .Contain(["address_line_1", "address_line_2", "town_or_city", "county", "postcode", "country_iso"]);
+    }
+
     // Addresses without the optional parts are accepted: an overseas address needs no postcode,
     // and addressLine2 and county are optional. The changelog 1.4 checks are tested apart
     [Theory]
