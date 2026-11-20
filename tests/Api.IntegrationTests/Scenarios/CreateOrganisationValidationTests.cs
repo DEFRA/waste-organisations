@@ -104,13 +104,13 @@ public class CreateOrganisationValidationTests : IntegrationTestBase
             () => WithSecondAddress(Address("REGISTERED", "CORRESPONDENCE")),
             ["organisation.addresses[1].addressTypes"]
         ),
-        ["StreetMissing"] = new(
-            () => WithSecondAddress(Without(Address("CORRESPONDENCE"), "street")),
-            ["organisation.addresses[1].street"]
+        ["AddressLine1Missing"] = new(
+            () => WithSecondAddress(Without(Address("CORRESPONDENCE"), "addressLine1")),
+            ["organisation.addresses[1].addressLine1"]
         ),
-        ["LocalityMissing"] = new(
-            () => WithSecondAddress(Without(Address("CORRESPONDENCE"), "locality")),
-            ["organisation.addresses[1].locality"]
+        ["TownOrCityMissing"] = new(
+            () => WithSecondAddress(Without(Address("CORRESPONDENCE"), "townOrCity")),
+            ["organisation.addresses[1].townOrCity"]
         ),
         ["CountryIsoMissing"] = new(
             () => WithSecondAddress(Without(Address("CORRESPONDENCE"), "countryIso")),
@@ -120,18 +120,37 @@ public class CreateOrganisationValidationTests : IntegrationTestBase
             () => WithSecondAddress(Change(Address("CORRESPONDENCE"), "countryIso", "GBR")),
             ["organisation.addresses[1].countryIso"]
         ),
-        ["GbWithoutPostalCode"] = new(
-            () => WithSecondAddress(Without(Address("CORRESPONDENCE"), "postalCode")),
-            ["organisation.addresses[1].postalCode"]
+        ["GbWithoutPostcode"] = new(
+            () => WithSecondAddress(Without(Address("CORRESPONDENCE"), "postcode")),
+            ["organisation.addresses[1].postcode"]
         ),
-        ["GbWithBlankPostalCode"] = new(
-            () => WithSecondAddress(Change(Address("CORRESPONDENCE"), "postalCode", " ")),
-            ["organisation.addresses[1].postalCode"]
+        ["GbWithBlankPostcode"] = new(
+            () => WithSecondAddress(Change(Address("CORRESPONDENCE"), "postcode", " ")),
+            ["organisation.addresses[1].postcode"]
         ),
-        // No single member is at fault, so the error is keyed by the item itself
-        ["NoPremises"] = new(
-            () => WithSecondAddress(Without(Address("CORRESPONDENCE"), "buildingNumber")),
-            ["organisation.addresses[1]"]
+        ["GbWithMalformedPostcode"] = new(
+            () => WithSecondAddress(Change(Address("CORRESPONDENCE"), "postcode", "AB1 2CDE")),
+            ["organisation.addresses[1].postcode"]
+        ),
+        // The old parts are not read, so an item sent in the old format lacks the Government Digital Service (GDS) fields
+        ["OldFormatAddress"] = new(
+            () =>
+                WithSecondAddress(
+                    new JsonObject
+                    {
+                        ["addressTypes"] = new JsonArray("CORRESPONDENCE"),
+                        ["buildingNumber"] = "12",
+                        ["street"] = "High Street",
+                        ["locality"] = "Testville",
+                        ["postalCode"] = "AB1 2CD",
+                        ["countryIso"] = "GB",
+                    }
+                ),
+            [
+                "organisation.addresses[1].addressLine1",
+                "organisation.addresses[1].townOrCity",
+                "organisation.addresses[1].postcode",
+            ]
         ),
         // One failure does not hide another, at any depth of the request
         ["SeveralFailures"] = new(
@@ -142,16 +161,16 @@ public class CreateOrganisationValidationTests : IntegrationTestBase
                     o["regulatorNation"] = "GB-XXX";
                     o["companiesHouseNumber"] = "12345678";
                     o["addresses"] = Addresses(
-                        Without(Address("PRINCIPAL"), "street"),
-                        Without(Address("CORRESPONDENCE"), "postalCode")
+                        Without(Address("PRINCIPAL"), "addressLine1"),
+                        Without(Address("CORRESPONDENCE"), "postcode")
                     );
                 }),
             [
                 "organisation.tradingName",
                 "organisation.regulatorNation",
                 "organisation.companiesHouseNumber",
-                "organisation.addresses[0].street",
-                "organisation.addresses[1].postalCode",
+                "organisation.addresses[0].addressLine1",
+                "organisation.addresses[1].postcode",
             ]
         ),
     };
@@ -223,10 +242,9 @@ public class CreateOrganisationValidationTests : IntegrationTestBase
         new()
         {
             ["addressTypes"] = new JsonArray(addressTypes.Select(t => (JsonNode?)JsonValue.Create(t)).ToArray()),
-            ["buildingNumber"] = "12",
-            ["street"] = "High Street",
-            ["locality"] = "Testville",
-            ["postalCode"] = "AB1 2CD",
+            ["addressLine1"] = "12 High Street",
+            ["townOrCity"] = "Testville",
+            ["postcode"] = "AB1 2CD",
             ["countryIso"] = "GB",
         };
 

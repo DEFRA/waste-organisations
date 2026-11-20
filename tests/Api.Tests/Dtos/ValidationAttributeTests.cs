@@ -115,16 +115,16 @@ public class ValidationAttributeTests
             .NotContain(nameof(OrganisationRequest.Addresses));
     }
 
-    // [Required] treats a whitespace-only string as missing, so a blank street is an error
+    // [Required] treats a whitespace-only string as missing, so a blank addressLine1 is an error
     [Fact]
-    public void Address_ShouldRequireTypesStreetLocalityAndCountry()
+    public void Address_ShouldRequireTypesAddressLine1TownOrCityAndCountry()
     {
-        Validate(new AddressRequest { AddressTypes = [], Street = " " })
+        Validate(new AddressRequest { AddressTypes = [], AddressLine1 = " " })
             .Should()
             .BeEquivalentTo(
                 nameof(AddressRequest.AddressTypes),
-                nameof(AddressRequest.Street),
-                nameof(AddressRequest.Locality),
+                nameof(AddressRequest.AddressLine1),
+                nameof(AddressRequest.TownOrCity),
                 nameof(AddressRequest.CountryIso)
             );
     }

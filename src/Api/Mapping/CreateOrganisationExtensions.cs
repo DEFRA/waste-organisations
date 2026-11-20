@@ -1,5 +1,6 @@
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Api.Dtos.Validation;
 using Defra.WasteOrganisations.Api.Extensions;
 using Address = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Address;
 using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organisation;
@@ -15,10 +16,10 @@ public static class CreateOrganisationExtensions
 {
     /// <summary>
     /// Builds the organisation to store from a validated request. Every string is trimmed,
-    /// <c>companiesHouseNumber</c> and <c>countryIso</c> are upper-cased, <c>postalCode</c> is
-    /// upper-cased with each run of whitespace inside it made one space, and a blank optional part
-    /// becomes null. Items holding the same nine normalised address parts share one
-    /// <see cref="Address"/>, since an address is stored once (spec 0005, Shared addresses); each
+    /// <c>companiesHouseNumber</c> and <c>countryIso</c> are upper-cased, <c>postcode</c> is
+    /// normalised by the rules of spec 0007, Postcodes, and a blank optional part becomes null.
+    /// Items holding the same six normalised address parts share one <see cref="Address"/>, since
+    /// an address is stored once (spec 0005, Shared addresses; spec 0007, Address equality); each
     /// kind of each item becomes one <see cref="OrganisationAddress"/>, in request order, holding
     /// the <see cref="Address"/> navigation so the service can re-point it at a stored row.
     /// </summary>
@@ -115,77 +116,72 @@ public static class CreateOrganisationExtensions
         };
     }
 
-    private static Address ToEntity(this AddressRequest item) =>
-        new()
+    private static Address ToEntity(this AddressRequest item)
+    {
+        var countryIso = Normalise(item.CountryIso)?.ToUpperInvariant();
+
+        return new()
         {
             Id = Guid.CreateVersion7(),
-            SubBuildingName = Normalise(item.SubBuildingName),
-            BuildingName = Normalise(item.BuildingName),
-            BuildingNumber = Normalise(item.BuildingNumber),
-            Street = Normalise(item.Street),
-            PoBox = Normalise(item.PoBox),
-            Locality = Normalise(item.Locality),
-            Region = Normalise(item.Region),
-            PostalCode = NormalisePostalCode(item.PostalCode),
-            CountryIso = Normalise(item.CountryIso)?.ToUpperInvariant(),
+            AddressLine1 = Normalise(item.AddressLine1),
+            AddressLine2 = Normalise(item.AddressLine2),
+            TownOrCity = Normalise(item.TownOrCity),
+            County = Normalise(item.County),
+            Postcode = NormalisePostcode(item.Postcode, countryIso),
+            CountryIso = countryIso,
         };
+    }
 
     // Also the address item of the v2 read (OrganisationDetailsExtensions)
     internal static AddressResponse ToResponse(this Address address, IEnumerable<AddressType> addressTypes) =>
         new()
         {
             AddressTypes = addressTypes.ToArray(),
-            AddressLine = AddressLine.Build(address),
-            SubBuildingName = address.SubBuildingName,
-            BuildingName = address.BuildingName,
-            BuildingNumber = address.BuildingNumber,
-            Street = address.Street,
-            PoBox = address.PoBox,
-            Locality = address.Locality,
-            Region = address.Region,
-            PostalCode = address.PostalCode,
+            AddressLine1 = address.AddressLine1,
+            AddressLine2 = address.AddressLine2,
+            TownOrCity = address.TownOrCity,
+            County = address.County,
+            Postcode = address.Postcode,
             CountryIso = address.CountryIso,
         };
 
     private static string? Normalise(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    // Postcodes are where case and spacing differ most between clients, so `sw1a  1aa` and
-    // `SW1A 1AA` are stored as one address (review of 6 November 2026)
-    private static string? NormalisePostalCode(string? value) =>
-        string.IsNullOrWhiteSpace(value)
+    // A non-UK postcode keeps its punctuation, since a hyphen can be part of it (spec 0007, Decisions)
+    private static string? NormalisePostcode(string? value, string? countryIso)
+    {
+        if (countryIso == "GB")
+            return UkPostcode.TryNormalise(value, out var postcode) ? postcode : null;
+
+        return string.IsNullOrWhiteSpace(value)
             ? null
             : string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
+    }
 
     // Npgsql reads timestamptz as UTC, and TimestampInterceptor writes UTC; the kind is set
     // explicitly so an unspecified kind is never taken as local time
     private static DateTimeOffset AsUtc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
     /// <summary>
-    /// The nine parts that make two addresses the same, in the order the DTOs list them: compared
+    /// The six parts that make two addresses the same, in the order the DTOs list them: compared
     /// exactly (ordinal), nulls equal, as <c>ux_address_values</c> compares them.
     /// </summary>
     private readonly record struct AddressParts(
-        string? SubBuildingName,
-        string? BuildingName,
-        string? BuildingNumber,
-        string? Street,
-        string? PoBox,
-        string? Locality,
-        string? Region,
-        string? PostalCode,
+        string? AddressLine1,
+        string? AddressLine2,
+        string? TownOrCity,
+        string? County,
+        string? Postcode,
         string? CountryIso
     )
     {
         public static AddressParts Of(Address address) =>
             new(
-                address.SubBuildingName,
-                address.BuildingName,
-                address.BuildingNumber,
-                address.Street,
-                address.PoBox,
-                address.Locality,
-                address.Region,
-                address.PostalCode,
+                address.AddressLine1,
+                address.AddressLine2,
+                address.TownOrCity,
+                address.County,
+                address.Postcode,
                 address.CountryIso
             );
     }

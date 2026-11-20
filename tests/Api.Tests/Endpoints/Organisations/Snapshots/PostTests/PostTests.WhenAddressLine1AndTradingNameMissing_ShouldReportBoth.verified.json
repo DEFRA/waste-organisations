@@ -6,8 +6,8 @@
     "organisation.tradingName": [
       "The tradingName field is required for organisation type SOLE_TRADER."
     ],
-    "organisation.addresses[0].street": [
-      "The street field is required."
+    "organisation.addresses[0].addressLine1": [
+      "The addressLine1 field is required."
     ]
   },
   "traceId": "{Scrubbed}"

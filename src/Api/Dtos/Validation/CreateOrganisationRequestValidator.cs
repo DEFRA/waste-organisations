@@ -7,16 +7,16 @@ namespace Defra.WasteOrganisations.Api.Dtos.Validation;
 
 /// <summary>
 /// Validates a <see cref="CreateOrganisationRequest"/> and returns every error keyed by the JSON
-/// path of the failing member, such as <c>organisation.addresses[1].postalCode</c>, ready for
+/// path of the failing member, such as <c>organisation.addresses[1].postcode</c>, ready for
 /// <c>TypedResults.ValidationProblem</c>.
 /// </summary>
 /// <remarks>
 /// The framework's minimal API validation cannot produce the v2 <c>400</c>: it keys errors by C#
 /// member names, does not validate the items of an array, and skips <see cref="IValidatableObject"/>
-/// on a node when a member below it has an attribute error, so a missing <c>street</c> would hide a
-/// missing <c>tradingName</c>. This validator walks the whole request, runs the data annotations of
-/// every member and the <see cref="IValidatableObject"/> rules of every node regardless of other
-/// errors, and names members by their <see cref="JsonPropertyNameAttribute"/>.
+/// on a node when a member below it has an attribute error, so a missing <c>addressLine1</c> would
+/// hide a missing <c>tradingName</c>. This validator walks the whole request, runs the data
+/// annotations of every member and the <see cref="IValidatableObject"/> rules of every node
+/// regardless of other errors, and names members by their <see cref="JsonPropertyNameAttribute"/>.
 /// </remarks>
 public static class CreateOrganisationRequestValidator
 {
@@ -68,7 +68,7 @@ public static class CreateOrganisationRequestValidator
 
         foreach (var result in validatable.Validate(new ValidationContext(node)))
         {
-            // A rule that names no member is about the node itself, such as the premises rule
+            // A rule that names no member is about the node itself
             var members = result.MemberNames.Any() ? result.MemberNames : [""];
 
             foreach (var member in members)

@@ -20,7 +20,7 @@ public class CreateOrganisationRequestTests
     }
 
     [Fact]
-    public void Deserialize_AddressWithoutStreet_ShouldBindNull()
+    public void Deserialize_AddressWithoutAddressLine1_ShouldBindNull()
     {
         const string json = """
             {
@@ -28,7 +28,7 @@ public class CreateOrganisationRequestTests
                 "regulatorNation": "GB-XXX",
                 "organisationType": "LTD",
                 "addresses": [
-                  { "addressTypes": ["REGISTERED", "SERVICE_OF_NOTICE"], "buildingNumber": "12", "locality": "Testville", "countryIso": "GB" }
+                  { "addressTypes": ["REGISTERED", "SERVICE_OF_NOTICE"], "townOrCity": "Testville", "postcode": "AB1 2CD", "countryIso": "GB" }
                 ]
               }
             }
@@ -40,7 +40,8 @@ public class CreateOrganisationRequestTests
         organisation.Name.Should().BeNull();
         organisation.RegulatorNation.Should().Be("GB-XXX");
         var address = organisation.Addresses.Should().ContainSingle().Subject;
-        address.Street.Should().BeNull();
+        address.AddressLine1.Should().BeNull();
+        address.TownOrCity.Should().Be("Testville");
         address.AddressTypes.Should().Equal(AddressType.Registered, AddressType.ServiceOfNotice);
     }
 

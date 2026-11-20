@@ -161,8 +161,8 @@
       "AddressRequest": {
         "required": [
           "addressTypes",
-          "street",
-          "locality",
+          "addressLine1",
+          "townOrCity",
           "countryIso"
         ],
         "type": "object",
@@ -176,75 +176,50 @@
             },
             "description": "Every kind of address this is, each at most once. One item may list all five kinds."
           },
-          "subBuildingName": {
-            "maxLength": 255,
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "A flat or unit within the building."
-          },
-          "buildingName": {
-            "maxLength": 255,
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "The name of the building."
-          },
-          "buildingNumber": {
-            "maxLength": 255,
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "The building number, which may hold letters or a range, such as `12A` or `3-5`."
-          },
-          "street": {
+          "addressLine1": {
             "maxLength": 255,
             "type": "string",
-            "description": "The street."
+            "description": "The first line of the address, such as the building and the street."
           },
-          "poBox": {
+          "addressLine2": {
             "maxLength": 255,
             "type": [
               "null",
               "string"
             ],
-            "description": "A PO box."
+            "description": "The second line of the address."
           },
-          "locality": {
+          "townOrCity": {
             "maxLength": 255,
             "type": "string",
             "description": "The town or city."
           },
-          "region": {
+          "county": {
             "maxLength": 255,
             "type": [
               "null",
               "string"
             ],
-            "description": "The county, state or province."
+            "description": "The county; for an address outside the UK, the state or province."
           },
-          "postalCode": {
+          "postcode": {
             "maxLength": 255,
             "type": [
               "null",
               "string"
             ],
-            "description": "The postcode. Required when `countryIso` is `GB`; optional otherwise, because some\ncountries have no postcodes. Not checked against a format. Upper-cased, with each run of\nwhitespace inside it made one space, before it is stored and compared with stored addresses."
+            "description": "The postcode. Required when `countryIso` is `GB`: every character that is not a\nletter or a digit is removed, the rest is upper-cased and must be a full UK postcode, such as\n`AB1 2CD`, and it is stored as the outward code, one space and the inward code, so\n`ab1-2cd` is stored as `AB1 2CD`. The format only is checked, not that the postcode\nexists. Optional and not checked against a format otherwise, because some countries have no\npostcodes; upper-cased, with each run of whitespace inside it made one space."
           },
           "countryIso": {
             "type": "string",
             "description": "The country as an ISO 3166-1 alpha-2 code, upper-cased before it is checked. `GB` is\nthe United Kingdom, Northern Ireland included."
           }
         },
-        "description": "An address in the Defra standard address model, with the country as a two-letter code, and\nthe kinds of address it is. At least one of `subBuildingName`, `buildingName`,\n`buildingNumber` and `poBox` must be given, so the premises can be identified."
+        "description": "An address in the \"multiple text inputs\" format of the GOV.UK Design System pattern \"Addresses\",\nwith the country as a two-letter code, and the kinds of address it is."
       },
       "AddressResponse": {
         "required": [
-          "addressTypes",
-          "addressLine"
+          "addressTypes"
         ],
         "type": "object",
         "properties": {
@@ -255,65 +230,40 @@
             },
             "description": "Every kind of address this is for the organisation."
           },
-          "addressLine": {
-            "type": "string",
-            "description": "The address on one line, computed in postal order with blank parts skipped and without the\ncountry; never stored."
-          },
-          "subBuildingName": {
+          "addressLine1": {
             "type": [
               "null",
               "string"
             ],
-            "description": "A flat or unit within the building."
+            "description": "The first line of the address, such as the building and the street."
           },
-          "buildingName": {
+          "addressLine2": {
             "type": [
               "null",
               "string"
             ],
-            "description": "The name of the building."
+            "description": "The second line of the address."
           },
-          "buildingNumber": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "The building number."
-          },
-          "street": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "The street."
-          },
-          "poBox": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "A PO box."
-          },
-          "locality": {
+          "townOrCity": {
             "type": [
               "null",
               "string"
             ],
             "description": "The town or city."
           },
-          "region": {
+          "county": {
             "type": [
               "null",
               "string"
             ],
-            "description": "The county, state or province."
+            "description": "The county; for an address outside the UK, the state or province."
           },
-          "postalCode": {
+          "postcode": {
             "type": [
               "null",
               "string"
             ],
-            "description": "The postcode."
+            "description": "The postcode. A `GB` postcode is the outward code, one space and the inward code, such\nas `AB1 2CD`."
           },
           "countryIso": {
             "type": [

@@ -14,21 +14,17 @@
           "REGISTERED",
           "PRINCIPAL"
         ],
-        "addressLine": "12 High Street, Testville, AB1 2CD",
-        "buildingNumber": "12",
-        "street": "High Street",
-        "locality": "Testville",
-        "postalCode": "AB1 2CD",
+        "addressLine1": "12 High Street",
+        "townOrCity": "Testville",
+        "postcode": "AB1 2CD",
         "countryIso": "GB"
       },
       {
         "addressTypes": [
           "CORRESPONDENCE"
         ],
-        "addressLine": "Tower, Main Road, Dublin",
-        "buildingName": "Tower",
-        "street": "Main Road",
-        "locality": "Dublin",
+        "addressLine1": "Tower, Main Road",
+        "townOrCity": "Dublin",
         "countryIso": "IE"
       }
     ]
