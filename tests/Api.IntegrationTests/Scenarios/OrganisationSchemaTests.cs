@@ -58,19 +58,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
         {
             var actual = read.Addresses.Single(a => a.Id == expected.Id);
             actual.UsageTypeId.Should().Be(expected.UsageTypeId);
-            actual.Address.SubBuildingName.Should().Be(expected.Address.SubBuildingName);
-            actual.Address.BuildingName.Should().Be(expected.Address.BuildingName);
-            actual.Address.BuildingNumber.Should().Be(expected.Address.BuildingNumber);
-            actual.Address.Street.Should().Be(expected.Address.Street);
-            actual.Address.Locality.Should().Be(expected.Address.Locality);
-            actual.Address.Region.Should().Be(expected.Address.Region);
-            actual.Address.PostalCode.Should().Be(expected.Address.PostalCode);
             actual.Address.AddressLine1.Should().Be(expected.Address.AddressLine1);
             actual.Address.AddressLine2.Should().Be(expected.Address.AddressLine2);
             actual.Address.TownOrCity.Should().Be(expected.Address.TownOrCity);
             actual.Address.County.Should().Be(expected.Address.County);
             actual.Address.Postcode.Should().Be(expected.Address.Postcode);
-            actual.Address.PoBox.Should().Be(expected.Address.PoBox);
             actual.Address.CountryIso.Should().Be(expected.Address.CountryIso);
             actual.Address.CreatedAt.Should().Be(expected.Address.CreatedAt);
             actual.Address.UpdatedAt.Should().Be(expected.Address.UpdatedAt);
@@ -242,8 +234,10 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 Address = new Address
                 {
                     Id = Guid.CreateVersion7(),
-                    BuildingNumber = "1",
-                    Street = Unique("High Street"),
+                    AddressLine1 = Unique("1 High Street"),
+                    TownOrCity = "Testville",
+                    Postcode = "AB1 2CD",
+                    CountryIso = "GB",
                 },
             }
         );
@@ -439,21 +433,18 @@ public class OrganisationSchemaTests : IntegrationTestBase
         return address;
     }
 
-    // An address is stored once: ux_address_values, over fourteen parts since changelog 1.3, rejects
-    // a second row with the same fourteen parts, and with NULLS NOT DISTINCT an absent part equals an
+    // An address is stored once: ux_address_values, over six parts since changelog 1.4, rejects
+    // a second row with the same six parts, and with NULLS NOT DISTINCT an absent part equals an
     // absent part, which a plain unique index would let through
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Address_WithTheSameFourteenParts_IsRejectedByUniqueIndex(bool withAbsentParts)
+    public async Task Address_WithTheSameSixParts_IsRejectedByUniqueIndex(bool withAbsentParts)
     {
         await using var provider = BuildServiceProvider();
         var address = NewAddress("High Street");
         if (withAbsentParts)
         {
-            address.BuildingName = null;
-            address.Region = null;
-            address.PoBox = null;
             address.AddressLine2 = null;
             address.County = null;
         }
@@ -482,7 +473,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
     [InlineData("street")]
     [InlineData("street in upper case")]
     [InlineData("locality")]
-    [InlineData("region absent")]
     [InlineData("postalCode")]
     [InlineData("poBox")]
     [InlineData("countryIso")]
@@ -516,9 +506,6 @@ public class OrganisationSchemaTests : IntegrationTestBase
             case "locality":
                 other.Locality = "Testham";
                 break;
-            case "region absent":
-                other.Region = null;
-                break;
             case "postalCode":
                 other.PostalCode = "AB1 2CE";
                 break;
@@ -529,7 +516,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 other.CountryIso = "FR";
                 break;
             case "addressLine1":
-                other.AddressLine1 = "Unit 5, Mill House";
+                other.AddressLine1 = Unique("Unit 5, Mill House");
                 break;
             case "addressLine2 absent":
                 other.AddressLine2 = null;
@@ -596,7 +583,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             .Select(a => a.OrganisationId)
             .ToListAsync(TestContext.Current.CancellationToken);
         var rows = await context.Addresses.CountAsync(
-            a => a.SubBuildingName == firstLink.Address.SubBuildingName,
+            a => a.AddressLine1 == firstLink.Address.AddressLine1,
             TestContext.Current.CancellationToken
         );
 
@@ -646,7 +633,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
         };
     }
 
-    private static OrganisationAddress NewOrganisationAddress(Guid organisationId, Guid usageTypeId, string street)
+    private static OrganisationAddress NewOrganisationAddress(
+        Guid organisationId,
+        Guid usageTypeId,
+        string addressLine1
+    )
     {
         var now = UtcNowMicroseconds();
         return new OrganisationAddress
@@ -654,51 +645,35 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Id = Guid.CreateVersion7(),
             OrganisationId = organisationId,
             UsageTypeId = usageTypeId,
-            Address = NewAddress(street),
+            Address = NewAddress(addressLine1),
             ValidFrom = now,
         };
     }
 
-    // ux_address_values allows one row per set of values, so each address a test inserts carries a
-    // unique sub-building name, and a test that means to share a row reuses the same one
-    private static Address NewAddress(string street, string? countryIso = "GB") =>
+    // ux_address_values allows one row per set of the six parts of changelog 1.4, so each address a
+    // test inserts carries a unique addressLine1, and a test that means to share a row reuses the same one
+    private static Address NewAddress(string addressLine1, string? countryIso = "GB") =>
         new()
         {
             Id = Guid.CreateVersion7(),
-            SubBuildingName = Unique("Unit 4"),
-            BuildingName = "Mill House",
-            BuildingNumber = "12A",
-            Street = street,
-            Locality = "Testville",
-            Region = "Testshire",
-            PostalCode = "AB1 2CD",
-            PoBox = "PO Box 99",
-            CountryIso = countryIso,
-            AddressLine1 = "Unit 4, Mill House",
-            AddressLine2 = "12A High Street",
+            AddressLine1 = Unique(addressLine1),
+            AddressLine2 = "Mill House",
             TownOrCity = "Testville",
             County = "Testshire",
             Postcode = "AB1 2CD",
+            CountryIso = countryIso,
         };
 
     private static Address CopyOf(Address address) =>
         new()
         {
             Id = Guid.CreateVersion7(),
-            SubBuildingName = address.SubBuildingName,
-            BuildingName = address.BuildingName,
-            BuildingNumber = address.BuildingNumber,
-            Street = address.Street,
-            Locality = address.Locality,
-            Region = address.Region,
-            PostalCode = address.PostalCode,
-            PoBox = address.PoBox,
-            CountryIso = address.CountryIso,
             AddressLine1 = address.AddressLine1,
             AddressLine2 = address.AddressLine2,
             TownOrCity = address.TownOrCity,
             County = address.County,
             Postcode = address.Postcode,
+            CountryIso = address.CountryIso,
         };
 
     private static string Unique(string value) => $"{value} {Guid.NewGuid():N}";
