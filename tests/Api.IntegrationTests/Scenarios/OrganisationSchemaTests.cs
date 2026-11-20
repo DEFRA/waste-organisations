@@ -543,7 +543,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 other.AddressLine1 = Unique("Unit 5, Mill House");
                 break;
             case "addressLine1 in upper case":
-                other.AddressLine1 = address.AddressLine1!.ToUpperInvariant();
+                other.AddressLine1 = address.AddressLine1?.ToUpperInvariant();
                 break;
             case "addressLine2 absent":
                 other.AddressLine2 = null;
