@@ -285,8 +285,8 @@ public class CreateOrganisationTests : IntegrationTestBase
         address.CountryIso.Should().Be("GB");
     }
 
-    // Server-set and unknown members are ignored rather than rejected, so a client ahead of the
-    // server is not broken; the server's own values come back
+    // Server-set and unknown members, the old address parts among them, are ignored rather than
+    // rejected, so a client ahead of the server is not broken; the server's own values come back
     [Fact]
     public async Task ServerSetAndUnknownMembers_ShouldBeIgnored()
     {
@@ -312,9 +312,11 @@ public class CreateOrganisationTests : IntegrationTestBase
                     {
                         addressTypes = new[] { "REGISTERED" },
                         addressLine = "Somewhere else entirely",
+                        street = "Old Street",
                         addressLine1 = $"12 High Street {suffix}",
                         townOrCity = "Testville",
                         postcode = "AB1 2CD",
+                        postalCode = "ZZ9 9ZZ",
                         countryIso = "GB",
                         countryName = "United Kingdom",
                     },
@@ -333,11 +335,73 @@ public class CreateOrganisationTests : IntegrationTestBase
         created.ValidFrom.Should().BeAfter(before);
         created.CreatedAt.Should().BeAfter(before);
         created.UpdatedAt.Should().BeAfter(before);
-        content.Should().NotContain("\"addressLine\"");
+        content.Should().NotContain("\"addressLine\"").And.NotContain("\"street\"").And.NotContain("\"postalCode\"");
         created.Addresses[0].AddressLine1.Should().Be($"12 High Street {suffix}");
+        created.Addresses[0].Postcode.Should().Be("AB1 2CD");
 
         var stored = await ReadStoredAsync(created.Id);
         stored.ValidFrom.Should().Be(created.ValidFrom.UtcDateTime);
+        var address = stored.Addresses.Single().Address;
+        address.Street.Should().BeNull();
+        address.PostalCode.Should().BeNull();
+        address.Postcode.Should().Be("AB1 2CD");
+    }
+
+    // A GB postcode with punctuation is stored and returned as outward code, one space, inward code
+    [Fact]
+    public async Task PostcodeWithPunctuation_ShouldBeStoredAndReturnedNormalised()
+    {
+        var suffix = NewSuffix();
+        var body = Ltd(
+            new
+            {
+                addressTypes = new[] { "REGISTERED" },
+                addressLine1 = $"12 High Street {suffix}",
+                townOrCity = "Testville",
+                postcode = "ab1-2cd",
+                countryIso = "GB",
+            }
+        );
+
+        var response = await PostAsync(body);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created, content);
+        var created = await ReadOrganisationAsync(response);
+        created.Addresses[0].Postcode.Should().Be("AB1 2CD");
+
+        var stored = await ReadStoredAsync(created.Id);
+        stored.Addresses.Single().Address.Postcode.Should().Be("AB1 2CD");
+    }
+
+    // A non-UK postcode is not checked against the UK format and keeps its punctuation
+    [Fact]
+    public async Task NonUkAddressWithPunctuatedPostcode_ShouldKeepIt()
+    {
+        var suffix = NewSuffix();
+        var body = Ltd(
+            new
+            {
+                addressTypes = new[] { "REGISTERED" },
+                addressLine1 = $"1600 Main Street {suffix}",
+                townOrCity = "Springfield",
+                county = "Illinois",
+                postcode = "12345-6789",
+                countryIso = "US",
+            }
+        );
+
+        var response = await PostAsync(body);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created, content);
+        var created = await ReadOrganisationAsync(response);
+        created.Addresses[0].Postcode.Should().Be("12345-6789");
+
+        var stored = await ReadStoredAsync(created.Id);
+        var address = stored.Addresses.Single().Address;
+        address.Postcode.Should().Be("12345-6789");
+        address.CountryIso.Should().Be("US");
     }
 
     // Every code is accepted with what its RegisteredAtCompaniesHouse flag requires: a number and a
@@ -372,13 +436,22 @@ public class CreateOrganisationTests : IntegrationTestBase
         stored.OrganisationType!.Code.Should().Be(organisationType);
     }
 
-    // Two items holding the same address are the same address: stored once, linked once per kind,
-    // and returned as one item whose kinds are those of both items in the order sent
+    // Two items holding the same address, postcode spelling aside, are the same address: stored
+    // once, linked once per kind, and returned as one item whose kinds are those of both items in
+    // the order sent
     [Fact]
     public async Task SameAddressInTwoItems_ShouldStoreOneAddressAndReturnOneItem()
     {
         var suffix = NewSuffix();
-        var body = Ltd(Address(suffix, "PRINCIPAL"), Address(suffix, "REGISTERED", "AUDIT"));
+        var unspacedPostcode = new
+        {
+            addressTypes = new[] { "REGISTERED", "AUDIT" },
+            addressLine1 = $"12 High Street {suffix}",
+            townOrCity = "Testville",
+            postcode = "ab12cd",
+            countryIso = "GB",
+        };
+        var body = Ltd(Address(suffix, "PRINCIPAL"), unspacedPostcode);
 
         var response = await PostAsync(body);
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
