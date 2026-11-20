@@ -21,6 +21,8 @@ public class CreateOrganisationTests : IntegrationTestBase
 {
     public static TheoryData<string> OrganisationTypes => new(OrganisationTypeCodes.All.Select(t => t.Code));
 
+    private static readonly string[] Registered = ["REGISTERED"];
+
     // The full contract in one request: a Companies House type, one UK address carrying two kinds
     // and a non-UK address without a postcode. Pins the 201 body and every stored row
     [Fact]
@@ -355,7 +357,7 @@ public class CreateOrganisationTests : IntegrationTestBase
         var body = Ltd(
             new
             {
-                addressTypes = new[] { "REGISTERED" },
+                addressTypes = Registered,
                 addressLine1 = $"12 High Street {suffix}",
                 townOrCity = "Testville",
                 postcode = "ab1-2cd",
@@ -382,7 +384,7 @@ public class CreateOrganisationTests : IntegrationTestBase
         var body = Ltd(
             new
             {
-                addressTypes = new[] { "REGISTERED" },
+                addressTypes = Registered,
                 addressLine1 = $"1600 Main Street {suffix}",
                 townOrCity = "Springfield",
                 county = "Illinois",
