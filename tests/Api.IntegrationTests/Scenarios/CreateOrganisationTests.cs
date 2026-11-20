@@ -8,13 +8,14 @@ using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Address = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Address;
 using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organisation;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
 // The v2 create against the Compose stack, checked through the response and the stored rows.
 // Address rows are shared and never cleaned up, so every test sends address values unique to it
-// (a suffix in `street`) and counts addresses through its own organisation's links, never the
+// (a suffix in `addressLine1`) and counts addresses through its own organisation's links, never the
 // whole address table
 public class CreateOrganisationTests : IntegrationTestBase
 {
@@ -40,22 +41,18 @@ public class CreateOrganisationTests : IntegrationTestBase
                     new
                     {
                         addressTypes = new[] { "REGISTERED", "PRINCIPAL" },
-                        subBuildingName = "Unit 4",
-                        buildingName = "Mill House",
-                        buildingNumber = "12A",
-                        street = $"High Street {suffix}",
-                        locality = "Testville",
-                        region = "Testshire",
-                        postalCode = "AB1 2CD",
-                        poBox = "PO Box 99",
+                        addressLine1 = $"12A High Street {suffix}",
+                        addressLine2 = "Mill House",
+                        townOrCity = "Testville",
+                        county = "Testshire",
+                        postcode = "AB1 2CD",
                         countryIso = "GB",
                     },
                     new
                     {
                         addressTypes = new[] { "CORRESPONDENCE" },
-                        buildingNumber = "12",
-                        street = $"Harbour Road {suffix}",
-                        locality = "Hong Kong",
+                        addressLine1 = $"12 Harbour Road {suffix}",
+                        townOrCity = "Hong Kong",
                         countryIso = "HK",
                     },
                 },
@@ -95,27 +92,34 @@ public class CreateOrganisationTests : IntegrationTestBase
         var correspondence = LinkOf(stored, "CORRESPONDENCE");
         correspondence.AddressId.Should().NotBe(registered.AddressId);
 
-        var uk = registered.Address;
-        uk.SubBuildingName.Should().Be("Unit 4");
-        uk.BuildingName.Should().Be("Mill House");
-        uk.BuildingNumber.Should().Be("12A");
-        uk.Street.Should().Be($"High Street {suffix}");
-        uk.Locality.Should().Be("Testville");
-        uk.Region.Should().Be("Testshire");
-        uk.PostalCode.Should().Be("AB1 2CD");
-        uk.PoBox.Should().Be("PO Box 99");
-        uk.CountryIso.Should().Be("GB");
-
-        var overseas = correspondence.Address;
-        overseas.SubBuildingName.Should().BeNull();
-        overseas.BuildingName.Should().BeNull();
-        overseas.BuildingNumber.Should().Be("12");
-        overseas.Street.Should().Be($"Harbour Road {suffix}");
-        overseas.Locality.Should().Be("Hong Kong");
-        overseas.Region.Should().BeNull();
-        overseas.PostalCode.Should().BeNull();
-        overseas.PoBox.Should().BeNull();
-        overseas.CountryIso.Should().Be("HK");
+        // Equivalence with a new Address also proves the old columns stay null
+        registered
+            .Address.Should()
+            .BeEquivalentTo(
+                new Address
+                {
+                    Id = registered.AddressId,
+                    AddressLine1 = $"12A High Street {suffix}",
+                    AddressLine2 = "Mill House",
+                    TownOrCity = "Testville",
+                    County = "Testshire",
+                    Postcode = "AB1 2CD",
+                    CountryIso = "GB",
+                },
+                options => options.Excluding(a => a.CreatedAt).Excluding(a => a.UpdatedAt)
+            );
+        correspondence
+            .Address.Should()
+            .BeEquivalentTo(
+                new Address
+                {
+                    Id = correspondence.AddressId,
+                    AddressLine1 = $"12 Harbour Road {suffix}",
+                    TownOrCity = "Hong Kong",
+                    CountryIso = "HK",
+                },
+                options => options.Excluding(a => a.CreatedAt).Excluding(a => a.UpdatedAt)
+            );
 
         // The suffix is this run's alone, so it is taken out and the snapshot reads as a plain address
         await VerifyJson(content).AddScrubber(text => text.Replace($" {suffix}", ""));
@@ -224,8 +228,8 @@ public class CreateOrganisationTests : IntegrationTestBase
     }
 
     // Strings are trimmed, the Companies House number, country code and postcode upper-cased, and
-    // the postcode's inner whitespace collapsed, before they are stored and returned; other parts
-    // keep their case
+    // a GB postcode spaced as outward code, one space, inward code, before they are stored and
+    // returned; other parts keep their case
     [Fact]
     public async Task Values_ShouldBeTrimmedAndUpperCased()
     {
@@ -244,11 +248,10 @@ public class CreateOrganisationTests : IntegrationTestBase
                     new
                     {
                         addressTypes = new[] { "REGISTERED" },
-                        buildingNumber = " 12 ",
-                        street = $"  High Street {suffix} ",
-                        locality = " Testville ",
-                        region = "   ",
-                        postalCode = " ab1   2cd ",
+                        addressLine1 = $"  12 High Street {suffix} ",
+                        townOrCity = " Testville ",
+                        county = "   ",
+                        postcode = " ab1   2cd ",
                         countryIso = " gb ",
                     },
                 },
@@ -265,8 +268,8 @@ public class CreateOrganisationTests : IntegrationTestBase
         created.CompaniesHouseNumber.Should().Be("SC123456");
         created.RegulatorNation.Should().Be(RegulatorNation.NorthernIreland);
         created.OrganisationType.Should().Be("LTD");
-        created.Addresses[0].Street.Should().Be($"High Street {suffix}");
-        created.Addresses[0].PostalCode.Should().Be("AB1 2CD");
+        created.Addresses[0].AddressLine1.Should().Be($"12 High Street {suffix}");
+        created.Addresses[0].Postcode.Should().Be("AB1 2CD");
         created.Addresses[0].CountryIso.Should().Be("GB");
 
         var stored = await ReadStoredAsync(created.Id);
@@ -275,11 +278,10 @@ public class CreateOrganisationTests : IntegrationTestBase
         stored.CompaniesHouseNumber.Should().Be("SC123456");
         stored.RegulatorNation.Should().Be("GB-NIR");
         var address = stored.Addresses.Single().Address;
-        address.BuildingNumber.Should().Be("12");
-        address.Street.Should().Be($"High Street {suffix}");
-        address.Locality.Should().Be("Testville");
-        address.Region.Should().BeNull();
-        address.PostalCode.Should().Be("AB1 2CD");
+        address.AddressLine1.Should().Be($"12 High Street {suffix}");
+        address.TownOrCity.Should().Be("Testville");
+        address.County.Should().BeNull();
+        address.Postcode.Should().Be("AB1 2CD");
         address.CountryIso.Should().Be("GB");
     }
 
@@ -310,10 +312,9 @@ public class CreateOrganisationTests : IntegrationTestBase
                     {
                         addressTypes = new[] { "REGISTERED" },
                         addressLine = "Somewhere else entirely",
-                        buildingNumber = "12",
-                        street = $"High Street {suffix}",
-                        locality = "Testville",
-                        postalCode = "AB1 2CD",
+                        addressLine1 = $"12 High Street {suffix}",
+                        townOrCity = "Testville",
+                        postcode = "AB1 2CD",
                         countryIso = "GB",
                         countryName = "United Kingdom",
                     },
@@ -332,7 +333,8 @@ public class CreateOrganisationTests : IntegrationTestBase
         created.ValidFrom.Should().BeAfter(before);
         created.CreatedAt.Should().BeAfter(before);
         created.UpdatedAt.Should().BeAfter(before);
-        created.Addresses[0].AddressLine.Should().Be($"12 High Street {suffix}, Testville, AB1 2CD");
+        content.Should().NotContain("\"addressLine\"");
+        created.Addresses[0].AddressLine1.Should().Be($"12 High Street {suffix}");
 
         var stored = await ReadStoredAsync(created.Id);
         stored.ValidFrom.Should().Be(created.ValidFrom.UtcDateTime);
@@ -424,28 +426,27 @@ public class CreateOrganisationTests : IntegrationTestBase
     }
 
     // An absent optional part and a blank one are both stored as null, so they are one address;
-    // the second request finds the first's row through the IS NULL match on region
+    // the second request finds the first's row through the IS NULL match on addressLine2 and county
     [Fact]
-    public async Task RegionAbsentAndBlank_ShouldBeOneAddress()
+    public async Task AddressLine2AndCountyAbsentAndBlank_ShouldBeOneAddress()
     {
         var suffix = NewSuffix();
         var absent = new
         {
             addressTypes = new[] { "REGISTERED" },
-            buildingNumber = "12",
-            street = $"High Street {suffix}",
-            locality = "Testville",
-            postalCode = "AB1 2CD",
+            addressLine1 = $"12 High Street {suffix}",
+            townOrCity = "Testville",
+            postcode = "AB1 2CD",
             countryIso = "GB",
         };
         var blank = new
         {
             addressTypes = new[] { "REGISTERED" },
-            buildingNumber = "12",
-            street = $"High Street {suffix}",
-            locality = "Testville",
-            region = "  ",
-            postalCode = "AB1 2CD",
+            addressLine1 = $"12 High Street {suffix}",
+            addressLine2 = " ",
+            townOrCity = "Testville",
+            county = "  ",
+            postcode = "AB1 2CD",
             countryIso = "GB",
         };
 
@@ -457,26 +458,30 @@ public class CreateOrganisationTests : IntegrationTestBase
         var firstStored = await ReadStoredAsync((await ReadOrganisationAsync(first)).Id);
         var secondStored = await ReadStoredAsync((await ReadOrganisationAsync(second)).Id);
         secondStored.Addresses.Single().AddressId.Should().Be(firstStored.Addresses.Single().AddressId);
-        secondStored.Addresses.Single().Address.Region.Should().BeNull();
+        secondStored.Addresses.Single().Address.AddressLine2.Should().BeNull();
+        secondStored.Addresses.Single().Address.County.Should().BeNull();
         (await CountAddressesAsync(suffix)).Should().Be(1);
     }
 
-    // The match is exact over the nine parts: one part more, one part different or a difference
+    // The match is exact over the six parts: one part more, one part different or a difference
     // in case alone makes another address, stored as a second row
     [Theory]
-    [InlineData("street in upper case")]
-    [InlineData("other postal code")]
-    [InlineData("building name added")]
-    [InlineData("region added")]
+    [InlineData("addressLine1 in upper case")]
+    [InlineData("other postcode")]
+    [InlineData("addressLine2 added")]
+    [InlineData("county added")]
     public async Task AddressDifferingInOnePart_ShouldBeStoredAsSecondRow(string difference)
     {
         var suffix = NewSuffix();
         var variant = difference switch
         {
-            "street in upper case" => VariantAddress(street: $"HIGH STREET {suffix}"),
-            "other postal code" => VariantAddress(street: $"High Street {suffix}", postalCode: "AB1 2CE"),
-            "building name added" => VariantAddress(street: $"High Street {suffix}", buildingName: "Mill House"),
-            "region added" => VariantAddress(street: $"High Street {suffix}", region: "Testshire"),
+            "addressLine1 in upper case" => VariantAddress(addressLine1: $"12 HIGH STREET {suffix}"),
+            "other postcode" => VariantAddress(addressLine1: $"12 High Street {suffix}", postcode: "AB1 2CE"),
+            "addressLine2 added" => VariantAddress(
+                addressLine1: $"12 High Street {suffix}",
+                addressLine2: "Mill House"
+            ),
+            "county added" => VariantAddress(addressLine1: $"12 High Street {suffix}", county: "Testshire"),
             _ => throw new ArgumentOutOfRangeException(nameof(difference), difference, null),
         };
 
@@ -502,29 +507,27 @@ public class CreateOrganisationTests : IntegrationTestBase
         new
         {
             addressTypes,
-            buildingNumber = "12",
-            street = $"High Street {suffix}",
-            locality = "Testville",
-            postalCode = "AB1 2CD",
+            addressLine1 = $"12 High Street {suffix}",
+            townOrCity = "Testville",
+            postcode = "AB1 2CD",
             countryIso = "GB",
         };
 
     // Address(suffix, "REGISTERED") with one part changed, added or removed
     private static object VariantAddress(
-        string street,
-        string? buildingName = null,
-        string? region = null,
-        string postalCode = "AB1 2CD"
+        string addressLine1,
+        string? addressLine2 = null,
+        string? county = null,
+        string postcode = "AB1 2CD"
     ) =>
         new
         {
             addressTypes = new[] { "REGISTERED" },
-            buildingName,
-            buildingNumber = "12",
-            street,
-            locality = "Testville",
-            region,
-            postalCode,
+            addressLine1,
+            addressLine2,
+            townOrCity = "Testville",
+            county,
+            postcode,
             countryIso = "GB",
         };
 
@@ -569,7 +572,7 @@ public class CreateOrganisationTests : IntegrationTestBase
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
 
         return await context.Addresses.CountAsync(
-            a => a.Street != null && a.Street.Contains(suffix),
+            a => a.AddressLine1 != null && a.AddressLine1.Contains(suffix),
             TestContext.Current.CancellationToken
         );
     }

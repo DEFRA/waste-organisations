@@ -15,7 +15,7 @@ public class CreateOrganisationErrorTests : IntegrationTestBase
     private const string MediaType = "application/vnd.defra.waste-organisations+json";
 
     private const string ValidBody = """
-        {"organisation":{"name":"Acme Waste Ltd","companiesHouseNumber":"12345678","regulatorNation":"GB-ENG","organisationType":"LTD","addresses":[{"addressTypes":["REGISTERED"],"buildingNumber":"12","street":"High Street","locality":"Testville","postalCode":"AB1 2CD","countryIso":"GB"}]}}
+        {"organisation":{"name":"Acme Waste Ltd","companiesHouseNumber":"12345678","regulatorNation":"GB-ENG","organisationType":"LTD","addresses":[{"addressTypes":["REGISTERED"],"addressLine1":"12 High Street","townOrCity":"Testville","postcode":"AB1 2CD","countryIso":"GB"}]}}
         """;
 
     // Each body fails JSON binding, so the request never reaches validation and the existing
@@ -115,8 +115,8 @@ public class CreateOrganisationErrorTests : IntegrationTestBase
     // cleaned up (see CreateOrganisationTests)
     private static async Task<Guid> CreateAsync()
     {
-        var street = $"High Street {Guid.NewGuid():N}";
-        var response = await PostAsync(JsonBody(ValidBody.Replace("\"High Street\"", $"\"{street}\"")));
+        var addressLine1 = $"12 High Street {Guid.NewGuid():N}";
+        var response = await PostAsync(JsonBody(ValidBody.Replace("\"12 High Street\"", $"\"{addressLine1}\"")));
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
