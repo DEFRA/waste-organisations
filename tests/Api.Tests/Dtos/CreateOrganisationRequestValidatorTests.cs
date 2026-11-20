@@ -413,7 +413,7 @@ public class CreateOrganisationRequestValidatorTests
     [InlineData(null)]
     [InlineData(" ")]
     [InlineData("12345-6789")]
-    public void Validate_NonUkAddressWithoutPostcode_ShouldBeAccepted(string? postcode)
+    public void Validate_NonUkAddressWithAnyOrNoPostcode_ShouldBeAccepted(string? postcode)
     {
         var overseas = Address(AddressType.Correspondence) with { Postcode = postcode, CountryIso = "HK" };
 
