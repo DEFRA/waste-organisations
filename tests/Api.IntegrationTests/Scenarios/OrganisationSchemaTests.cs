@@ -371,7 +371,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
     }
 
     // Real addresses without a building number, a street or a postcode are accepted: changelog 1.3
-    // dropped the premises and UK postcode checks, and the API validates both
+    // dropped the premises and UK postcode checks, and the API validates the UK postcode
     [Theory]
     [InlineData("named building only")]
     [InlineData("PO box")]
