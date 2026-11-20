@@ -363,6 +363,8 @@ public class CreateOrganisationRequestValidatorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
+    [InlineData("---")]
+    [InlineData("( ).")]
     public void Validate_UkAddressWithoutPostcode_ShouldReportPostcode(string? postcode)
     {
         var errors = Validate(
@@ -459,6 +461,23 @@ public class CreateOrganisationRequestValidatorTests
                     ],
                 }
             );
+    }
+
+    // Without a valid country the postcode rule cannot tell GB from elsewhere, so it adds nothing
+    [Theory]
+    [InlineData(null)]
+    [InlineData("GBR")]
+    [InlineData("G1")]
+    public void Validate_CountryIsoMissingOrInvalid_ShouldNotCheckThePostcode(string? countryIso)
+    {
+        var errors = Validate(
+            Ltd() with
+            {
+                Addresses = [Address(AddressType.Registered) with { CountryIso = countryIso, Postcode = "AB1 2CDE" }],
+            }
+        );
+
+        errors.Keys.Should().Equal("organisation.addresses[0].countryIso");
     }
 
     [Theory]
