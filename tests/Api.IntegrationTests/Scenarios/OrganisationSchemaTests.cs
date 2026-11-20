@@ -421,9 +421,9 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await ShouldViolateAsync(save, "ck_address_uk_postcode");
     }
 
-    // Changelog 1.4 drops the eight old address parts: the address table holds the six GDS columns only
+    // Changelog 1.4 drops the eight old address parts: the address table holds the six GDS columns and none of the eight old ones
     [Fact]
-    public async Task Address_Table_HasOnlyTheGdsColumns()
+    public async Task Address_Table_HasTheGdsColumnsAndNoOldParts()
     {
         await using var provider = BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
