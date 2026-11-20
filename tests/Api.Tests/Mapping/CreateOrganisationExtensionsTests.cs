@@ -9,7 +9,7 @@ using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organis
 namespace Defra.WasteOrganisations.Api.Tests.Mapping;
 
 // An address is stored once and shared (spec 0005, Shared addresses), so the mapping merges request
-// items holding the same nine normalised parts into one Address and the response splits the
+// items holding the same six normalised parts into one Address and the response splits the
 // organisation's links back into one item per Address
 public class CreateOrganisationExtensionsTests
 {
@@ -69,22 +69,25 @@ public class CreateOrganisationExtensionsTests
     }
 
     [Fact]
-    public void ToEntity_WithBlankAndAbsentRegion_ShouldGiveOneAddress()
+    public void ToEntity_WithBlankAndAbsentAddressLine2AndCounty_ShouldGiveOneAddress()
     {
         var organisation = Request(
                 Item([AddressType.Registered]) with
                 {
-                    Region = "   ",
+                    AddressLine2 = "   ",
+                    County = "",
                 },
                 Item([AddressType.Correspondence]) with
                 {
-                    Region = null,
+                    AddressLine2 = null,
+                    County = null,
                 }
             )
             .ToEntity(OrganisationTypeId, UsageTypeIds);
 
-        organisation.Addresses.Select(link => link.Address).Distinct().Should().ContainSingle();
-        organisation.Addresses[0].Address.Region.Should().BeNull();
+        var address = organisation.Addresses.Select(link => link.Address).Distinct().Should().ContainSingle().Subject;
+        address.AddressLine2.Should().BeNull();
+        address.County.Should().BeNull();
     }
 
     [Fact]
@@ -94,11 +97,11 @@ public class CreateOrganisationExtensionsTests
                 Item([AddressType.Registered]),
                 Item([AddressType.Principal]) with
                 {
-                    Street = "  High Street  ",
+                    AddressLine1 = "  12A High Street  ",
                 },
                 Item([AddressType.Correspondence]) with
                 {
-                    Street = "HIGH STREET",
+                    AddressLine1 = "12A HIGH STREET",
                 }
             )
             .ToEntity(OrganisationTypeId, UsageTypeIds);
@@ -107,29 +110,64 @@ public class CreateOrganisationExtensionsTests
         // equality), so the third is another address
         var addresses = organisation.Addresses.Select(link => link.Address).Distinct().ToList();
         addresses.Should().HaveCount(2);
-        addresses.Select(a => a.Street).Should().Equal("High Street", "HIGH STREET");
+        addresses.Select(a => a.AddressLine1).Should().Equal("12A High Street", "12A HIGH STREET");
     }
 
-    // The postcode alone is upper-cased and has its inner whitespace collapsed, so it merges
-    // where the other parts would not (review of 6 November 2026)
+    [Theory]
+    [InlineData(nameof(AddressRequest.AddressLine1))]
+    [InlineData(nameof(AddressRequest.AddressLine2))]
+    [InlineData(nameof(AddressRequest.TownOrCity))]
+    [InlineData(nameof(AddressRequest.County))]
+    [InlineData(nameof(AddressRequest.Postcode))]
+    [InlineData(nameof(AddressRequest.CountryIso))]
+    public void ToEntity_WithItemsDifferingInOnePart_ShouldGiveTwoAddresses(string part)
+    {
+        var first = Item([AddressType.Registered]);
+        var second = Item([AddressType.Correspondence]);
+        second = part switch
+        {
+            nameof(AddressRequest.AddressLine1) => second with { AddressLine1 = "12 Harbour Road" },
+            nameof(AddressRequest.AddressLine2) => second with { AddressLine2 = "Mill Lane" },
+            nameof(AddressRequest.TownOrCity) => second with { TownOrCity = "Otherville" },
+            nameof(AddressRequest.County) => second with { County = "Testshire" },
+            nameof(AddressRequest.Postcode) => second with { Postcode = "AB1 2CE" },
+            nameof(AddressRequest.CountryIso) => second with { CountryIso = "IE" },
+            _ => throw new ArgumentOutOfRangeException(nameof(part), part, null),
+        };
+
+        var organisation = Request(first, second).ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.Addresses.Select(link => link.Address).Distinct().Should().HaveCount(2);
+    }
+
+    // The postcode alone is normalised (spec 0007, Postcodes), so it merges where the other parts
+    // would not
     [Fact]
     public void ToEntity_WithPostcodesDifferingOnlyInCaseOrSpacing_ShouldMergeThem()
     {
         var organisation = Request(
-                Item([AddressType.Registered]),
+                Item([AddressType.Registered]) with
+                {
+                    Postcode = "ab12cd",
+                },
                 Item([AddressType.Principal]) with
                 {
-                    PostalCode = "ab1 2cd",
-                },
-                Item([AddressType.Correspondence]) with
-                {
-                    PostalCode = " AB1   2CD ",
+                    Postcode = "AB1 2CD",
                 }
             )
             .ToEntity(OrganisationTypeId, UsageTypeIds);
 
         var address = organisation.Addresses.Select(link => link.Address).Distinct().Should().ContainSingle().Subject;
-        address.PostalCode.Should().Be("AB1 2CD");
+        address.Postcode.Should().Be("AB1 2CD");
+    }
+
+    [Fact]
+    public void ToEntity_WithNonUkPostcode_ShouldKeepPunctuationAndUpperCase()
+    {
+        var organisation = Request(Item([AddressType.Registered]) with { CountryIso = "IE", Postcode = " d02  x-285 " })
+            .ToEntity(OrganisationTypeId, UsageTypeIds);
+
+        organisation.Addresses[0].Address.Postcode.Should().Be("D02 X-285");
     }
 
     [Fact]
@@ -139,14 +177,11 @@ public class CreateOrganisationExtensionsTests
             new AddressRequest
             {
                 AddressTypes = [AddressType.Registered],
-                SubBuildingName = " Unit 4 ",
-                BuildingName = " Mill House ",
-                BuildingNumber = " 12A ",
-                Street = " High Street ",
-                Locality = " Testville ",
-                Region = " Testshire ",
-                PostalCode = " ab1\t 2cd ",
-                PoBox = " PO Box 99 ",
+                AddressLine1 = " 12A High Street ",
+                AddressLine2 = " Mill Lane ",
+                TownOrCity = " Testville ",
+                County = " Testshire ",
+                Postcode = " ab1-2cd ",
                 CountryIso = " gb ",
             }
         ) with
@@ -165,29 +200,26 @@ public class CreateOrganisationExtensionsTests
         organisation.RegulatorNation.Should().Be("GB-SCT");
 
         var address = organisation.Addresses[0].Address;
-        address.SubBuildingName.Should().Be("Unit 4");
-        address.BuildingName.Should().Be("Mill House");
-        address.BuildingNumber.Should().Be("12A");
-        address.Street.Should().Be("High Street");
-        address.Locality.Should().Be("Testville");
-        address.Region.Should().Be("Testshire");
-        address.PostalCode.Should().Be("AB1 2CD");
-        address.PoBox.Should().Be("PO Box 99");
-        address.CountryIso.Should().Be("GB");
+        address
+            .Should()
+            .BeEquivalentTo(
+                new Address
+                {
+                    Id = address.Id,
+                    AddressLine1 = "12A High Street",
+                    AddressLine2 = "Mill Lane",
+                    TownOrCity = "Testville",
+                    County = "Testshire",
+                    Postcode = "AB1 2CD",
+                    CountryIso = "GB",
+                }
+            );
     }
 
     [Fact]
     public void ToEntity_ShouldStoreBlankOptionalPartsAsNull()
     {
-        var request = Request(
-            Item([AddressType.Principal]) with
-            {
-                SubBuildingName = "",
-                BuildingName = " ",
-                PoBox = "\t",
-                Region = "",
-            }
-        ) with
+        var request = Request(Item([AddressType.Principal]) with { AddressLine2 = " ", County = "\t" }) with
         {
             Name = null,
             TradingName = "Acme",
@@ -200,10 +232,18 @@ public class CreateOrganisationExtensionsTests
         organisation.CompaniesHouseNumber.Should().BeNull();
 
         var address = organisation.Addresses[0].Address;
-        address.SubBuildingName.Should().BeNull();
-        address.BuildingName.Should().BeNull();
-        address.PoBox.Should().BeNull();
-        address.Region.Should().BeNull();
+        address
+            .Should()
+            .BeEquivalentTo(
+                new Address
+                {
+                    Id = address.Id,
+                    AddressLine1 = "12A High Street",
+                    TownOrCity = "Testville",
+                    Postcode = "AB1 2CD",
+                    CountryIso = "GB",
+                }
+            );
     }
 
     [Fact]
@@ -221,24 +261,27 @@ public class CreateOrganisationExtensionsTests
     [Fact]
     public void ToResponse_WithTwoLinksToOneAddress_ShouldGiveOneItemWithBothKindsInOrder()
     {
-        var shared = StoredAddress("12A", "High Street");
-        var other = StoredAddress("12", "Harbour Road");
+        var shared = StoredAddress("12A High Street");
+        var other = StoredAddress("12 Harbour Road");
         var organisation = StoredOrganisation((shared, "REGISTERED"), (other, "CORRESPONDENCE"), (shared, "PRINCIPAL"));
 
         var addresses = organisation.ToResponse().Organisation.Addresses;
 
         addresses.Should().HaveCount(2);
         addresses[0].AddressTypes.Should().Equal(AddressType.Registered, AddressType.Principal);
-        addresses[0].Street.Should().Be("High Street");
+        addresses[0].AddressLine1.Should().Be("12A High Street");
         addresses[1].AddressTypes.Should().Equal(AddressType.Correspondence);
-        addresses[1].Street.Should().Be("Harbour Road");
+        addresses[1].AddressLine1.Should().Be("12 Harbour Road");
     }
 
     [Fact]
-    public void ToResponse_ShouldMapTheOrganisationAndBuildTheAddressLine()
+    public void ToResponse_ShouldMapTheOrganisationAndTheGdsAddress()
     {
         var createdAt = new DateTime(2026, 11, 2, 10, 15, 30, 123, DateTimeKind.Utc);
-        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        var stored = StoredAddress("12A High Street");
+        stored.AddressLine2 = "Mill Lane";
+        stored.County = "Testshire";
+        var organisation = StoredOrganisation((stored, "REGISTERED"));
         organisation.ValidFrom = createdAt;
         organisation.CreatedAt = createdAt;
         organisation.UpdatedAt = createdAt;
@@ -255,14 +298,28 @@ public class CreateOrganisationExtensionsTests
         response.ValidTo.Should().BeNull();
         response.CreatedAt.Should().Be(new DateTimeOffset(createdAt));
         response.UpdatedAt.Should().Be(new DateTimeOffset(createdAt));
-        response.Addresses[0].AddressLine.Should().Be("12A High Street, Testville, AB1 2CD");
-        response.Addresses[0].CountryIso.Should().Be("GB");
+        response
+            .Addresses.Should()
+            .ContainSingle()
+            .Which.Should()
+            .BeEquivalentTo(
+                new AddressResponse
+                {
+                    AddressTypes = [AddressType.Registered],
+                    AddressLine1 = "12A High Street",
+                    AddressLine2 = "Mill Lane",
+                    TownOrCity = "Testville",
+                    County = "Testshire",
+                    Postcode = "AB1 2CD",
+                    CountryIso = "GB",
+                }
+            );
     }
 
     [Fact]
     public void ToResponse_WithAnUnspecifiedKind_ShouldTreatTheTimestampAsUtc()
     {
-        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        var organisation = StoredOrganisation((StoredAddress("12A High Street"), "REGISTERED"));
         organisation.CreatedAt = new DateTime(2026, 11, 2, 10, 15, 30, DateTimeKind.Unspecified);
 
         organisation
@@ -274,7 +331,7 @@ public class CreateOrganisationExtensionsTests
     [Fact]
     public void ToResponse_WithoutTheOrganisationType_ShouldThrow()
     {
-        var organisation = StoredOrganisation((StoredAddress("12A", "High Street"), "REGISTERED"));
+        var organisation = StoredOrganisation((StoredAddress("12A High Street"), "REGISTERED"));
         organisation.OrganisationType = null;
 
         var act = () => organisation.ToResponse();
@@ -285,7 +342,7 @@ public class CreateOrganisationExtensionsTests
     [Fact]
     public void ToResponse_WhenSerialised_ShouldOmitNullMembers()
     {
-        var organisation = StoredOrganisation((StoredAddress("12", "Harbour Road"), "PRINCIPAL"));
+        var organisation = StoredOrganisation((StoredAddress("12 Harbour Road"), "PRINCIPAL"));
         organisation.Name = null;
         organisation.CompaniesHouseNumber = null;
         organisation.TradingName = "Acme";
@@ -300,10 +357,13 @@ public class CreateOrganisationExtensionsTests
         body.GetProperty("regulatorNation").GetString().Should().Be("GB-ENG");
 
         var address = body.GetProperty("addresses")[0];
-        address.TryGetProperty("subBuildingName", out _).Should().BeFalse();
-        address.TryGetProperty("region", out _).Should().BeFalse();
+        foreach (var absent in new[] { "addressLine", "addressLine2", "county" })
+            address.TryGetProperty(absent, out _).Should().BeFalse(absent);
         address.GetProperty("addressTypes")[0].GetString().Should().Be("PRINCIPAL");
-        address.GetProperty("street").GetString().Should().Be("Harbour Road");
+        address.GetProperty("addressLine1").GetString().Should().Be("12 Harbour Road");
+        address.GetProperty("townOrCity").GetString().Should().Be("Testville");
+        address.GetProperty("postcode").GetString().Should().Be("AB1 2CD");
+        address.GetProperty("countryIso").GetString().Should().Be("GB");
     }
 
     private static OrganisationRequest Request(params AddressRequest[] items) =>
@@ -320,21 +380,19 @@ public class CreateOrganisationExtensionsTests
         new()
         {
             AddressTypes = addressTypes,
-            BuildingNumber = "12A",
-            Street = "High Street",
-            Locality = "Testville",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = "12A High Street",
+            TownOrCity = "Testville",
+            Postcode = "AB1 2CD",
             CountryIso = "GB",
         };
 
-    private static Address StoredAddress(string buildingNumber, string street) =>
+    private static Address StoredAddress(string addressLine1) =>
         new()
         {
             Id = Guid.CreateVersion7(),
-            BuildingNumber = buildingNumber,
-            Street = street,
-            Locality = "Testville",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = addressLine1,
+            TownOrCity = "Testville",
+            Postcode = "AB1 2CD",
             CountryIso = "GB",
         };
 

@@ -46,6 +46,10 @@ The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) ch
 
 `db.changelog-1.1.xml` adds the organisation tables: `organisation`, `organisation_type`, `address_usagetype`, `address` and `organisation_address`. The EF Core entities that map them live in `src/Api/Data/Postgres/Entities`.
 
+`db.changelog-1.3.xml` resets the v2 organisation rows (it deletes every `organisation_address`, `organisation` and `address` row) and adds the Government Digital Service (GDS) address columns `address_line_1`, `address_line_2`, `town_or_city`, `county` and `postcode` to `address`.
+
+`db.changelog-1.4.xml` deletes the organisations whose address rows still hold the nine old parts (no `address_line_1`), with their links and those address rows, drops the eight old address columns, rebuilds `ux_address_values` over the six GDS columns, and adds three checks: `address_line_1` and `town_or_city` are not blank, and a `GB` address has a `postcode`.
+
 To change the schema:
 
 - Add a new `changelog/db.changelog-1.N.xml` file (the next number after the latest one) containing the new changesets.
@@ -86,7 +90,7 @@ An endpoint supports v1 only unless it declares otherwise. To support additional
 
 ### API v2
 
-v2 has two endpoints: `POST /organisations`, which creates an organisation in Postgres, and `GET /organisations/{id}`, which reads one from Postgres and returns an `organisations` array with one item, or an empty `404` when no organisation has that id. Send `Accept: application/vnd.defra.waste-organisations+json; version=2` to reach them. Without `version=2` the request is routed as v1: the v1 `GET /organisations/{id}` answers from MongoDB, and v1 has no `POST /organisations`, so a `POST` gets `405 Method Not Allowed` with `Allow: GET`. A version above 2 gets `406`. The v2 OpenAPI document is at `/openapi/v2.json` (v1 stays at `/openapi/v1.json`). The ReDoc page at `/redoc/index.html` has a version dropdown that switches between the two documents, and `/redoc/index.html?spec=v2` opens it on v2. See [specs/0005-REGEN-141-create-an-organisation.md](specs/0005-REGEN-141-create-an-organisation.md) and [specs/0006-REGEN-140-retrieve-organisation-details-based-on-external-org-id.md](specs/0006-REGEN-140-retrieve-organisation-details-based-on-external-org-id.md) for the full design.
+v2 has two endpoints: `POST /organisations`, which creates an organisation in Postgres, and `GET /organisations/{id}`, which reads one from Postgres and returns an `organisations` array with one item, or an empty `404` when no organisation has that id. Send `Accept: application/vnd.defra.waste-organisations+json; version=2` to reach them. Without `version=2` the request is routed as v1: the v1 `GET /organisations/{id}` answers from MongoDB, and v1 has no `POST /organisations`, so a `POST` gets `405 Method Not Allowed` with `Allow: GET`. A version above 2 gets `406`. Each address is sent and returned in the GDS address format: `addressLine1`, `addressLine2`, `townOrCity`, `county`, `postcode` and `countryIso`. The v2 OpenAPI document is at `/openapi/v2.json` (v1 stays at `/openapi/v1.json`). The ReDoc page at `/redoc/index.html` has a version dropdown that switches between the two documents, and `/redoc/index.html?spec=v2` opens it on v2. See [specs/0005-REGEN-141-create-an-organisation.md](specs/0005-REGEN-141-create-an-organisation.md) and [specs/0006-REGEN-140-retrieve-organisation-details-based-on-external-org-id.md](specs/0006-REGEN-140-retrieve-organisation-details-based-on-external-org-id.md) for the full design, and [specs/0007-MAV-42-store-and-return-organisation-addresses-in-gds-address-format.md](specs/0007-MAV-42-store-and-return-organisation-addresses-in-gds-address-format.md) for the address format.
 
 ## Tests
 
