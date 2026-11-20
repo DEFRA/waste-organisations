@@ -42,10 +42,9 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
         new
         {
             addressTypes,
-            buildingNumber = "12",
-            street = "High Street",
-            locality = "Testville",
-            postalCode = "AB1 2CD",
+            addressLine1 = "12 High Street",
+            townOrCity = "Testville",
+            postcode = "AB1 2CD",
             countryIso = "GB",
         };
 
@@ -73,9 +72,8 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
                 new
                 {
                     addressTypes = s_correspondence,
-                    buildingName = "Tower",
-                    street = "Main Road",
-                    locality = "Dublin",
+                    addressLine1 = "Tower, Main Road",
+                    townOrCity = "Dublin",
                     countryIso = "ie",
                 }
             )
@@ -113,7 +111,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
     }
 
     [Fact]
-    public async Task WhenSecondAddressIsUkWithoutPostalCode_ShouldBeValidationProblem()
+    public async Task WhenSecondAddressIsUkWithoutPostcode_ShouldBeValidationProblem()
     {
         var response = await SendPost(
             Ltd(
@@ -121,21 +119,20 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
                 new
                 {
                     addressTypes = s_correspondence,
-                    buildingNumber = "1",
-                    street = "Mill Lane",
-                    locality = "Testville",
+                    addressLine1 = "1 Mill Lane",
+                    townOrCity = "Testville",
                     countryIso = "GB",
                 }
             )
         );
 
-        await ShouldBeValidationProblem(response, "organisation.addresses[1].postalCode");
+        await ShouldBeValidationProblem(response, "organisation.addresses[1].postcode");
     }
 
     // The framework's validation would skip the organisation's rules once the address has an
     // attribute error, hiding the missing tradingName (spec 0005, Decisions)
     [Fact]
-    public async Task WhenStreetAndTradingNameMissing_ShouldReportBoth()
+    public async Task WhenAddressLine1AndTradingNameMissing_ShouldReportBoth()
     {
         var response = await SendPost(
             new
@@ -149,9 +146,8 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
                         new
                         {
                             addressTypes = s_principal,
-                            buildingNumber = "12",
-                            locality = "Testville",
-                            postalCode = "AB1 2CD",
+                            townOrCity = "Testville",
+                            postcode = "AB1 2CD",
                             countryIso = "GB",
                         },
                     },
@@ -159,7 +155,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
             }
         );
 
-        await ShouldBeValidationProblem(response, "organisation.addresses[0].street", "organisation.tradingName");
+        await ShouldBeValidationProblem(response, "organisation.addresses[0].addressLine1", "organisation.tradingName");
     }
 
     [Fact]
@@ -208,7 +204,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
     [InlineData("MalformedJson", "{\"organisation\": ")]
     [InlineData(
         "AddressTypesIsString",
-        """{"organisation":{"name":"Acme Waste Ltd","companiesHouseNumber":"12345678","regulatorNation":"GB-ENG","organisationType":"LTD","addresses":[{"addressTypes":"REGISTERED","buildingNumber":"12","street":"High Street","locality":"Testville","postalCode":"AB1 2CD","countryIso":"GB"}]}}"""
+        """{"organisation":{"name":"Acme Waste Ltd","companiesHouseNumber":"12345678","regulatorNation":"GB-ENG","organisationType":"LTD","addresses":[{"addressTypes":"REGISTERED","addressLine1":"12 High Street","townOrCity":"Testville","postcode":"AB1 2CD","countryIso":"GB"}]}}"""
     )]
     public async Task WhenBodyUnreadable_ShouldBeBadRequestWithDetail(string scenario, string body)
     {
