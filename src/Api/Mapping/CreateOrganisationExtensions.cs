@@ -137,15 +137,11 @@ public static class CreateOrganisationExtensions
         new()
         {
             AddressTypes = addressTypes.ToArray(),
-            AddressLine = AddressLine.Build(address),
-            SubBuildingName = address.SubBuildingName,
-            BuildingName = address.BuildingName,
-            BuildingNumber = address.BuildingNumber,
-            Street = address.Street,
-            PoBox = address.PoBox,
-            Locality = address.Locality,
-            Region = address.Region,
-            PostalCode = address.PostalCode,
+            AddressLine1 = address.AddressLine1,
+            AddressLine2 = address.AddressLine2,
+            TownOrCity = address.TownOrCity,
+            County = address.County,
+            Postcode = address.Postcode,
             CountryIso = address.CountryIso,
         };
 
