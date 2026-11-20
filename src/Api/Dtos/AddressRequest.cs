@@ -1,27 +1,24 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Defra.WasteOrganisations.Api.Dtos.Validation;
 using Defra.WasteOrganisations.Api.Extensions;
 
 namespace Defra.WasteOrganisations.Api.Dtos;
 
 /// <summary>
-/// An address in the Defra standard address model, with the country as a two-letter code, and
-/// the kinds of address it is. At least one of <c>subBuildingName</c>, <c>buildingName</c>,
-/// <c>buildingNumber</c> and <c>poBox</c> must be given, so the premises can be identified.
+/// An address in the "multiple text inputs" format of the GOV.UK Design System pattern "Addresses",
+/// with the country as a two-letter code, and the kinds of address it is.
 /// </summary>
 public record AddressRequest : IValidatableObject
 {
     // The JSON member names, shared by the attributes and the validation rules so an error key or
     // message cannot name a member the wire does not have
     internal const string AddressTypesMember = "addressTypes";
-    internal const string SubBuildingNameMember = "subBuildingName";
-    internal const string BuildingNameMember = "buildingName";
-    internal const string BuildingNumberMember = "buildingNumber";
-    internal const string StreetMember = "street";
-    internal const string PoBoxMember = "poBox";
-    internal const string LocalityMember = "locality";
-    internal const string RegionMember = "region";
-    internal const string PostalCodeMember = "postalCode";
+    internal const string AddressLine1Member = "addressLine1";
+    internal const string AddressLine2Member = "addressLine2";
+    internal const string TownOrCityMember = "townOrCity";
+    internal const string CountyMember = "county";
+    internal const string PostcodeMember = "postcode";
     internal const string CountryIsoMember = "countryIso";
 
     /// <summary>
@@ -32,51 +29,39 @@ public record AddressRequest : IValidatableObject
     [MinLength(1, ErrorMessage = "The {0} field must hold at least one item.")]
     public List<AddressType>? AddressTypes { get; init; }
 
-    /// <summary>A flat or unit within the building.</summary>
-    [JsonPropertyName(SubBuildingNameMember)]
-    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
-    public string? SubBuildingName { get; init; }
-
-    /// <summary>The name of the building.</summary>
-    [JsonPropertyName(BuildingNameMember)]
-    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
-    public string? BuildingName { get; init; }
-
-    /// <summary>The building number, which may hold letters or a range, such as <c>12A</c> or <c>3-5</c>.</summary>
-    [JsonPropertyName(BuildingNumberMember)]
-    [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
-    public string? BuildingNumber { get; init; }
-
-    /// <summary>The street.</summary>
-    [JsonPropertyName(StreetMember)]
+    /// <summary>The first line of the address, such as the building and the street.</summary>
+    [JsonPropertyName(AddressLine1Member)]
     [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     [Required]
-    public string? Street { get; init; }
+    public string? AddressLine1 { get; init; }
 
-    /// <summary>A PO box.</summary>
-    [JsonPropertyName(PoBoxMember)]
+    /// <summary>The second line of the address.</summary>
+    [JsonPropertyName(AddressLine2Member)]
     [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
-    public string? PoBox { get; init; }
+    public string? AddressLine2 { get; init; }
 
     /// <summary>The town or city.</summary>
-    [JsonPropertyName(LocalityMember)]
+    [JsonPropertyName(TownOrCityMember)]
     [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
     [Required]
-    public string? Locality { get; init; }
+    public string? TownOrCity { get; init; }
 
-    /// <summary>The county, state or province.</summary>
-    [JsonPropertyName(RegionMember)]
+    /// <summary>The county; for an address outside the UK, the state or province.</summary>
+    [JsonPropertyName(CountyMember)]
     [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
-    public string? Region { get; init; }
+    public string? County { get; init; }
 
     /// <summary>
-    /// The postcode. Required when <c>countryIso</c> is <c>GB</c>; optional otherwise, because some
-    /// countries have no postcodes. Not checked against a format. Upper-cased, with each run of
-    /// whitespace inside it made one space, before it is stored and compared with stored addresses.
+    /// The postcode. Required when <c>countryIso</c> is <c>GB</c>: every character that is not a
+    /// letter or a digit is removed, the rest is upper-cased and must be a full UK postcode, such as
+    /// <c>AB1 2CD</c>, and it is stored as the outward code, one space and the inward code, so
+    /// <c>ab1-2cd</c> is stored as <c>AB1 2CD</c>. The format only is checked, not that the postcode
+    /// exists. Optional and not checked against a format otherwise, because some countries have no
+    /// postcodes; upper-cased, with each run of whitespace inside it made one space.
     /// </summary>
-    [JsonPropertyName(PostalCodeMember)]
+    [JsonPropertyName(PostcodeMember)]
     [MaxLength(OrganisationRequest.MaxTextLength, ErrorMessage = OrganisationRequest.MaxTextLengthMessage)]
-    public string? PostalCode { get; init; }
+    public string? Postcode { get; init; }
 
     /// <summary>
     /// The country as an ISO 3166-1 alpha-2 code, upper-cased before it is checked. <c>GB</c> is
@@ -87,7 +72,7 @@ public record AddressRequest : IValidatableObject
     public string? CountryIso { get; init; }
 
     // Member names are the JSON property names, so the request validator can key each error by its
-    // JSON path. `street`, `locality` and `countryIso` blank or missing are left to [Required]
+    // JSON path. `addressLine1`, `townOrCity` and `countryIso` blank or missing are left to [Required]
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         var repeated = AddressTypes
@@ -110,25 +95,18 @@ public record AddressRequest : IValidatableObject
                 [CountryIsoMember]
             );
 
-        // A blank postcode on a UK address is missing, not absent; on any other address a blank
-        // optional part is stored as null
-        if (countryIso == "GB" && string.IsNullOrWhiteSpace(PostalCode))
-            yield return new ValidationResult(
-                $"The {PostalCodeMember} field is required when {CountryIsoMember} is GB.",
-                [PostalCodeMember]
-            );
+        if (countryIso != "GB")
+            yield break;
 
-        // Only the API enforces this since changelog 1.3 dropped its check (spec 0007, Risks). No
-        // single field is at fault, so the error is reported under the address item itself
-        if (
-            string.IsNullOrWhiteSpace(SubBuildingName)
-            && string.IsNullOrWhiteSpace(BuildingName)
-            && string.IsNullOrWhiteSpace(BuildingNumber)
-            && string.IsNullOrWhiteSpace(PoBox)
-        )
+        if (UkPostcode.IsBlank(Postcode))
             yield return new ValidationResult(
-                $"At least one of {SubBuildingNameMember}, {BuildingNameMember}, {BuildingNumberMember} "
-                    + $"and {PoBoxMember} is required."
+                $"The {PostcodeMember} field is required when {CountryIsoMember} is GB.",
+                [PostcodeMember]
+            );
+        else if (!UkPostcode.TryNormalise(Postcode, out _))
+            yield return new ValidationResult(
+                $"The {PostcodeMember} field must be a full UK postcode.",
+                [PostcodeMember]
             );
     }
 
