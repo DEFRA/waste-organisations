@@ -143,6 +143,20 @@ public class OrganisationDetailsExtensionsTests
         item.TryGetProperty("addressLine", out _).Should().BeFalse();
     }
 
+    // A row the old code stored between the deploys of slices 1 and 2 has none of the GDS parts
+    // (spec 0007, Risks)
+    [Fact]
+    public void ToDetailsResponse_WithNoGdsParts_ShouldGiveTypesAndCountryOnly()
+    {
+        var address = new Address { Id = Guid.CreateVersion7(), CountryIso = "GB" };
+        var organisation = StoredOrganisation((address, "REGISTERED"));
+
+        var json = JsonSerializer.SerializeToElement(organisation.ToDetailsResponse());
+
+        var item = json.GetProperty("organisations")[0].GetProperty("addresses")[0];
+        item.EnumerateObject().Select(member => member.Name).Should().BeEquivalentTo("addressTypes", "countryIso");
+    }
+
     [Fact]
     public void ToDetailsResponse_WithAnUnspecifiedValidTo_ShouldGiveAUtcOffset()
     {
