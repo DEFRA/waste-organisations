@@ -12,52 +12,33 @@ public record AddressResponse
     [JsonPropertyName("addressTypes")]
     public required AddressType[] AddressTypes { get; init; }
 
-    /// <summary>
-    /// The address on one line, computed in postal order with blank parts skipped and without the
-    /// country; never stored.
-    /// </summary>
-    [JsonPropertyName("addressLine")]
-    public required string AddressLine { get; init; }
-
-    /// <summary>A flat or unit within the building.</summary>
-    [JsonPropertyName("subBuildingName")]
+    /// <summary>The first line of the address, such as the building and the street.</summary>
+    [JsonPropertyName("addressLine1")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? SubBuildingName { get; init; }
+    public string? AddressLine1 { get; init; }
 
-    /// <summary>The name of the building.</summary>
-    [JsonPropertyName("buildingName")]
+    /// <summary>The second line of the address.</summary>
+    [JsonPropertyName("addressLine2")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? BuildingName { get; init; }
-
-    /// <summary>The building number.</summary>
-    [JsonPropertyName("buildingNumber")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? BuildingNumber { get; init; }
-
-    /// <summary>The street.</summary>
-    [JsonPropertyName("street")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Street { get; init; }
-
-    /// <summary>A PO box.</summary>
-    [JsonPropertyName("poBox")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? PoBox { get; init; }
+    public string? AddressLine2 { get; init; }
 
     /// <summary>The town or city.</summary>
-    [JsonPropertyName("locality")]
+    [JsonPropertyName("townOrCity")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Locality { get; init; }
+    public string? TownOrCity { get; init; }
 
-    /// <summary>The county, state or province.</summary>
-    [JsonPropertyName("region")]
+    /// <summary>The county; for an address outside the UK, the state or province.</summary>
+    [JsonPropertyName("county")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Region { get; init; }
+    public string? County { get; init; }
 
-    /// <summary>The postcode.</summary>
-    [JsonPropertyName("postalCode")]
+    /// <summary>
+    /// The postcode. A <c>GB</c> postcode is the outward code, one space and the inward code, such
+    /// as <c>AB1 2CD</c>.
+    /// </summary>
+    [JsonPropertyName("postcode")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? PostalCode { get; init; }
+    public string? Postcode { get; init; }
 
     /// <summary>
     /// The country as an ISO 3166-1 alpha-2 code, upper-case. <c>GB</c> is the United Kingdom,

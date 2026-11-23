@@ -17,7 +17,7 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Services;
 // a request that lost the race would. Api.Tests cover the retry's branches with a faked save; this
 // proves the real unique violation is the one the service retries, that the context can save again
 // after it, and that a failed save stores nothing. Address rows are shared and never cleaned up, so
-// each street holds a suffix unique to the test
+// each addressLine1 holds a suffix unique to the test
 public class PostgresOrganisationServiceTests : IntegrationTestBase
 {
     [Fact]
@@ -67,8 +67,8 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
 
         var organisation = await BuildAsync(
             service,
-            Address(suffix, "12", AddressType.Registered),
-            Address(suffix, "14", AddressType.Principal)
+            Address(suffix, "12 High Street", AddressType.Registered),
+            Address(suffix, "14 High Street", AddressType.Principal)
         );
         organisation.Addresses[1].UsageTypeId = organisation.Addresses[0].UsageTypeId;
 
@@ -95,7 +95,7 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
 
         await using var scope = provider.CreateAsyncScope();
         var service = new MissingLookUpsService(scope.ServiceProvider.GetRequiredService<PostgresDbContext>(), 2);
-        var organisation = await BuildAsync(service, Address(suffix, "12", AddressType.Registered));
+        var organisation = await BuildAsync(service, Address(suffix, "12 High Street", AddressType.Registered));
 
         var create = () => service.CreateAsync(organisation, TestContext.Current.CancellationToken);
 
@@ -121,7 +121,7 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
             scope.ServiceProvider.GetRequiredService<PostgresDbContext>(),
             missedLookUps
         );
-        var organisation = await BuildAsync(service, Address(suffix, "12", AddressType.Registered));
+        var organisation = await BuildAsync(service, Address(suffix, "12 High Street", AddressType.Registered));
 
         return (await service.CreateAsync(organisation, TestContext.Current.CancellationToken), service);
     }
@@ -147,20 +147,19 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
         );
     }
 
-    private static AddressRequest Address(string suffix, string buildingNumber, AddressType kind) =>
+    private static AddressRequest Address(string suffix, string addressLine1, AddressType kind) =>
         new()
         {
             AddressTypes = [kind],
-            BuildingNumber = buildingNumber,
-            Street = $"High Street {suffix}",
-            Locality = "Testville",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = $"{addressLine1} {suffix}",
+            TownOrCity = "Testville",
+            Postcode = "AB1 2CD",
             CountryIso = "GB",
         };
 
     private static Task<int> CountAddressesAsync(PostgresDbContext context, string suffix) =>
         context.Addresses.CountAsync(
-            address => address.Street != null && address.Street.Contains(suffix),
+            address => address.AddressLine1 != null && address.AddressLine1.Contains(suffix),
             TestContext.Current.CancellationToken
         );
 
