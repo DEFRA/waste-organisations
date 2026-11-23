@@ -24,10 +24,18 @@ public class DatabaseChangelogTests : IntegrationTestBase
         context.Model.GetEntityTypes().Should().HaveCount(5);
     }
 
-    // The v1.0.0 tag is the only thing the baseline changeset writes, so finding it proves the
-    // liquibase service in Compose applied changelog/ before the API started
-    [Fact]
-    public async Task DatabaseChangelog_ShouldHoldBaselineTag()
+    // Each tag is the last changeset of its changelog, so finding it proves that changelog applied
+    // in full through the liquibase service in Compose:
+    // - v1.0.0: the baseline, applied before the API started
+    // - v1.1.0: the organisation schema
+    // - v1.2.0: the v2 create schema (shared addresses, the ten organisation types)
+    // - v1.3.0: the GDS address columns and the fourteen-column ux_address_values
+    [Theory]
+    [InlineData("v1.0.0")]
+    [InlineData("v1.1.0")]
+    [InlineData("v1.2.0")]
+    [InlineData("v1.3.0")]
+    public async Task DatabaseChangelog_ShouldHoldTag(string tag)
     {
         await using var provider = BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
@@ -37,39 +45,7 @@ public class DatabaseChangelogTests : IntegrationTestBase
             .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        tags.Should().Contain("v1.0.0");
-    }
-
-    // The v1.1.0 tag is the last changeset of db.changelog-1.1.xml, so finding it proves the
-    // organisation schema changelog applied in full
-    [Fact]
-    public async Task DatabaseChangelog_ShouldHoldOrganisationSchemaTag()
-    {
-        await using var provider = BuildServiceProvider();
-        await using var scope = provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-
-        var tags = await context
-            .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
-            .ToListAsync(TestContext.Current.CancellationToken);
-
-        tags.Should().Contain("v1.1.0");
-    }
-
-    // The v1.2.0 tag is the last changeset of db.changelog-1.2.xml, so finding it proves the v2
-    // create schema (shared addresses, the ten organisation types) applied in full
-    [Fact]
-    public async Task DatabaseChangelog_ShouldHoldV120Tag()
-    {
-        await using var provider = BuildServiceProvider();
-        await using var scope = provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-
-        var tags = await context
-            .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
-            .ToListAsync(TestContext.Current.CancellationToken);
-
-        tags.Should().Contain("v1.2.0");
+        tags.Should().Contain(tag);
     }
 
     // The changelog seeds organisation_type with exactly the codes the API publishes, so the

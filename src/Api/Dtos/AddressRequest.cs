@@ -118,8 +118,8 @@ public record AddressRequest : IValidatableObject
                 [PostalCodeMember]
             );
 
-        // Mirrors ck_address_premises, so a valid request cannot fail that constraint. No single
-        // field is at fault, so the error is reported under the address item itself
+        // Only the API enforces this since changelog 1.3 dropped its check (spec 0007, Risks). No
+        // single field is at fault, so the error is reported under the address item itself
         if (
             string.IsNullOrWhiteSpace(SubBuildingName)
             && string.IsNullOrWhiteSpace(BuildingName)
