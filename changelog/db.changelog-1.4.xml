@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <!-- Removes what the old code stored between the deployments of slices 1 and 2 (spec 0007, Risks). The links are
+       the only way to find those organisations, so their ids are collected before the links are deleted -->
+  <changeSet id="1.4-delete-nine-part-rows" author="waste-organisations">
+    <sql>
+      CREATE TEMPORARY TABLE nine_part_organisation ON COMMIT DROP AS
+        SELECT DISTINCT organisation_address.organisation_id
+        FROM organisation_address
+        JOIN address ON address.id = organisation_address.address_id
+        WHERE address.address_line_1 IS NULL;
+      DELETE FROM organisation_address WHERE organisation_id IN (SELECT organisation_id FROM nine_part_organisation);
+      DELETE FROM organisation WHERE id IN (SELECT organisation_id FROM nine_part_organisation);
+      DELETE FROM address WHERE address_line_1 IS NULL;
+    </sql>
+    <rollback />
+  </changeSet>
+
+  <!-- The index is dropped explicitly, not with its columns, so the rollback recreates a known index (spec 0007,
+       Schema). The rollback restores the columns empty -->
+  <changeSet id="1.4-address-drop-part-columns" author="waste-organisations">
+    <sql>DROP INDEX ux_address_values;</sql>
+    <dropColumn tableName="address">
+      <column name="sub_building_name" />
+      <column name="building_name" />
+      <column name="building_number" />
+      <column name="street" />
+      <column name="po_box" />
+      <column name="locality" />
+      <column name="region" />
+      <column name="postal_code" />
+    </dropColumn>
+    <rollback>
+      <addColumn tableName="address">
+        <column name="sub_building_name" type="text" />
+        <column name="building_name" type="text" />
+        <column name="building_number" type="text" />
+        <column name="street" type="text" />
+        <column name="po_box" type="text" />
+        <column name="locality" type="text" />
+        <column name="region" type="text" />
+        <column name="postal_code" type="text" />
+      </addColumn>
+      <sql>
+        CREATE UNIQUE INDEX ux_address_values ON address (sub_building_name, building_name, building_number, street, locality, region, postal_code, po_box, country_iso, address_line_1, address_line_2, town_or_city, county, postcode) NULLS NOT DISTINCT;
+      </sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.4-ux-address-values" author="waste-organisations">
+    <sql>
+      CREATE UNIQUE INDEX ux_address_values ON address (address_line_1, address_line_2, town_or_city, county, postcode, country_iso) NULLS NOT DISTINCT;
+    </sql>
+    <rollback>
+      <sql>DROP INDEX ux_address_values;</sql>
+    </rollback>
+  </changeSet>
+
+  <!-- The API checks the UK postcode format; the database checks only that a GB address has one -->
+  <changeSet id="1.4-address-gds-checks" author="waste-organisations">
+    <sql>
+      ALTER TABLE address ADD CONSTRAINT ck_address_address_line_1 CHECK (COALESCE(btrim(address_line_1), '') &lt;&gt; '');
+      ALTER TABLE address ADD CONSTRAINT ck_address_town_or_city CHECK (COALESCE(btrim(town_or_city), '') &lt;&gt; '');
+      ALTER TABLE address ADD CONSTRAINT ck_address_uk_postcode CHECK (country_iso IS DISTINCT FROM 'GB' OR COALESCE(btrim(postcode), '') &lt;&gt; '');
+    </sql>
+    <rollback>
+      <sql>
+        ALTER TABLE address DROP CONSTRAINT ck_address_address_line_1;
+        ALTER TABLE address DROP CONSTRAINT ck_address_town_or_city;
+        ALTER TABLE address DROP CONSTRAINT ck_address_uk_postcode;
+      </sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.4-tag-v1.4.0" author="waste-organisations">
+    <tagDatabase tag="v1.4.0" />
+  </changeSet>
+</databaseChangeLog>

@@ -58,19 +58,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
         {
             var actual = read.Addresses.Single(a => a.Id == expected.Id);
             actual.UsageTypeId.Should().Be(expected.UsageTypeId);
-            actual.Address.SubBuildingName.Should().Be(expected.Address.SubBuildingName);
-            actual.Address.BuildingName.Should().Be(expected.Address.BuildingName);
-            actual.Address.BuildingNumber.Should().Be(expected.Address.BuildingNumber);
-            actual.Address.Street.Should().Be(expected.Address.Street);
-            actual.Address.Locality.Should().Be(expected.Address.Locality);
-            actual.Address.Region.Should().Be(expected.Address.Region);
-            actual.Address.PostalCode.Should().Be(expected.Address.PostalCode);
             actual.Address.AddressLine1.Should().Be(expected.Address.AddressLine1);
             actual.Address.AddressLine2.Should().Be(expected.Address.AddressLine2);
             actual.Address.TownOrCity.Should().Be(expected.Address.TownOrCity);
             actual.Address.County.Should().Be(expected.Address.County);
             actual.Address.Postcode.Should().Be(expected.Address.Postcode);
-            actual.Address.PoBox.Should().Be(expected.Address.PoBox);
             actual.Address.CountryIso.Should().Be(expected.Address.CountryIso);
             actual.Address.CreatedAt.Should().Be(expected.Address.CreatedAt);
             actual.Address.UpdatedAt.Should().Be(expected.Address.UpdatedAt);
@@ -242,8 +234,10 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 Address = new Address
                 {
                     Id = Guid.CreateVersion7(),
-                    BuildingNumber = "1",
-                    Street = Unique("High Street"),
+                    AddressLine1 = Unique("1 High Street"),
+                    TownOrCity = "Testville",
+                    Postcode = "AB1 2CD",
+                    CountryIso = "GB",
                 },
             }
         );
@@ -370,15 +364,100 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await ShouldViolateAsync(save, "ck_address_country_iso");
     }
 
-    // Real addresses without a building number, a street or a postcode are accepted: changelog 1.3
-    // dropped the premises and UK postcode checks, and the API validates the UK postcode
+    // addressLine1 is required: ck_address_address_line_1 rejects a null, empty or blank value
     [Theory]
-    [InlineData("named building only")]
-    [InlineData("PO box")]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Address_WithoutAddressLine1_IsRejectedByCheckConstraint(string? addressLine1)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var address = NewAddress("High Street");
+        address.AddressLine1 = addressLine1;
+        context.Addresses.Add(address);
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ck_address_address_line_1");
+    }
+
+    // townOrCity is required: ck_address_town_or_city rejects a null, empty or blank value
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Address_WithoutTownOrCity_IsRejectedByCheckConstraint(string? townOrCity)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var address = NewAddress("High Street");
+        address.TownOrCity = townOrCity;
+        context.Addresses.Add(address);
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ck_address_town_or_city");
+    }
+
+    // A GB address needs a postcode: ck_address_uk_postcode rejects a null, empty or blank value
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Address_GbWithoutPostcode_IsRejectedByCheckConstraint(string? postcode)
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var address = NewAddress("High Street");
+        address.Postcode = postcode;
+        context.Addresses.Add(address);
+
+        var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ck_address_uk_postcode");
+    }
+
+    // Changelog 1.4 drops the eight old address parts: the address table holds the six GDS columns and none of the eight old ones
+    [Fact]
+    public async Task Address_Table_HasTheGdsColumnsAndNoOldParts()
+    {
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+
+        var columns = await context
+            .Database.SqlQueryRaw<string>(
+                "SELECT column_name AS \"Value\" FROM information_schema.columns WHERE table_name = 'address'"
+            )
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        columns
+            .Should()
+            .NotContain([
+                "sub_building_name",
+                "building_name",
+                "building_number",
+                "street",
+                "po_box",
+                "locality",
+                "region",
+                "postal_code",
+            ]);
+        columns
+            .Should()
+            .Contain(["address_line_1", "address_line_2", "town_or_city", "county", "postcode", "country_iso"]);
+    }
+
+    // Addresses without the optional parts are accepted: an overseas address needs no postcode,
+    // and addressLine2 and county are optional. The changelog 1.4 checks are tested apart
+    [Theory]
     [InlineData("overseas without postcode")]
-    [InlineData("no premises")]
-    [InlineData("UK without postcode")]
-    public async Task Address_WithoutBuildingNumberOrPostcode_IsAccepted(string kind)
+    [InlineData("no addressLine2 or county")]
+    public async Task Address_WithoutOptionalParts_IsAccepted(string kind)
     {
         await using var provider = BuildServiceProvider();
 
@@ -390,70 +469,40 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await save.Should().NotThrowAsync();
     }
 
-    // A unique locality keeps the accepted cases clear of ux_address_values on a second run
-    private static Address AddressOfKind(string kind)
-    {
-        var address = kind switch
+    // A unique townOrCity keeps the accepted cases clear of ux_address_values on a second run
+    private static Address AddressOfKind(string kind) =>
+        kind switch
         {
-            "named building only" => new Address
-            {
-                Id = Guid.CreateVersion7(),
-                BuildingName = "Rose Farm",
-                Locality = "Little Testing",
-                PostalCode = "AB1 2CD",
-                CountryIso = "GB",
-            },
-            "PO box" => new Address
-            {
-                Id = Guid.CreateVersion7(),
-                PoBox = "PO Box 99",
-                Locality = "Testville",
-                PostalCode = "AB1 9ZZ",
-                CountryIso = "GB",
-            },
             "overseas without postcode" => new Address
             {
                 Id = Guid.CreateVersion7(),
-                BuildingNumber = "12",
-                Street = "Harbour Road",
-                Locality = "Hong Kong",
+                AddressLine1 = "12 Harbour Road",
+                TownOrCity = Unique("Hong Kong"),
                 CountryIso = "HK",
             },
-            "no premises" => new Address
+            "no addressLine2 or county" => new Address
             {
                 Id = Guid.CreateVersion7(),
-                Street = "High Street",
-                PostalCode = "AB1 2CD",
-                CountryIso = "GB",
-            },
-            "UK without postcode" => new Address
-            {
-                Id = Guid.CreateVersion7(),
-                BuildingNumber = "1",
-                Street = "High Street",
+                AddressLine1 = "1 High Street",
+                TownOrCity = Unique("Testville"),
+                Postcode = "AB1 2CD",
                 CountryIso = "GB",
             },
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
-        address.Locality = Unique(address.Locality ?? "Testville");
-        return address;
-    }
 
-    // An address is stored once: ux_address_values, over fourteen parts since changelog 1.3, rejects
-    // a second row with the same fourteen parts, and with NULLS NOT DISTINCT an absent part equals an
+    // An address is stored once: ux_address_values, over six parts since changelog 1.4, rejects
+    // a second row with the same six parts, and with NULLS NOT DISTINCT an absent part equals an
     // absent part, which a plain unique index would let through
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Address_WithTheSameFourteenParts_IsRejectedByUniqueIndex(bool withAbsentParts)
+    public async Task Address_WithTheSameSixParts_IsRejectedByUniqueIndex(bool withAbsentParts)
     {
         await using var provider = BuildServiceProvider();
         var address = NewAddress("High Street");
         if (withAbsentParts)
         {
-            address.BuildingName = null;
-            address.Region = null;
-            address.PoBox = null;
             address.AddressLine2 = null;
             address.County = null;
         }
@@ -473,24 +522,16 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await ShouldViolateAsync(save, "ux_address_values");
     }
 
-    // Any one of the fourteen parts of changelog 1.3 that differs, in value, in presence or only in
+    // Any one of the six parts of changelog 1.4 that differs, in value, in presence or only in
     // case, makes another address: the comparison is exact, so "High Street" and "HIGH STREET" are two rows
     [Theory]
-    [InlineData("subBuildingName")]
-    [InlineData("buildingName")]
-    [InlineData("buildingNumber")]
-    [InlineData("street")]
-    [InlineData("street in upper case")]
-    [InlineData("locality")]
-    [InlineData("region absent")]
-    [InlineData("postalCode")]
-    [InlineData("poBox")]
-    [InlineData("countryIso")]
     [InlineData("addressLine1")]
+    [InlineData("addressLine1 in upper case")]
     [InlineData("addressLine2 absent")]
     [InlineData("townOrCity")]
     [InlineData("county")]
     [InlineData("postcode")]
+    [InlineData("countryIso")]
     public async Task Address_DifferingInOnePart_IsAccepted(string part)
     {
         await using var provider = BuildServiceProvider();
@@ -498,38 +539,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var other = CopyOf(address);
         switch (part)
         {
-            case "subBuildingName":
-                other.SubBuildingName += " rear";
-                break;
-            case "buildingName":
-                other.BuildingName = "Mill Court";
-                break;
-            case "buildingNumber":
-                other.BuildingNumber = "12B";
-                break;
-            case "street":
-                other.Street = "Low Street";
-                break;
-            case "street in upper case":
-                other.Street = "HIGH STREET";
-                break;
-            case "locality":
-                other.Locality = "Testham";
-                break;
-            case "region absent":
-                other.Region = null;
-                break;
-            case "postalCode":
-                other.PostalCode = "AB1 2CE";
-                break;
-            case "poBox":
-                other.PoBox = "PO Box 100";
-                break;
-            case "countryIso":
-                other.CountryIso = "FR";
-                break;
             case "addressLine1":
-                other.AddressLine1 = "Unit 5, Mill House";
+                other.AddressLine1 = Unique("Unit 5, Mill House");
+                break;
+            case "addressLine1 in upper case":
+                other.AddressLine1 = address.AddressLine1?.ToUpperInvariant();
                 break;
             case "addressLine2 absent":
                 other.AddressLine2 = null;
@@ -542,6 +556,9 @@ public class OrganisationSchemaTests : IntegrationTestBase
                 break;
             case "postcode":
                 other.Postcode = "AB1 2CE";
+                break;
+            case "countryIso":
+                other.CountryIso = "FR";
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(part), part, null);
@@ -596,7 +613,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             .Select(a => a.OrganisationId)
             .ToListAsync(TestContext.Current.CancellationToken);
         var rows = await context.Addresses.CountAsync(
-            a => a.SubBuildingName == firstLink.Address.SubBuildingName,
+            a => a.AddressLine1 == firstLink.Address.AddressLine1,
             TestContext.Current.CancellationToken
         );
 
@@ -646,7 +663,11 @@ public class OrganisationSchemaTests : IntegrationTestBase
         };
     }
 
-    private static OrganisationAddress NewOrganisationAddress(Guid organisationId, Guid usageTypeId, string street)
+    private static OrganisationAddress NewOrganisationAddress(
+        Guid organisationId,
+        Guid usageTypeId,
+        string addressLine1
+    )
     {
         var now = UtcNowMicroseconds();
         return new OrganisationAddress
@@ -654,51 +675,35 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Id = Guid.CreateVersion7(),
             OrganisationId = organisationId,
             UsageTypeId = usageTypeId,
-            Address = NewAddress(street),
+            Address = NewAddress(addressLine1),
             ValidFrom = now,
         };
     }
 
-    // ux_address_values allows one row per set of values, so each address a test inserts carries a
-    // unique sub-building name, and a test that means to share a row reuses the same one
-    private static Address NewAddress(string street, string? countryIso = "GB") =>
+    // ux_address_values allows one row per set of the six parts of changelog 1.4, so each address a
+    // test inserts carries a unique addressLine1, and a test that means to share a row reuses the same one
+    private static Address NewAddress(string addressLine1, string? countryIso = "GB") =>
         new()
         {
             Id = Guid.CreateVersion7(),
-            SubBuildingName = Unique("Unit 4"),
-            BuildingName = "Mill House",
-            BuildingNumber = "12A",
-            Street = street,
-            Locality = "Testville",
-            Region = "Testshire",
-            PostalCode = "AB1 2CD",
-            PoBox = "PO Box 99",
-            CountryIso = countryIso,
-            AddressLine1 = "Unit 4, Mill House",
-            AddressLine2 = "12A High Street",
+            AddressLine1 = Unique(addressLine1),
+            AddressLine2 = "Mill House",
             TownOrCity = "Testville",
             County = "Testshire",
             Postcode = "AB1 2CD",
+            CountryIso = countryIso,
         };
 
     private static Address CopyOf(Address address) =>
         new()
         {
             Id = Guid.CreateVersion7(),
-            SubBuildingName = address.SubBuildingName,
-            BuildingName = address.BuildingName,
-            BuildingNumber = address.BuildingNumber,
-            Street = address.Street,
-            Locality = address.Locality,
-            Region = address.Region,
-            PostalCode = address.PostalCode,
-            PoBox = address.PoBox,
-            CountryIso = address.CountryIso,
             AddressLine1 = address.AddressLine1,
             AddressLine2 = address.AddressLine2,
             TownOrCity = address.TownOrCity,
             County = address.County,
             Postcode = address.Postcode,
+            CountryIso = address.CountryIso,
         };
 
     private static string Unique(string value) => $"{value} {Guid.NewGuid():N}";

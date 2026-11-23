@@ -94,7 +94,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         var correspondence = LinkOf(stored, "CORRESPONDENCE");
         correspondence.AddressId.Should().NotBe(registered.AddressId);
 
-        // Equivalence with a new Address also proves the old columns stay null
         registered
             .Address.Should()
             .BeEquivalentTo(
@@ -344,8 +343,6 @@ public class CreateOrganisationTests : IntegrationTestBase
         var stored = await ReadStoredAsync(created.Id);
         stored.ValidFrom.Should().Be(created.ValidFrom.UtcDateTime);
         var address = stored.Addresses.Single().Address;
-        address.Street.Should().BeNull();
-        address.PostalCode.Should().BeNull();
         address.Postcode.Should().Be("AB1 2CD");
     }
 
