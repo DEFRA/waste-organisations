@@ -199,6 +199,8 @@ public class CreateOrganisationExtensionsTests
         organisation.CompaniesHouseNumber.Should().Be("SC123456");
         organisation.RegulatorNation.Should().Be("GB-SCT");
 
+        // The expected address leaves the eight old properties null, so the comparison proves
+        // nothing is written to them
         var address = organisation.Addresses[0].Address;
         address
             .Should()
