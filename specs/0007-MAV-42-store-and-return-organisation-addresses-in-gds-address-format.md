@@ -80,7 +80,7 @@ The check is of the format only. A well-formed postcode that does not exist is a
 
 For any other `countryIso`, `postcode` is optional and is not checked against a format; it is upper-cased with each run of whitespace inside it made one space, as `postalCode` is today. When `countryIso` is missing or invalid, only that error is reported and the postcode is not checked.
 
-The rule lives in one place, `src/Api/Dtos/Validation/UkPostcode.cs` (`static bool TryNormalise(string? value, out string? postcode)`), used by the validation rule on `AddressRequest` and by the mapping. The same class exposes `static bool IsBlank(string? value)`, true when nothing is left after step 1, so the validation rule can tell the "required" case from the "full UK postcode" case (planning decision, 20 November 2026).
+The rule lives in one place, `src/Api/Dtos/Validation/UkPostcode.cs` (`static bool TryNormalise(string? value, out string? postcode)`), used by the validation rule on `AddressRequest` and by the mapping. The same class exposes `static bool IsBlank(string? value)`, true when nothing is left after step 1, so the validation rule can tell the "required" case from the "full UK postcode" case (Decisions, "Blank postcode").
 
 ### Address equality
 
@@ -147,7 +147,7 @@ Two new files, each included at the end of `changelog/db.changelog.xml`. Check c
 
 ### OpenAPI
 
-`/openapi/v2.json`: the `AddressRequest` and `AddressResponse` schemas carry the GDS members; in `AddressRequest`, `addressLine1`, `townOrCity`, `countryIso` and `addressTypes` are required; in `AddressResponse`, only `addressTypes` is required and every GDS member is nullable, like `countryIso` today, because until changelog 1.4 adds its checks a row written by the old code has no `address_line_1` (Risks) and is returned with its types and country only (planning decision, 20 November 2026); the `postcode` description states the rules of Postcodes; `addressLine` and the old parts are gone. `OpenApiTests.OpenApiV2_VerifyAsExpected` is re-verified in slice 2 after its diff is read. `/openapi/v1.json` does not change: `OpenApi_VerifyAsExpected` and X-CONTRACT-01 pass with no diff.
+`/openapi/v2.json`: the `AddressRequest` and `AddressResponse` schemas carry the GDS members; in `AddressRequest`, `addressLine1`, `townOrCity`, `countryIso` and `addressTypes` are required; in `AddressResponse`, only `addressTypes` is required and every GDS member is nullable, like `countryIso` today, because until changelog 1.4 adds its checks a row written by the old code has no `address_line_1` (Risks) and is returned with its types and country only (Decisions, "Response members"); the `postcode` description states the rules of Postcodes; `addressLine` and the old parts are gone. `OpenApiTests.OpenApiV2_VerifyAsExpected` is re-verified in slice 2 after its diff is read. `/openapi/v1.json` does not change: `OpenApi_VerifyAsExpected` and X-CONTRACT-01 pass with no diff.
 
 ### Tests
 
@@ -231,6 +231,9 @@ All taken in refinement on 19 November 2026 unless a date is given.
 | Index name | `ux_address_values` keeps its name through 1.3 and 1.4, so the create's retry needs no change |
 | Column names | `address_line_1`, `address_line_2`, `town_or_city`, `county`, `postcode`: the wire names in snake case |
 | Priority | P1, not Jira's "Lowest" |
+| Response members | In the v2 `AddressResponse` only `addressTypes` is required and every GDS member is nullable, so an address the old code stored between the deploys of slices 1 and 2, which has no `address_line_1`, is returned with its types and country only until changelog 1.4 deletes it (planning decision of 20 November 2026, agreed in the review of slice 2 that day) |
+| Blank postcode | `UkPostcode.IsBlank` is true when nothing is left of a postcode once every character that is not a letter or a digit is removed, so a `GB` postcode such as `-` gets the "required" message rather than the "full UK postcode" one (planning decision of 20 November 2026, agreed in the review of slice 2 that day) |
+| `MalformedJson` snapshot | The `MalformedJson` scenario of `CreateOrganisationErrorTests.UnreadableBody_ShouldBeBadRequestWithDetail` is re-verified in slice 2, because its truncated request body is shorter in the GDS fields and only the byte position in the parser's message changes (accepted by the developer on 20 November 2026) |
 
 ## Open Questions
 
