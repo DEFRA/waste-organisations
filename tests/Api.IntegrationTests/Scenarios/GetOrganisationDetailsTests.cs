@@ -48,7 +48,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var addresses = organisation["addresses"]!.AsArray();
         addresses.Should().HaveCount(2);
         foreach (var address in addresses)
-            ShouldHaveNone(address!.AsObject(), "validFrom", "validTo");
+            ShouldHaveNone(address!.AsObject(), "validFrom", "validTo", "addressLine", "street");
     }
 
     // Any form of the GUID the route accepts finds the organisation, which comes back with its id
@@ -90,7 +90,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var address = (await ReadOrganisationAsync(response)).Addresses.Should().ContainSingle().Subject;
-        address.Street.Should().Be($"High Street {registeredSuffix}");
+        address.AddressLine1.Should().Be($"12 High Street {registeredSuffix}");
         address.AddressTypes.Should().BeEquivalentTo([AddressType.Registered, AddressType.Principal]);
     }
 
@@ -133,10 +133,9 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
                     Address = new StoredAddress
                     {
                         Id = Guid.NewGuid(),
-                        BuildingNumber = "34",
-                        Street = $"Low Road {newSuffix}",
-                        Locality = "Testville",
-                        PostalCode = "AB3 4CD",
+                        AddressLine1 = $"34 Low Road {newSuffix}",
+                        TownOrCity = "Testville",
+                        Postcode = "AB3 4CD",
                         CountryIso = "GB",
                     },
                 }
@@ -151,13 +150,13 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         addresses
             .Should()
             .ContainSingle(address => address.AddressTypes.Contains(AddressType.Correspondence))
-            .Which.Street.Should()
-            .Be($"Low Road {newSuffix}");
+            .Which.AddressLine1.Should()
+            .Be($"34 Low Road {newSuffix}");
         addresses
             .Should()
             .ContainSingle(address => address.AddressTypes.Contains(AddressType.Registered))
-            .Which.Street.Should()
-            .Be($"High Street {registeredSuffix}");
+            .Which.AddressLine1.Should()
+            .Be($"12 High Street {registeredSuffix}");
     }
 
     // The links' valid_from is not part of the response, so it never splits an address in two
@@ -304,10 +303,9 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         new
         {
             addressTypes,
-            buildingNumber = "12",
-            street = $"High Street {suffix}",
-            locality = "Testville",
-            postalCode = "AB1 2CD",
+            addressLine1 = $"12 High Street {suffix}",
+            townOrCity = "Testville",
+            postcode = "AB1 2CD",
             countryIso = "GB",
         };
 
