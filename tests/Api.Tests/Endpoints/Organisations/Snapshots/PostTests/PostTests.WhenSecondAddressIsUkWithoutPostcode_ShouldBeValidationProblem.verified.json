@@ -3,8 +3,8 @@
   "title": "One or more validation errors occurred.",
   "status": 400,
   "errors": {
-    "organisation.addresses[1].street": [
-      "The street field is required."
+    "organisation.addresses[1].postcode": [
+      "The postcode field is required when countryIso is GB."
     ]
   },
   "traceId": "{Scrubbed}"

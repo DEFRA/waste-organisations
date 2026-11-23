@@ -129,23 +129,21 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
         context.AddressUsageTypes.AsNoTracking().ToListAsync(cancellationToken);
 
     /// <summary>
-    /// The stored <c>address</c> row holding the candidate's nine parts, untracked, or null. EF
-    /// Core turns a null part into <c>IS NULL</c>, so <c>ux_address_values</c> serves the query;
-    /// that index also means there is at most one such row.
+    /// The stored <c>address</c> row holding the candidate's six parts (spec 0007, Decisions),
+    /// untracked, or null. EF Core turns a null part into <c>IS NULL</c>, so
+    /// <c>ux_address_values</c> serves the query; that index also means there is at most one such
+    /// row.
     /// </summary>
     protected virtual Task<Address?> FindAddressAsync(Address candidate, CancellationToken cancellationToken) =>
         context
             .Addresses.AsNoTracking()
             .FirstOrDefaultAsync(
                 address =>
-                    address.SubBuildingName == candidate.SubBuildingName
-                    && address.BuildingName == candidate.BuildingName
-                    && address.BuildingNumber == candidate.BuildingNumber
-                    && address.Street == candidate.Street
-                    && address.Locality == candidate.Locality
-                    && address.Region == candidate.Region
-                    && address.PostalCode == candidate.PostalCode
-                    && address.PoBox == candidate.PoBox
+                    address.AddressLine1 == candidate.AddressLine1
+                    && address.AddressLine2 == candidate.AddressLine2
+                    && address.TownOrCity == candidate.TownOrCity
+                    && address.County == candidate.County
+                    && address.Postcode == candidate.Postcode
                     && address.CountryIso == candidate.CountryIso,
                 cancellationToken
             );
@@ -166,7 +164,8 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
 
         organisation.OrganisationType = organisationType;
 
-        // Distinct candidates differ in at least one of the nine parts, so no two find the same row
+        // Distinct candidates differ in at least one of the six parts (spec 0007, Decisions), so no
+        // two find the same row
         var addresses = new Dictionary<Address, Address>(ReferenceEqualityComparer.Instance);
 
         foreach (var (link, candidate) in links)

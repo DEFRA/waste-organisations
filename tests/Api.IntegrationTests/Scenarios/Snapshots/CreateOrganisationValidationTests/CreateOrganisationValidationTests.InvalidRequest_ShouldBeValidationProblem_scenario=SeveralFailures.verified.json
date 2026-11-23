@@ -12,11 +12,11 @@
     "organisation.companiesHouseNumber": [
       "The companiesHouseNumber field must be absent for organisation type SOLE_TRADER."
     ],
-    "organisation.addresses[0].street": [
-      "The street field is required."
+    "organisation.addresses[0].addressLine1": [
+      "The addressLine1 field is required."
     ],
-    "organisation.addresses[1].postalCode": [
-      "The postalCode field is required when countryIso is GB."
+    "organisation.addresses[1].postcode": [
+      "The postcode field is required when countryIso is GB."
     ]
   },
   "traceId": "{Scrubbed}"

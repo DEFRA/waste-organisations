@@ -13,10 +13,9 @@ public class CreateOrganisationRequestValidatorTests
         new()
         {
             AddressTypes = [.. kinds],
-            BuildingNumber = "12",
-            Street = "High Street",
-            Locality = "Testville",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = "12 High Street",
+            TownOrCity = "Testville",
+            Postcode = "AB1 2CD",
             CountryIso = "GB",
         };
 
@@ -364,12 +363,14 @@ public class CreateOrganisationRequestValidatorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
-    public void Validate_UkAddressWithoutPostcode_ShouldReportPostalCode(string? postalCode)
+    [InlineData("---")]
+    [InlineData("( ).")]
+    public void Validate_UkAddressWithoutPostcode_ShouldReportPostcode(string? postcode)
     {
         var errors = Validate(
             Ltd() with
             {
-                Addresses = [Address(AddressType.Registered) with { PostalCode = postalCode }],
+                Addresses = [Address(AddressType.Registered) with { Postcode = postcode }],
             }
         );
 
@@ -378,21 +379,43 @@ public class CreateOrganisationRequestValidatorTests
             .BeEquivalentTo(
                 new Dictionary<string, string[]>
                 {
-                    ["organisation.addresses[0].postalCode"] =
-                    [
-                        "The postalCode field is required when countryIso is GB.",
-                    ],
+                    ["organisation.addresses[0].postcode"] = ["The postcode field is required when countryIso is GB."],
                 }
             );
     }
 
-    // Some countries have no postcodes, and a blank optional part is stored as null
+    [Theory]
+    [InlineData("AB1")]
+    [InlineData("12345")]
+    [InlineData("AB1 2CDE")]
+    public void Validate_UkAddressWithMalformedPostcode_ShouldReportPostcode(string postcode)
+    {
+        var errors = Validate(
+            Ltd() with
+            {
+                Addresses = [Address(AddressType.Registered) with { Postcode = postcode }],
+            }
+        );
+
+        errors
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, string[]>
+                {
+                    ["organisation.addresses[0].postcode"] = ["The postcode field must be a full UK postcode."],
+                }
+            );
+    }
+
+    // Some countries have no postcodes, a blank optional part is stored as null, and only a GB
+    // postcode is checked against a format
     [Theory]
     [InlineData(null)]
     [InlineData(" ")]
-    public void Validate_NonUkAddressWithoutPostcode_ShouldBeAccepted(string? postalCode)
+    [InlineData("12345-6789")]
+    public void Validate_NonUkAddressWithAnyOrNoPostcode_ShouldBeAccepted(string? postcode)
     {
-        var overseas = Address(AddressType.Correspondence) with { PostalCode = postalCode, CountryIso = "HK" };
+        var overseas = Address(AddressType.Correspondence) with { Postcode = postcode, CountryIso = "HK" };
 
         Validate(Ltd() with { Addresses = [Address(AddressType.Registered), overseas] }).Should().BeEmpty();
     }
@@ -407,11 +430,11 @@ public class CreateOrganisationRequestValidatorTests
         Validate(
             Ltd() with
             {
-                Addresses = [Address(AddressType.Registered) with { CountryIso = " gb ", PostalCode = null }],
+                Addresses = [Address(AddressType.Registered) with { CountryIso = " gb ", Postcode = null }],
             }
         )
             .Keys.Should()
-            .Equal("organisation.addresses[0].postalCode");
+            .Equal("organisation.addresses[0].postcode");
     }
 
     [Theory]
@@ -440,47 +463,27 @@ public class CreateOrganisationRequestValidatorTests
             );
     }
 
-    // Only the API enforces this since changelog 1.3 (spec 0007, Risks); no single field is at
-    // fault, so the item itself is the key
-    [Fact]
-    public void Validate_AddressWithoutPremises_ShouldReportTheItem()
-    {
-        var noPremises = Address(AddressType.Registered) with { BuildingNumber = " ", BuildingName = "" };
-
-        Validate(Ltd() with { Addresses = [noPremises] })
-            .Should()
-            .BeEquivalentTo(
-                new Dictionary<string, string[]>
-                {
-                    ["organisation.addresses[0]"] =
-                    [
-                        "At least one of subBuildingName, buildingName, buildingNumber and poBox is required.",
-                    ],
-                }
-            );
-    }
-
+    // Without a valid country the postcode rule cannot tell GB from elsewhere, so it adds nothing
     [Theory]
-    [InlineData("subBuildingName")]
-    [InlineData("buildingName")]
-    [InlineData("poBox")]
-    public void Validate_AnyOnePremisesPart_ShouldBeEnough(string part)
+    [InlineData(null)]
+    [InlineData("GBR")]
+    [InlineData("G1")]
+    public void Validate_CountryIsoMissingOrInvalid_ShouldNotCheckThePostcode(string? countryIso)
     {
-        var address = Address(AddressType.Registered) with
-        {
-            BuildingNumber = null,
-            SubBuildingName = part == "subBuildingName" ? "Unit 4" : null,
-            BuildingName = part == "buildingName" ? "Mill House" : null,
-            PoBox = part == "poBox" ? "PO Box 99" : null,
-        };
+        var errors = Validate(
+            Ltd() with
+            {
+                Addresses = [Address(AddressType.Registered) with { CountryIso = countryIso, Postcode = "AB1 2CDE" }],
+            }
+        );
 
-        Validate(Ltd() with { Addresses = [address] }).Should().BeEmpty();
+        errors.Keys.Should().Equal("organisation.addresses[0].countryIso");
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData(" ")]
-    public void Validate_StreetLocalityAndCountryMissingOrBlank_ShouldReportEach(string? value)
+    public void Validate_AddressLine1TownOrCityAndCountryMissingOrBlank_ShouldReportEach(string? value)
     {
         var errors = Validate(
             Ltd() with
@@ -489,8 +492,8 @@ public class CreateOrganisationRequestValidatorTests
                 [
                     Address(AddressType.Registered) with
                     {
-                        Street = value,
-                        Locality = value,
+                        AddressLine1 = value,
+                        TownOrCity = value,
                         CountryIso = value,
                     },
                 ],
@@ -502,8 +505,8 @@ public class CreateOrganisationRequestValidatorTests
             .BeEquivalentTo(
                 new Dictionary<string, string[]>
                 {
-                    ["organisation.addresses[0].street"] = ["The street field is required."],
-                    ["organisation.addresses[0].locality"] = ["The locality field is required."],
+                    ["organisation.addresses[0].addressLine1"] = ["The addressLine1 field is required."],
+                    ["organisation.addresses[0].townOrCity"] = ["The townOrCity field is required."],
                     ["organisation.addresses[0].countryIso"] = ["The countryIso field is required."],
                 }
             );
@@ -518,11 +521,11 @@ public class CreateOrganisationRequestValidatorTests
             SoleTrader() with
             {
                 TradingName = null,
-                Addresses = [Address(AddressType.Principal) with { Street = null }],
+                Addresses = [Address(AddressType.Principal) with { AddressLine1 = null }],
             }
         );
 
-        errors.Keys.Should().BeEquivalentTo("organisation.addresses[0].street", "organisation.tradingName");
+        errors.Keys.Should().BeEquivalentTo("organisation.addresses[0].addressLine1", "organisation.tradingName");
     }
 
     // Every free-text string is capped at 255 characters (review of 6 November 2026)
@@ -545,14 +548,11 @@ public class CreateOrganisationRequestValidatorTests
         [
             "organisation.name",
             "organisation.tradingName",
-            "organisation.addresses[0].subBuildingName",
-            "organisation.addresses[0].buildingName",
-            "organisation.addresses[0].buildingNumber",
-            "organisation.addresses[0].street",
-            "organisation.addresses[0].poBox",
-            "organisation.addresses[0].locality",
-            "organisation.addresses[0].region",
-            "organisation.addresses[0].postalCode",
+            "organisation.addresses[0].addressLine1",
+            "organisation.addresses[0].addressLine2",
+            "organisation.addresses[0].townOrCity",
+            "organisation.addresses[0].county",
+            "organisation.addresses[0].postcode",
         ];
         errors
             .Should()
@@ -574,14 +574,13 @@ public class CreateOrganisationRequestValidatorTests
             [
                 Address(AddressType.Registered) with
                 {
-                    SubBuildingName = text,
-                    BuildingName = text,
-                    BuildingNumber = text,
-                    Street = text,
-                    PoBox = text,
-                    Locality = text,
-                    Region = text,
-                    PostalCode = text,
+                    AddressLine1 = text,
+                    AddressLine2 = text,
+                    TownOrCity = text,
+                    County = text,
+                    Postcode = text,
+                    // Outside GB the postcode has no format, so only its length is checked
+                    CountryIso = "HK",
                 },
             ],
         };

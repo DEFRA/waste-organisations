@@ -68,7 +68,7 @@ public class PostgresOrganisationServiceTests
             Item([AddressType.Registered, AddressType.Principal]),
             Item([AddressType.Correspondence]) with
             {
-                Street = "Mill Lane",
+                AddressLine1 = "Mill Lane",
             }
         );
         var stored = StoredAddress();
@@ -81,7 +81,7 @@ public class PostgresOrganisationServiceTests
         save.Where(entry => entry.State == EntityState.Added)
             .Should()
             .ContainSingle()
-            .Which.Address.Street.Should()
+            .Which.Address.AddressLine1.Should()
             .Be("Mill Lane");
         result.Addresses.Take(2).Should().AllSatisfy(link => link.Address.Should().BeSameAs(stored));
         result.Addresses.Take(2).Should().AllSatisfy(link => link.AddressId.Should().Be(stored.Id));
@@ -226,10 +226,9 @@ public class PostgresOrganisationServiceTests
         new()
         {
             AddressTypes = addressTypes,
-            BuildingNumber = "12A",
-            Street = "High Street",
-            Locality = "Testville",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = "12A High Street",
+            TownOrCity = "Testville",
+            Postcode = "AB1 2CD",
             CountryIso = "GB",
         };
 
@@ -238,10 +237,9 @@ public class PostgresOrganisationServiceTests
         new()
         {
             Id = Guid.CreateVersion7(),
-            BuildingNumber = "12A",
-            Street = "High Street",
-            Locality = "Testville",
-            PostalCode = "AB1 2CD",
+            AddressLine1 = "12A High Street",
+            TownOrCity = "Testville",
+            Postcode = "AB1 2CD",
             CountryIso = "GB",
         };
 
