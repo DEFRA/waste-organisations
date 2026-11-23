@@ -46,7 +46,7 @@ The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) ch
 
 `db.changelog-1.1.xml` adds the organisation tables: `organisation`, `organisation_type`, `address_usagetype`, `address` and `organisation_address`. The EF Core entities that map them live in `src/Api/Data/Postgres/Entities`.
 
-`db.changelog-1.3.xml` resets the v2 organisation rows (it deletes every `organisation_address`, `organisation` and `address` row) and adds the Government Digital Service (GDS) address columns `address_line_1`, `address_line_2`, `town_or_city`, `county` and `postcode` to `address`.
+`db.changelog-1.3.xml` resets the v2 organisation rows (it deletes every `organisation_address`, `organisation` and `address` row) and adds the GOV.UK Design System (GDS) address columns `address_line_1`, `address_line_2`, `town_or_city`, `county` and `postcode` to `address`.
 
 To change the schema:
 

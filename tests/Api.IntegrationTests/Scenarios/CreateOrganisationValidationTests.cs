@@ -132,7 +132,7 @@ public class CreateOrganisationValidationTests : IntegrationTestBase
             () => WithSecondAddress(Change(Address("CORRESPONDENCE"), "postcode", "AB1 2CDE")),
             ["organisation.addresses[1].postcode"]
         ),
-        // The old parts are not read, so an item sent in the old format lacks the Government Digital Service (GDS) fields
+        // The old parts are not read, so an item sent in the old format lacks the GOV.UK Design System (GDS) fields
         ["OldFormatAddress"] = new(
             () =>
                 WithSecondAddress(
