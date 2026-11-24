@@ -61,7 +61,12 @@ The order of checks is unchanged, with the duplicate check last: `401`, `403`, `
 
 - **Look-up before the save.** `CreateAsync` reads the id of the organisation holding the request's number (untracked, served by the new index) before it looks up the addresses. When there is one, nothing is saved.
 - **Unique index.** A partial unique index on `organisation.companies_house_number`, `ux_organisation_companies_house_number`, where the number is not null. It stops two concurrent requests that both missed the look-up from storing the same number.
-- **A violation is a duplicate.** When the save fails on `ux_organisation_companies_house_number`, the change tracker is cleared, the holder's id is read again, and the outcome is the duplicate, with no retry. This also applies to the save that follows the existing `ux_address_values` retry. A violation whose holder cannot be found on the second read (the holder was deleted in between) is thrown, giving `500`.
+- **A violation is a duplicate.** Two requests with the same new number can both miss the look-up; the first to save stores its organisation, and the second's save fails on `ux_organisation_companies_house_number`. The second request then gets the same `409` it would have got had it arrived a moment later:
+  1. The change tracker is cleared, so the organisation, links and addresses of the failed save are not inserted by a later save.
+  2. The organisation holding the number, now committed, is looked up again.
+  3. `CreateAsync` returns `OrganisationAlreadyExists` with that organisation's id. It does not retry: unlike a clashing address, which a retry can reuse, a clashing number can never be stored.
+
+  `CreateAsync` already saves a second time after a violation of `ux_address_values`, and the number can clash on either save, so both saves are handled this way. If the second look-up finds no organisation (it was deleted between the failed save and the look-up, which no endpoint can do today), the exception is thrown and the caller gets `500`.
 
 `CreateAsync` returns the outcome as a closed set of records, so the handler still calls one service method and matches the result:
 
@@ -100,7 +105,7 @@ The entity follows it: `OrganisationConfiguration` gains `HasIndex(o => o.Compan
 |---|---|---|
 | `changelog/db.changelog-1.5.xml`, `db.changelog.xml` | 1 | As above |
 | `src/Api/Data/Postgres/Entities/Organisation.cs` | 1 | The unique filtered index |
-| `tests/Testing` (new `CompaniesHouseNumbers.cs`) | 1 | `Unique()`: a number in the accepted format that no other test uses. Two random uppercase letters and six random digits, so collisions are negligible on a stack reused across runs |
+| `tests/Testing` (new `CompaniesHouseNumbers.cs`) | 1, 2 | Named constants, one per integration test or theory case that stores a v2 organisation with a number, each distinct from every other. They use the accepted format, two letters or digits followed by six digits, and cover both forms (for example `12345678`, `SC123456`, `OC123456`). Slice 2 adds the constants its tests need |
 | `src/Api/Services/CreateOrganisationResult.cs` | 2 | New: the three records |
 | `src/Api/Services/IPostgresOrganisationService.cs`, `PostgresOrganisationService.cs` | 2 | `CreateAsync` returns `CreateOrganisationResult`; the look-up, the violation handling and the log entry of "Enforcement" and "Logging" |
 | `src/Api/Endpoints/Organisations/Post.cs` | 2 | Matches the result; `.ProducesProblem(StatusCodes.Status409Conflict)`; the new description |
@@ -112,18 +117,18 @@ No v1 endpoint, DTO, service or Mongo index changes. No NuGet package is added. 
 
 `*.verified.*` snapshots are frozen artefacts. The only snapshot that changes on purpose is `OpenApiTests.OpenApiV2_VerifyAsExpected`, in slice 2, after its diff shows the `409` response and the new description and nothing else. A difference anywhere else, including in `tests/Api.V1.Tests`, means stop and ask. Test data is synthetic.
 
-Integration tests that create a v2 organisation with a Companies House number use `CompaniesHouseNumbers.Unique()` from slice 1 on. The constraints say Postgres tests create their own distinct data, and with the index a fixed number collides with the same test's earlier run on a reused stack. The exception is a test whose snapshot shows the number (`CreateOrganisationTests.FullPayload_ShouldCreateOrganisationAndRows`): it keeps its fixed number and, in its arrange step, deletes the `organisation_address` and `organisation` rows of any organisation holding that number, so its snapshot does not change.
+Test numbers are constants, so the tests stay deterministic (Decisions, "Test data"). The test environments are cleared and rebuilt between runs, so a number only has to be distinct within one run. Today several integration tests store organisations with the same fixed number (`12345678`, `SC123456`, `OC123456`), which the index would reject. From slice 1 on, every integration test, and every case of a theory, that stores a v2 organisation with a number takes its own constant from `CompaniesHouseNumbers`. The constraints already ask Postgres tests to create their own distinct data. `CreateOrganisationTests.FullPayload_ShouldCreateOrganisationAndRows` keeps `12345678`, which no other test then uses, so its snapshot does not change. A test that sends a duplicate on purpose reuses its own constant.
 
 | Project | Slice | Test |
 |---|---|---|
 | `Api.Tests` (`Data/PostgresDbContextModelTests.cs`) | 1 | `organisation` has the unique index `ux_organisation_companies_house_number` on `companies_house_number` with its filter |
 | `Api.IntegrationTests` (`Scenarios/DatabaseChangelogTests.cs`) | 1 | The `v1.5.0` tag |
 | `Api.IntegrationTests` (`Scenarios/OrganisationSchemaTests.cs`) | 1 | A second `organisation` row with a stored number is rejected by `ux_organisation_companies_house_number`; two rows with a null number are accepted |
-| `Api.IntegrationTests` (`Scenarios/CreateOrganisationTests.cs`, `GetOrganisationDetailsTests.cs`, `Services/PostgresOrganisationServiceTests.cs`, `Scenarios/OrganisationSchemaTests.cs`) | 1 | Fixed numbers replaced by `CompaniesHouseNumbers.Unique()`, apart from the snapshot test above; every test passes on a fresh stack and on a second run against the same stack |
+| `Api.IntegrationTests` (`Scenarios/CreateOrganisationTests.cs`, `GetOrganisationDetailsTests.cs`, `Services/PostgresOrganisationServiceTests.cs`, `Scenarios/OrganisationSchemaTests.cs`) | 1 | Shared fixed numbers replaced by distinct `CompaniesHouseNumbers` constants, the snapshot test keeping `12345678`; every test passes on a freshly built stack |
 | `Api.Tests` (`Services/PostgresOrganisationServiceTests.cs`) | 2 | A stored number gives `OrganisationAlreadyExists` with its id and saves nothing; a violation of `ux_organisation_companies_house_number` gives `OrganisationAlreadyExists` after a fresh look-up; the same violation on the save after the `ux_address_values` retry does too; a violation whose holder is gone is thrown; no number gives `OrganisationCreated` without a look-up |
 | `Api.Tests` (`Endpoints/Organisations/PostTests.cs`) | 2 | `OrganisationAlreadyExists` gives `409`, the problem details body, `organisationId` and the `Location` header; an invalid request gives `400` without calling the service; a read-only caller gets `403` |
 | `Api.Tests` (`Endpoints/OpenApi/OpenApiTests.cs`) | 2 | v2 snapshot re-verified as above; v1 snapshot unchanged |
-| `Api.IntegrationTests` (new `Scenarios/DuplicateOrganisationTests.cs`) | 2 | The Jira scenario end to end: create, then the same request: `409`, body, `organisationId` and `Location` equal the first `201`'s id, and the `organisation`, `organisation_address` and `address` row counts are unchanged. The same number sent as ` sc123456 ` after `SC123456`: `409`. The same number with a different name, type and address: `409`, and a `GET` of the stored organisation returns what the first `201` returned. Two identical requests for a type without a number: two `201`s with different ids. Ten concurrent requests with one new number: one `201`, nine `409`s naming its id, one `organisation` row |
+| `Api.IntegrationTests` (new `Scenarios/DuplicateOrganisationTests.cs`) | 2 | The Jira scenario end to end: create, then the same request: `409`, body, `organisationId` and `Location` equal the first `201`'s id, and the `organisation`, `organisation_address` and `address` row counts are unchanged. A number sent in lower case with spaces round it (for example ` sc654321 `) after its upper-case form: `409`. Every number in this class is its own `CompaniesHouseNumbers` constant. The same number with a different name, type and address: `409`, and a `GET` of the stored organisation returns what the first `201` returned. Two identical requests for a type without a number: two `201`s with different ids. Ten concurrent requests with one new number: one `201`, nine `409`s naming its id, one `organisation` row |
 | `Api.V1.Tests` | all | No test or snapshot changes; every test passes as it is |
 
 ### Work breakdown
@@ -132,7 +137,7 @@ Two pull requests: the constraints keep a schema change apart from behaviour, an
 
 | Slice | Work | Verified by |
 |---|---|---|
-| 1 | Index. `db.changelog-1.5.xml` and its include; the unique filtered index on the `Organisation` entity; `CompaniesHouseNumbers.Unique()` and the integration tests moved onto it; the schema, changelog and model tests; the README names changelog 1.5. Stops there: no service, endpoint or OpenAPI change. A duplicate create now fails on the index and gets the global handler's `500` until slice 2 | `Api.Tests`; `Api.IntegrationTests` against Compose, where Liquibase applies `v1.5.0` and the existing create and read tests pass, also on a second run against the same stack; `Api.V1.Tests`. Criteria 8 and 11 |
+| 1 | Index. `db.changelog-1.5.xml` and its include; the unique filtered index on the `Organisation` entity; `CompaniesHouseNumbers` and the integration tests moved onto its distinct constants; the schema, changelog and model tests; the README names changelog 1.5. Stops there: no service, endpoint or OpenAPI change. A duplicate create now fails on the index and gets the global handler's `500` until slice 2 | `Api.Tests`; `Api.IntegrationTests` against Compose, where Liquibase applies `v1.5.0` and the existing create and read tests pass; `Api.V1.Tests`. Criteria 8 and 11 |
 | 2 | `409`. "What counts as a duplicate", "The `409` response", "Enforcement", "Logging" and "OpenAPI": `CreateOrganisationResult`, the service and handler changes, the v2 OpenAPI snapshot, the README paragraph, and every slice 2 test in Tests | `Api.Tests`, `Api.IntegrationTests` and `Api.V1.Tests`; the v1 OpenAPI snapshot passes with no diff. Criteria 1 to 7, 9, 10 and 11 |
 
 ## Acceptance Criteria
@@ -172,13 +177,13 @@ All taken in refinement on 23 November 2026 unless a date is given.
 | `409` body | Problem details with the existing organisation's id in `organisationId` and in the `Location` header, not its details. The story asks for "a payload containing details of the existing organisation"; the author chose the id only, and the caller fetches the details with `GET /organisations/{id}`. The story's Scenario 1 was updated to match on 24 November 2026 (Open Question 1) |
 | Enforcement | A look-up before the save, and the partial unique index `ux_organisation_companies_house_number` for requests that race. A violation of the index is a duplicate, not a retry |
 | Index scope | Every organisation row with a number, whatever its `valid_to`, because nothing ends an organisation yet. A later story that ends organisations decides whether an ended one still blocks its number |
-| Existing data | The changelog does not change rows. The author confirmed that the production system holds no v2 data; any other environment with a duplicate number fails the deployment loudly rather than losing data silently |
+| Existing data | The changelog does not change rows. Production holds no v2 data (author, 23 November 2026) and the other environments have been cleared (author, 24 November 2026). An environment that somehow held a duplicate number would fail the deployment loudly rather than lose data silently |
 | Check order | Authentication, authorisation, version and body checks, then validation, then the duplicate check. A caller without the `write` scope cannot probe which numbers are stored |
 | No number echoed | The `409` names the existing id, not the number, and the log entry likewise; the caller already knows the number it sent |
 | Service result | `CreateAsync` returns `CreateOrganisationResult` (`OrganisationCreated` or `OrganisationAlreadyExists`) rather than throwing, so the handler still calls one service method and a duplicate is not an exception |
 | Version | v2 changes in place: no service consumes v2 yet and only v1 is frozen. The story's "all solutions built will need to be versioned" is met by v1 staying as it is, as for spec 0007 |
 | Slices | Index first, then behaviour (author's choice). Between the two deployments a duplicate create gets `500` instead of a second organisation |
-| Test data | Integration tests use `CompaniesHouseNumbers.Unique()`; the one snapshot test that shows its number clears that number first, so no snapshot changes for test data |
+| Test data | Constant numbers, one distinct constant per integration test or theory case, declared together in `CompaniesHouseNumbers` so that any clash is visible in one file. Tests stay deterministic, and the test environments are cleared and rebuilt between runs, so nothing random or run-specific is needed (author, 24 November 2026). No snapshot changes for test data |
 | Priority | P1 in this spec. The Jira priority stays "Lowest": the author chose not to change it (24 November 2026) |
 | Confluence | No change to the page "Organisations API - waste-organisations": it does not document responses at the level of a `409` (author, 24 November 2026) |
 
@@ -186,7 +191,9 @@ All taken in refinement on 23 November 2026 unless a date is given.
 
 1. ~~**Jira wording.**~~ Done on 24 November 2026: Scenario 1 now reads "with the same Companies House number" and asks for "the id of the existing organisation, with a Location header pointing to it". The Jira priority was left as it is (Decisions, "Priority").
 2. ~~**Confluence.**~~ Not needed (Decisions, "Confluence").
-3. **Non-production environments.** The author confirmed that production holds no v2 data. Owner: the team, which will confirm before slice 1 is deployed that no other CDP environment holds two v2 organisations with the same Companies House number (24 November 2026).
+3. ~~**Non-production environments.**~~ Done: production holds no v2 data (author, 23 November 2026), and the other environments have been cleared (author, 24 November 2026), so no environment holds two organisations with the same Companies House number when changelog 1.5 is applied.
+
+No question is open.
 
 ## Dependencies
 
@@ -198,9 +205,9 @@ All taken in refinement on 23 November 2026 unless a date is given.
 
 | Risk | Level | Mitigation |
 |---|---|---|
-| An environment already holds two organisations with the same number, and the 1.5 deployment fails | Low | No v2 data in production (author, 23 November 2026); the team confirms the other environments before slice 1 is deployed (Open Question 3); the failure is loud and nothing is lost |
+| An environment already holds two organisations with the same number, and the 1.5 deployment fails | Low | No v2 data in production (author, 23 November 2026) and the other environments cleared (author, 24 November 2026); the failure would be loud and nothing would be lost |
 | Between slices 1 and 2 a duplicate create gets `500` instead of `409` | Low | No service consumes v2 yet; slice 2 follows directly; the pull request of slice 1 says so in "How to test" |
-| Integration tests collide on reused numbers once the index exists | Medium | Slice 1 moves them onto `CompaniesHouseNumbers.Unique()` and proves a second run against the same stack passes |
+| Integration tests collide on shared numbers once the index exists | Medium | Slice 1 gives each test its own constant in `CompaniesHouseNumbers` and runs the integration tests against a freshly built stack; a clash fails loudly on the index |
 | A company is legitimately created twice, for example by two services before either knows of the other | Low | That is the intended outcome: the second gets `409` and the existing id |
 | The caller wanted the details in the `409`, as the story said | Low | Decided by the author; one `GET` gives them; Open Question 1 updates the story |
 | The `ux_address_values` retry and the new violation interact wrongly | Low | Both paths have unit tests (Tests, slice 2), and the concurrency test runs against real Postgres |
@@ -209,5 +216,5 @@ All taken in refinement on 23 November 2026 unless a date is given.
 
 - Branches: `MAV-17-duplicate-organisations-slice-1`, `-slice-2`.
 - The Jira title spells "exisiting"; this spec uses "existing".
-- Synthetic numbers in examples and fixtures: `12345678`, `SC123456`, `OC123456`, and those `CompaniesHouseNumbers.Unique()` generates.
+- Synthetic numbers in examples and fixtures: `12345678`, `SC123456`, `OC123456` and the other constants in `CompaniesHouseNumbers`. A Companies House number is two letters or digits followed by six digits, as `OrganisationRequest` already checks.
 - The pull request of slice 1 says in "How to test" that changelog 1.5 must be applied and that it fails if two organisations already share a number.
