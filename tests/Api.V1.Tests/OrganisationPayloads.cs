@@ -15,46 +15,44 @@ public static class OrganisationPayloads
         int registrationYear = 2025,
         string status = "REGISTERED",
         string? businessCountry = "GB-ENG"
-    ) =>
-        $$"""
-            {
-              "name": "V1 Test Organisation Ltd",
-              "tradingName": "V1 Trading Name",
-              "businessCountry": {{JsonString(businessCountry)}},
-              "companiesHouseNumber": "12345678",
-              "address": {
-                "addressLine1": "1 Test Street",
-                "addressLine2": "Test Estate",
-                "town": "Test Town",
-                "county": "Test County",
-                "postcode": "TE1 1ST",
-                "country": "United Kingdom"
-              },
-              "registration": {
-                "status": "{{status}}",
-                "type": "{{type}}",
-                "registrationYear": {{registrationYear}}
-              }
-            }
-            """;
+    ) => $$"""
+        {
+          "name": "V1 Test Organisation Ltd",
+          "tradingName": "V1 Trading Name",
+          "businessCountry": {{JsonString(businessCountry)}},
+          "companiesHouseNumber": "12345678",
+          "address": {
+            "addressLine1": "1 Test Street",
+            "addressLine2": "Test Estate",
+            "town": "Test Town",
+            "county": "Test County",
+            "postcode": "TE1 1ST",
+            "country": "United Kingdom"
+          },
+          "registration": {
+            "status": "{{status}}",
+            "type": "{{type}}",
+            "registrationYear": {{registrationYear}}
+          }
+        }
+        """;
 
     /// <summary>Only the required fields: <c>name</c>, an empty <c>address</c> and one registration.</summary>
     public static string Minimal(
         string type = "SMALL_PRODUCER",
         int registrationYear = 2025,
         string status = "REGISTERED"
-    ) =>
-        $$"""
-            {
-              "name": "V1 Minimal Organisation Ltd",
-              "address": {},
-              "registration": {
-                "status": "{{status}}",
-                "type": "{{type}}",
-                "registrationYear": {{registrationYear}}
-              }
-            }
-            """;
+    ) => $$"""
+        {
+          "name": "V1 Minimal Organisation Ltd",
+          "address": {},
+          "registration": {
+            "status": "{{status}}",
+            "type": "{{type}}",
+            "registrationYear": {{registrationYear}}
+          }
+        }
+        """;
 
     private static string JsonString(string? value) => value is null ? "null" : $"\"{value}\"";
 }
