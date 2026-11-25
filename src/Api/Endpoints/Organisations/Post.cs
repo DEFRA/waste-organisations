@@ -16,9 +16,12 @@ public static class Post
             .WithName("CreateOrganisation")
             .WithTags("Organisations")
             .WithSummary("Create organisation")
-            .WithDescription("Create an organisation with its addresses. Duplicate organisations are not detected.")
+            .WithDescription(
+                "Create an organisation with its addresses. A Companies House number that is already stored gives 409, with the id of the existing organisation in organisationId and in the Location header. Organisations without a Companies House number are not checked."
+            )
             .Produces<CreateOrganisationResponse>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(PolicyNames.Write)
             .WithApiVersions(2)
