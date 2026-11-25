@@ -178,7 +178,7 @@ All taken in refinement on 23 November 2026 unless a date is given.
 | `409` body | Problem details with the existing organisation's id in `organisationId` and in the `Location` header, not its details. The story asks for "a payload containing details of the existing organisation"; the author chose the id only, and the caller fetches the details with `GET /organisations/{id}`. The story's Scenario 1 was updated to match on 24 November 2026 (Open Question 1) |
 | Enforcement | A look-up before the save, and the partial unique index `ux_organisation_companies_house_number` for requests that race. A violation of the index is a duplicate, not a retry |
 | Index scope | Every organisation row with a number, whatever its `valid_to`, because nothing ends an organisation yet. A later story that ends organisations decides whether an ended one still blocks its number |
-| Existing data | The changelog does not change rows. Production holds no v2 data (author, 23 November 2026) and the other environments have been cleared (author, 24 November 2026). An environment that somehow held a duplicate number would fail the deployment loudly rather than lose data silently |
+| Existing data | The changelog does not change rows. Production holds no v2 data (author, 23 November 2026). The Test environment still held v2 data created for a demonstration, which review of pull request 282 pointed out; the v2 data in every non-production environment was deleted by hand (author, 25 November 2026). An environment that somehow held a duplicate number would fail the deployment loudly rather than lose data silently |
 | Check order | Authentication, authorisation, version and body checks, then validation, then the duplicate check. A caller without the `write` scope cannot probe which numbers are stored |
 | No number echoed | The `409` names the existing id, not the number, and the log entry likewise; the caller already knows the number it sent |
 | Service result | `CreateAsync` returns `CreateOrganisationResult` (`OrganisationCreated` or `OrganisationAlreadyExists`) rather than throwing, so the handler still calls one service method and a duplicate is not an exception |
@@ -192,7 +192,7 @@ All taken in refinement on 23 November 2026 unless a date is given.
 
 1. ~~**Jira wording.**~~ Done on 24 November 2026: Scenario 1 now reads "with the same Companies House number" and asks for "the id of the existing organisation, with a Location header pointing to it". The Jira priority was left as it is (Decisions, "Priority").
 2. ~~**Confluence.**~~ Not needed (Decisions, "Confluence").
-3. ~~**Non-production environments.**~~ Done: production holds no v2 data (author, 23 November 2026), and the other environments have been cleared (author, 24 November 2026), so no environment holds two organisations with the same Companies House number when changelog 1.5 is applied.
+3. ~~**Non-production environments.**~~ Done: production holds no v2 data (author, 23 November 2026), and the v2 data in every non-production environment, including demonstration data in Test, was deleted by hand (author, 25 November 2026), so no environment holds two organisations with the same Companies House number when changelog 1.5 is applied.
 
 No question is open.
 
@@ -206,7 +206,7 @@ No question is open.
 
 | Risk | Level | Mitigation |
 |---|---|---|
-| An environment already holds two organisations with the same number, and the 1.5 deployment fails | Low | No v2 data in production (author, 23 November 2026) and the other environments cleared (author, 24 November 2026); the failure would be loud and nothing would be lost |
+| An environment already holds two organisations with the same number, and the 1.5 deployment fails | Low | No v2 data in production (author, 23 November 2026) and the non-production v2 data deleted by hand (author, 25 November 2026); the failure would be loud and nothing would be lost |
 | Between slices 1 and 2 a duplicate create gets `500` instead of `409` | Low | No service consumes v2 yet; slice 2 follows directly; the pull request of slice 1 says so in "How to test" |
 | Integration tests collide on shared numbers once the index exists | Medium | Slice 1 gives each test a number from `CompaniesHouseNumbers.Generate`, never repeated in a run, and runs the integration tests against a freshly built stack; a clash fails loudly on the index |
 | A company is legitimately created twice, for example by two services before either knows of the other | Low | That is the intended outcome: the second gets `409` and the existing id |
