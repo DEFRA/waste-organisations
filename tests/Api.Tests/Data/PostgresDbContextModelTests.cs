@@ -119,6 +119,21 @@ public class PostgresDbContextModelTests
     }
 
     [Fact]
+    public void Organisation_ShouldHaveUniqueFilteredIndexOnCompaniesHouseNumber()
+    {
+        using var context = CreateContext();
+        var entityType = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(Organisation))!;
+
+        var index = entityType
+            .GetIndexes()
+            .Single(i => i.GetDatabaseName() == "ux_organisation_companies_house_number");
+
+        index.IsUnique.Should().BeTrue();
+        index.GetFilter().Should().Be("companies_house_number IS NOT NULL");
+        index.Properties.Select(p => p.GetColumnName()).Should().Equal("companies_house_number");
+    }
+
+    [Fact]
     public void Organisation_WhenAdded_ShouldFixUpForeignKeysFromNavigations()
     {
         using var context = CreateContext();

@@ -47,5 +47,14 @@ public class OrganisationConfiguration : IEntityTypeConfiguration<Organisation>
             .WithMany()
             .HasForeignKey(o => o.OrganisationTypeId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // A Companies House number is held by one organisation at most; a null number is not checked
+        // (spec 0008, Decisions). Liquibase creates the index in db.changelog-1.5.xml; declaring it
+        // keeps the model true
+        builder
+            .HasIndex(o => o.CompaniesHouseNumber)
+            .HasDatabaseName("ux_organisation_companies_house_number")
+            .IsUnique()
+            .HasFilter("companies_house_number IS NOT NULL");
     }
 }
