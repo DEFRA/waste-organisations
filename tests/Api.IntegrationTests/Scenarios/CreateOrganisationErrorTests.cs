@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Testing;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
@@ -116,7 +117,10 @@ public class CreateOrganisationErrorTests : IntegrationTestBase
     private static async Task<Guid> CreateAsync()
     {
         var addressLine1 = $"12 High Street {Guid.NewGuid():N}";
-        var response = await PostAsync(JsonBody(ValidBody.Replace("\"12 High Street\"", $"\"{addressLine1}\"")));
+        var body = ValidBody
+            .Replace("\"12345678\"", $"\"{CompaniesHouseNumbers.ErrorCreatedNotInV1}\"")
+            .Replace("\"12 High Street\"", $"\"{addressLine1}\"");
+        var response = await PostAsync(JsonBody(body));
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 

@@ -41,4 +41,22 @@ public static class CompaniesHouseNumbers
     public const string CreateTypeLlp = "10000016";
 
     public const string CreateTypeCic = "10000017";
+
+    public const string GetCreated = "10000018";
+
+    public const string GetIdUpperCase = "10000019";
+
+    public const string GetIdWithoutHyphens = "10000020";
+
+    public const string GetEndedLink = "10000021";
+
+    public const string GetEveryLinkEnded = "10000022";
+
+    public const string GetKindRelinked = "10000023";
+
+    public const string GetKindsDifferentValidFrom = "10000024";
+
+    public const string GetWithValidTo = "10000025";
+
+    public const string ErrorCreatedNotInV1 = "10000026";
 }
