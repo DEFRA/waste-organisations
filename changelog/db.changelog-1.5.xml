@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <changeSet id="1.5-ux-organisation-companies-house-number" author="waste-organisations">
+    <sql>
+      CREATE UNIQUE INDEX ux_organisation_companies_house_number ON organisation (companies_house_number) WHERE companies_house_number IS NOT NULL;
+    </sql>
+    <rollback>
+      <sql>DROP INDEX ux_organisation_companies_house_number;</sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="1.5-tag-v1.5.0" author="waste-organisations">
+    <tagDatabase tag="v1.5.0" />
+  </changeSet>
+</databaseChangeLog>

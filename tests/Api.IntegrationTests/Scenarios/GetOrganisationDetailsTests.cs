@@ -8,6 +8,7 @@ using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Defra.WasteOrganisations.Api.Dtos;
+using Defra.WasteOrganisations.Testing;
 using Defra.WasteOrganisations.Testing.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +26,11 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     [Fact]
     public async Task Created_ShouldBeReadableAtItsLocation()
     {
-        var body = Ltd(Address(NewSuffix(), "REGISTERED", "PRINCIPAL"), Address(NewSuffix(), "CORRESPONDENCE"));
+        var body = Ltd(
+            CompaniesHouseNumbers.Generate(),
+            Address(NewSuffix(), "REGISTERED", "PRINCIPAL"),
+            Address(NewSuffix(), "CORRESPONDENCE")
+        );
         var created = await CreateAsync(body);
 
         var response = await GetAsync(created.Location);
@@ -58,7 +63,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     [InlineData("without hyphens")]
     public async Task IdInAnotherForm_ShouldBeOk(string form)
     {
-        var created = await CreateAsync(Ltd(Address(NewSuffix(), "REGISTERED")));
+        var created = await CreateAsync(Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED")));
         var id = created.Organisation.Id;
         var path = form switch
         {
@@ -80,7 +85,11 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     {
         var registeredSuffix = NewSuffix();
         var created = await CreateAsync(
-            Ltd(Address(registeredSuffix, "REGISTERED", "PRINCIPAL"), Address(NewSuffix(), "CORRESPONDENCE"))
+            Ltd(
+                CompaniesHouseNumbers.Generate(),
+                Address(registeredSuffix, "REGISTERED", "PRINCIPAL"),
+                Address(NewSuffix(), "CORRESPONDENCE")
+            )
         );
         var id = created.Organisation.Id;
 
@@ -98,7 +107,11 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     public async Task EveryLinkEnded_ShouldReturnEmptyAddresses()
     {
         var created = await CreateAsync(
-            Ltd(Address(NewSuffix(), "REGISTERED", "PRINCIPAL"), Address(NewSuffix(), "CORRESPONDENCE"))
+            Ltd(
+                CompaniesHouseNumbers.Generate(),
+                Address(NewSuffix(), "REGISTERED", "PRINCIPAL"),
+                Address(NewSuffix(), "CORRESPONDENCE")
+            )
         );
 
         await ChangeStoredAsync(created.Organisation.Id, organisation => organisation.Addresses.ForEach(End));
@@ -116,7 +129,11 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     {
         var registeredSuffix = NewSuffix();
         var created = await CreateAsync(
-            Ltd(Address(registeredSuffix, "REGISTERED"), Address(NewSuffix(), "CORRESPONDENCE"))
+            Ltd(
+                CompaniesHouseNumbers.Generate(),
+                Address(registeredSuffix, "REGISTERED"),
+                Address(NewSuffix(), "CORRESPONDENCE")
+            )
         );
         var id = created.Organisation.Id;
         var newSuffix = NewSuffix();
@@ -163,7 +180,9 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     [Fact]
     public async Task KindsOfOneAddressWithDifferentValidFrom_ShouldBeOneItem()
     {
-        var created = await CreateAsync(Ltd(Address(NewSuffix(), "REGISTERED", "PRINCIPAL")));
+        var created = await CreateAsync(
+            Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED", "PRINCIPAL"))
+        );
 
         await ChangeStoredAsync(created.Organisation.Id, organisation =>
         {
@@ -182,7 +201,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     [Fact]
     public async Task OrganisationWithValidTo_ShouldStillBeReturned()
     {
-        var created = await CreateAsync(Ltd(Address(NewSuffix(), "REGISTERED")));
+        var created = await CreateAsync(Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED")));
         var validTo = default(DateTime);
 
         await ChangeStoredAsync(created.Organisation.Id, organisation =>
@@ -309,14 +328,14 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
             countryIso = "GB",
         };
 
-    private static object Ltd(params object[] addresses) =>
+    private static object Ltd(string companiesHouseNumber, params object[] addresses) =>
         new
         {
             organisation = new
             {
                 name = "Acme Waste Ltd",
                 tradingName = "Acme",
-                companiesHouseNumber = "12345678",
+                companiesHouseNumber,
                 regulatorNation = "GB-ENG",
                 organisationType = "LTD",
                 addresses,

@@ -1,6 +1,7 @@
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
+using Defra.WasteOrganisations.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
@@ -19,7 +20,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
         var principalId = await UsageTypeIdAsync(provider, "PRINCIPAL");
 
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(CompaniesHouseNumbers.Generate());
         organisation.OrganisationTypeId = await OrganisationTypeIdAsync(provider, "LLP");
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, principalId, "2 Mill Lane"));
@@ -81,7 +82,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var provider = BuildServiceProvider();
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
 
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(CompaniesHouseNumbers.Generate());
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         await SaveOrganisationAsync(provider, organisation);
 
@@ -118,7 +119,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
     public async Task OrganisationAddress_WithUnknownUsageType_IsRejectedByForeignKey()
     {
         await using var provider = BuildServiceProvider();
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(CompaniesHouseNumbers.Generate());
         await SaveOrganisationAsync(provider, organisation);
 
         await using var scope = provider.CreateAsyncScope();
@@ -155,7 +156,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var provider = BuildServiceProvider();
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
 
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(CompaniesHouseNumbers.Generate());
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         await SaveOrganisationAsync(provider, organisation);
 
@@ -177,7 +178,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
     {
         await using var provider = BuildServiceProvider();
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(CompaniesHouseNumbers.Generate());
         await SaveOrganisationAsync(provider, organisation);
 
         await using var scope = provider.CreateAsyncScope();
@@ -198,7 +199,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(CompaniesHouseNumbers.Generate());
         organisation.OrganisationTypeId = Guid.CreateVersion7();
         context.Organisations.Add(organisation);
 
@@ -288,7 +289,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(CompaniesHouseNumbers.Generate());
         organisation.RegulatorNation = regulatorNation;
         context.Organisations.Add(organisation);
 
@@ -306,9 +307,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
     public async Task Organisation_WithoutNameButWithTradingNameAndNoNumber_IsAccepted(string? name)
     {
         await using var provider = BuildServiceProvider();
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(null);
         organisation.Name = name;
-        organisation.CompaniesHouseNumber = null;
 
         await SaveOrganisationAsync(provider, organisation);
 
@@ -322,30 +322,58 @@ public class OrganisationSchemaTests : IntegrationTestBase
     }
 
     [Theory]
-    [InlineData(null, "Acme", "12345678")]
-    [InlineData("  ", "Acme", "12345678")]
-    [InlineData(null, null, null)]
-    [InlineData(null, "", null)]
-    [InlineData(null, "  ", null)]
-    [InlineData("  ", null, null)]
+    [InlineData(null, "Acme", true)]
+    [InlineData("  ", "Acme", true)]
+    [InlineData(null, null, false)]
+    [InlineData(null, "", false)]
+    [InlineData(null, "  ", false)]
+    [InlineData("  ", null, false)]
     public async Task Organisation_WithoutName_IsRejectedByCheckConstraintUnlessTradingNameAndNoNumber(
         string? name,
         string? tradingName,
-        string? companiesHouseNumber
+        bool withCompaniesHouseNumber
     )
     {
         await using var provider = BuildServiceProvider();
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        var organisation = NewOrganisation();
+        var organisation = NewOrganisation(withCompaniesHouseNumber ? CompaniesHouseNumbers.Generate() : null);
         organisation.Name = name;
         organisation.TradingName = tradingName;
-        organisation.CompaniesHouseNumber = companiesHouseNumber;
         context.Organisations.Add(organisation);
 
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await ShouldViolateAsync(save, "ck_organisation_name");
+    }
+
+    // Changelog 1.5 stores a Companies House number once: ux_organisation_companies_house_number
+    // rejects a second organisation row with a number already stored
+    [Fact]
+    public async Task Organisation_WithAStoredCompaniesHouseNumber_IsRejectedByUniqueIndex()
+    {
+        var companiesHouseNumber = CompaniesHouseNumbers.Generate();
+        await using var provider = BuildServiceProvider();
+        await SaveOrganisationAsync(provider, NewOrganisation(companiesHouseNumber));
+
+        await using var scope = provider.CreateAsyncScope();
+        var duplicateContext = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        duplicateContext.Organisations.Add(NewOrganisation(companiesHouseNumber));
+
+        var save = async () => await duplicateContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ux_organisation_companies_house_number");
+    }
+
+    // The index is filtered on companies_house_number IS NOT NULL, so any number of organisations,
+    // such as sole traders, may be stored without one
+    [Fact]
+    public async Task TwoOrganisations_WithoutCompaniesHouseNumber_AreAccepted()
+    {
+        await using var provider = BuildServiceProvider();
+        await SaveOrganisationAsync(provider, NewOrganisation(null));
+
+        var save = async () => await SaveOrganisationAsync(provider, NewOrganisation(null));
+        await save.Should().NotThrowAsync();
     }
 
     // country_iso is ISO 3166-1 alpha-2: ck_address_country_iso allows only two upper-case letters
@@ -588,12 +616,12 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var provider = BuildServiceProvider();
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
 
-        var first = NewOrganisation();
+        var first = NewOrganisation(CompaniesHouseNumbers.Generate());
         var firstLink = NewOrganisationAddress(first.Id, registeredId, "1 High Street");
         first.Addresses.Add(firstLink);
         await SaveOrganisationAsync(provider, first);
 
-        var second = NewOrganisation();
+        var second = NewOrganisation(CompaniesHouseNumbers.Generate());
         second.Addresses.Add(
             new OrganisationAddress
             {
@@ -649,7 +677,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 
-    private static Organisation NewOrganisation()
+    private static Organisation NewOrganisation(string? companiesHouseNumber)
     {
         var now = UtcNowMicroseconds();
         return new Organisation
@@ -657,7 +685,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
             Id = Guid.CreateVersion7(),
             Name = "Acme Waste Ltd",
             TradingName = "Acme",
-            CompaniesHouseNumber = "12345678",
+            CompaniesHouseNumber = companiesHouseNumber,
             RegulatorNation = "GB-ENG",
             ValidFrom = now,
         };
