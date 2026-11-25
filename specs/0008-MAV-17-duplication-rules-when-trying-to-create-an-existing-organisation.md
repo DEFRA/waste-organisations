@@ -122,6 +122,7 @@ Test numbers are constants, so the tests stay deterministic (Decisions, "Test da
 | Project | Slice | Test |
 |---|---|---|
 | `Api.Tests` (`Data/PostgresDbContextModelTests.cs`) | 1 | `organisation` has the unique index `ux_organisation_companies_house_number` on `companies_house_number` with its filter |
+| `Api.Tests` (`CompaniesHouseNumbersTests.cs`) | 1 | The `CompaniesHouseNumbers` constants are distinct and in the accepted format |
 | `Api.IntegrationTests` (`Scenarios/DatabaseChangelogTests.cs`) | 1 | The `v1.5.0` tag |
 | `Api.IntegrationTests` (`Scenarios/OrganisationSchemaTests.cs`) | 1 | A second `organisation` row with a stored number is rejected by `ux_organisation_companies_house_number`; two rows with a null number are accepted |
 | `Api.IntegrationTests` (`Scenarios/CreateOrganisationTests.cs`, `CreateOrganisationErrorTests.cs`, `GetOrganisationDetailsTests.cs`, `Services/PostgresOrganisationServiceTests.cs`, `Scenarios/OrganisationSchemaTests.cs`) | 1 | Shared fixed numbers replaced by distinct `CompaniesHouseNumbers` constants, the snapshot test keeping `12345678`; every test passes on a freshly built stack |

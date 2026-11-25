@@ -338,10 +338,9 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        var organisation = NewOrganisation(null);
+        var organisation = NewOrganisation(companiesHouseNumber);
         organisation.Name = name;
         organisation.TradingName = tradingName;
-        organisation.CompaniesHouseNumber = companiesHouseNumber;
         context.Organisations.Add(organisation);
 
         var save = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -354,13 +353,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
     public async Task Organisation_WithAStoredCompaniesHouseNumber_IsRejectedByUniqueIndex()
     {
         await using var provider = BuildServiceProvider();
-
-        await using (var saveScope = provider.CreateAsyncScope())
-        {
-            var context = saveScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-            context.Organisations.Add(NewOrganisation(CompaniesHouseNumbers.SchemaDuplicateNumber));
-            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
+        await SaveOrganisationAsync(provider, NewOrganisation(CompaniesHouseNumbers.SchemaDuplicateNumber));
 
         await using var scope = provider.CreateAsyncScope();
         var duplicateContext = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
