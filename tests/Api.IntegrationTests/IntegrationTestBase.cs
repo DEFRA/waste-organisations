@@ -72,16 +72,16 @@ public abstract class IntegrationTestBase
             countryIso = "GB",
         };
 
-    protected static async Task<HttpResponseMessage> PostAsync(object body)
+    protected static async Task<HttpResponseMessage> PostAsync(object body, HttpClient? client = null)
     {
-        using var client = CreateClient();
+        using var defaultClient = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, Testing.Endpoints.Organisations.Post())
         {
             Content = JsonContent.Create(body),
         };
         request.Headers.TryAddWithoutValidation("Accept", AcceptV2);
 
-        return await client.SendAsync(request, TestContext.Current.CancellationToken);
+        return await (client ?? defaultClient).SendAsync(request, TestContext.Current.CancellationToken);
     }
 
     protected static object Ltd(string companiesHouseNumber, params object[] addresses) =>

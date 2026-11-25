@@ -286,39 +286,6 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
         problem["organisationId"]!.GetValue<Guid>().Should().Be(existingId);
     }
 
-    [Fact]
-    public async Task WhenInvalidAndTheNumberIsStored_ShouldBeBadRequest()
-    {
-        GivenTheNumberIsStored();
-
-        var response = await SendPost(
-            Ltd(
-                Address("REGISTERED"),
-                new
-                {
-                    addressTypes = s_correspondence,
-                    addressLine1 = "1 Mill Lane",
-                    townOrCity = "Testville",
-                    countryIso = "GB",
-                }
-            )
-        );
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        await ShouldNotHaveCalledTheService();
-    }
-
-    [Fact]
-    public async Task WhenReadOnlyAndTheNumberIsStored_ShouldBeForbidden()
-    {
-        GivenTheNumberIsStored();
-
-        var response = await SendPost(Ltd(), CreateClient(testUser: TestUser.ReadOnly));
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        await ShouldNotHaveCalledTheService();
-    }
-
     private async Task ShouldBeValidationProblem(HttpResponseMessage response, params string[] keys)
     {
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);

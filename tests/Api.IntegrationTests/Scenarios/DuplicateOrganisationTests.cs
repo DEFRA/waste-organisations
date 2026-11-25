@@ -65,6 +65,43 @@ public class DuplicateOrganisationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task InvalidRequestWithAStoredNumber_ShouldBeValidationProblem()
+    {
+        var number = CompaniesHouseNumbers.Generate();
+        var first = await PostAsync(Ltd(number, Address(NewSuffix(), "REGISTERED")));
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        var withoutPostcode = new
+        {
+            addressTypes = new[] { "REGISTERED" },
+            addressLine1 = $"12 High Street {NewSuffix()}",
+            townOrCity = "Testville",
+            countryIso = "GB",
+        };
+
+        var response = await PostAsync(Ltd(number, withoutPostcode));
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, content);
+        JsonNode.Parse(content)!["errors"]!.AsObject().Should().ContainKey("organisation.addresses[0].postcode");
+        (await CountOrganisationsWithAsync(number)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ReadOnlyClientWithAStoredNumber_ShouldBeForbidden()
+    {
+        var number = CompaniesHouseNumbers.Generate();
+        var first = await PostAsync(Ltd(number, Address(NewSuffix(), "REGISTERED")));
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        using var readOnly = CreateClient("ReadOnlyOAuth");
+
+        var response = await PostAsync(Ltd(number, Address(NewSuffix(), "REGISTERED")), readOnly);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        content.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task TwoIdenticalRequestsWithoutANumber_ShouldBothCreate()
     {
         var body = new
