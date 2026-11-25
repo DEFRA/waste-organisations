@@ -609,26 +609,8 @@ public class CreateOrganisationTests : IntegrationTestBase
             countryIso,
         };
 
-    private static object Ltd(string companiesHouseNumber, params object[] addresses) =>
-        new
-        {
-            organisation = new
-            {
-                name = "Acme Waste Ltd",
-                companiesHouseNumber,
-                regulatorNation = "GB-ENG",
-                organisationType = "LTD",
-                addresses,
-            },
-        };
-
     private static OrganisationAddress LinkOf(Organisation organisation, string usageType) =>
         organisation.Addresses.Single(a => a.UsageType.Name == usageType);
-
-    private static async Task<OrganisationResponse> ReadOrganisationAsync(HttpResponseMessage response) =>
-        (
-            await response.Content.ReadFromJsonAsync<CreateOrganisationResponse>(TestContext.Current.CancellationToken)
-        )!.Organisation;
 
     // The address rows holding this test's suffix, which no other test sends
     private static async Task<int> CountAddressesAsync(string suffix)

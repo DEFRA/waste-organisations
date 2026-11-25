@@ -1,8 +1,10 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Authentication;
 using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,6 +83,48 @@ public abstract class IntegrationTestBase
 
         return await client.SendAsync(request, TestContext.Current.CancellationToken);
     }
+
+    protected static object Ltd(string companiesHouseNumber, params object[] addresses) =>
+        new
+        {
+            organisation = new
+            {
+                name = "Acme Waste Ltd",
+                companiesHouseNumber,
+                regulatorNation = "GB-ENG",
+                organisationType = "LTD",
+                addresses,
+            },
+        };
+
+    protected static async Task<OrganisationResponse> ReadOrganisationAsync(HttpResponseMessage response) =>
+        (
+            await response.Content.ReadFromJsonAsync<CreateOrganisationResponse>(TestContext.Current.CancellationToken)
+        )!.Organisation;
+
+    protected static async Task<HttpResponseMessage> GetAsync(
+        string path,
+        string? accept = AcceptV2,
+        HttpClient? client = null
+    )
+    {
+        using var defaultClient = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        if (accept is not null)
+            request.Headers.TryAddWithoutValidation("Accept", accept);
+
+        return await (client ?? defaultClient).SendAsync(request, TestContext.Current.CancellationToken);
+    }
+
+    protected static async Task<OrganisationDetailsResponse> ReadDetailsAsync(HttpResponseMessage response) =>
+        (
+            await response.Content.ReadFromJsonAsync<GetOrganisationDetailsResponse>(
+                TestContext.Current.CancellationToken
+            )
+        )!
+            .Organisations.Should()
+            .ContainSingle()
+            .Subject;
 
     private static string GenerateJwt(string clientId)
     {
