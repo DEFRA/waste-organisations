@@ -187,6 +187,34 @@ public class PostgresOrganisationServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenTheNumberIsStored_ShouldGiveTheExistingIdAndSaveNothing()
+    {
+        var existingId = Guid.CreateVersion7();
+        Subject.StoredOrganisationIds.Enqueue(existingId);
+        var organisation = NewOrganisation(Item([AddressType.Registered]));
+
+        var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        result.Should().Be(new OrganisationAlreadyExists(existingId));
+        Subject.OrganisationLookups.Should().Be(1);
+        Subject.AddressLookups.Should().Be(0);
+        Context.Saves.Should().BeEmpty();
+        Context.ChangeTracker.Entries().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithoutANumber_ShouldCreateWithoutALookUp()
+    {
+        var organisation = NewOrganisation(Item([AddressType.Registered]));
+        organisation.CompaniesHouseNumber = null;
+
+        await CreatedAsync(organisation);
+
+        Subject.OrganisationLookups.Should().Be(0);
+        Context.Saves.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task UsageTypeIdsAsync_ShouldGiveTheIdOfEveryKind()
     {
         var ids = await Subject.UsageTypeIdsAsync(TestContext.Current.CancellationToken);
@@ -309,6 +337,11 @@ public class PostgresOrganisationServiceTests
 
         public int AddressLookups { get; private set; }
 
+        /// <summary>What each organisation look-up by number finds, in turn; nothing once empty.</summary>
+        public Queue<Guid?> StoredOrganisationIds { get; } = new();
+
+        public int OrganisationLookups { get; private set; }
+
         public string CurrentAddressesSql(Guid id) => OrganisationWithCurrentAddresses(id).ToQueryString();
 
         protected override Task<OrganisationType?> FindOrganisationTypeAsync(
@@ -328,6 +361,16 @@ public class PostgresOrganisationServiceTests
             AddressLookups++;
 
             return Task.FromResult(StoredAddresses.TryDequeue(out var stored) ? stored : null);
+        }
+
+        protected override Task<Guid?> FindOrganisationIdAsync(
+            string companiesHouseNumber,
+            CancellationToken cancellationToken
+        )
+        {
+            OrganisationLookups++;
+
+            return Task.FromResult(StoredOrganisationIds.TryDequeue(out var stored) ? stored : null);
         }
     }
 }

@@ -44,7 +44,9 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
     }
 
     /// <summary>
-    /// Finds each distinct address of the organisation in the <c>address</c> table and links the
+    /// Returns <see cref="OrganisationAlreadyExists"/> and saves nothing when an organisation already
+    /// holds the Companies House number (spec 0008, Enforcement); an organisation without a number
+    /// is not checked. Otherwise finds each distinct address of the organisation in the <c>address</c> table and links the
     /// organisation to the stored row, or inserts the address when there is none; then saves once,
     /// so everything is stored or nothing is. Two requests inserting the same new address at the
     /// same time both miss the look-up and the later save fails on <c>ux_address_values</c>; that
@@ -61,6 +63,12 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
         CancellationToken cancellationToken
     )
     {
+        if (
+            organisation.CompaniesHouseNumber is { } companiesHouseNumber
+            && await FindOrganisationIdAsync(companiesHouseNumber, cancellationToken) is { } existingId
+        )
+            return new OrganisationAlreadyExists(existingId);
+
         // Each link's candidate, as the mapping built it. An attempt re-points the links at stored
         // rows, so the candidates are kept apart to look them up again on the retry
         var links = organisation.Addresses.Select(link => (Link: link, Candidate: link.Address)).ToList();
@@ -122,6 +130,21 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
                 .ThenInclude(link => link.Address)
             .Include(organisation => organisation.Addresses.Where(link => link.ValidTo == null))
                 .ThenInclude(link => link.UsageType);
+
+    /// <summary>
+    /// The id of the organisation holding the given normalised Companies House number, or null.
+    /// <c>ux_organisation_companies_house_number</c> serves the query and allows at most one such
+    /// row.
+    /// </summary>
+    protected virtual async Task<Guid?> FindOrganisationIdAsync(
+        string companiesHouseNumber,
+        CancellationToken cancellationToken
+    ) =>
+        await context
+            .Organisations.AsNoTracking()
+            .Where(organisation => organisation.CompaniesHouseNumber == companiesHouseNumber)
+            .Select(organisation => (Guid?)organisation.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>The <c>organisation_type</c> row with the given id, untracked.</summary>
     protected virtual Task<OrganisationType?> FindOrganisationTypeAsync(Guid id, CancellationToken cancellationToken) =>

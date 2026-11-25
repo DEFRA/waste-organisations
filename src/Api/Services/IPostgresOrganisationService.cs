@@ -23,7 +23,9 @@ public interface IPostgresOrganisationService
     Task<IReadOnlyDictionary<AddressType, Guid>> UsageTypeIdsAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Stores the organisation, its links and every address the <c>address</c> table does not
+    /// Returns <see cref="OrganisationAlreadyExists"/> with the id of the organisation that already
+    /// holds the Companies House number, and stores nothing; an organisation without a number is
+    /// not checked. Otherwise stores the organisation, its links and every address the <c>address</c> table does not
     /// already hold, in one save. Returns <see cref="OrganisationCreated"/> holding the
     /// organisation with its organisation type, usage types and addresses set, as the v2 response
     /// needs them.
