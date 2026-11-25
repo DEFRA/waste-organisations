@@ -51,7 +51,7 @@ public class CompaniesHouseNumbersTests
     {
         var generate = () => CompaniesHouseNumbers.Generate(prefix);
 
-        generate.Should().Throw<ArgumentException>().WithParameterName("prefix");
+        generate.Should().Throw<ArgumentException>().WithParameterName(nameof(prefix));
     }
 
     [Fact]
