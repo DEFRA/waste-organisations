@@ -215,6 +215,56 @@ public class PostgresOrganisationServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenTheSaveBreaksTheNumberIndex_ShouldGiveTheExistingId()
+    {
+        var existingId = Guid.CreateVersion7();
+        Subject.StoredOrganisationIds.Enqueue(null);
+        Subject.StoredOrganisationIds.Enqueue(existingId);
+        Context.Failures.Enqueue(UniqueViolation("ux_organisation_companies_house_number"));
+        var organisation = NewOrganisation(Item([AddressType.Registered]));
+
+        var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        result.Should().Be(new OrganisationAlreadyExists(existingId));
+        Subject.OrganisationLookups.Should().Be(2);
+        Context.Saves.Should().ContainSingle();
+        Context.ChangeTracker.Entries().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheRetriedSaveBreaksTheNumberIndex_ShouldGiveTheExistingId()
+    {
+        var existingId = Guid.CreateVersion7();
+        Subject.StoredOrganisationIds.Enqueue(null);
+        Subject.StoredOrganisationIds.Enqueue(existingId);
+        Context.Failures.Enqueue(UniqueViolation("ux_address_values"));
+        Context.Failures.Enqueue(UniqueViolation("ux_organisation_companies_house_number"));
+        var organisation = NewOrganisation(Item([AddressType.Registered]));
+
+        var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        result.Should().Be(new OrganisationAlreadyExists(existingId));
+        Subject.OrganisationLookups.Should().Be(2);
+        Context.Saves.Should().HaveCount(2);
+        Context.ChangeTracker.Entries().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheHolderIsGone_ShouldThrow()
+    {
+        var failure = UniqueViolation("ux_organisation_companies_house_number");
+        Context.Failures.Enqueue(failure);
+        var organisation = NewOrganisation(Item([AddressType.Registered]));
+
+        var act = () => Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        (await act.Should().ThrowAsync<DbUpdateException>()).Which.Should().BeSameAs(failure);
+        Subject.OrganisationLookups.Should().Be(2);
+        Context.Saves.Should().ContainSingle();
+        Context.ChangeTracker.Entries().Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task UsageTypeIdsAsync_ShouldGiveTheIdOfEveryKind()
     {
         var ids = await Subject.UsageTypeIdsAsync(TestContext.Current.CancellationToken);
