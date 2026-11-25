@@ -35,6 +35,7 @@ public static class Post
     private static async Task<IResult> Handle(
         [FromBody] CreateOrganisationRequest request,
         [FromServices] IPostgresOrganisationService organisationService,
+        [FromServices] LinkGenerator linkGenerator,
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
@@ -55,17 +56,26 @@ public static class Post
         return result switch
         {
             OrganisationCreated { Organisation: var created } => TypedResults.Created(
-                $"/organisations/{created.Id}",
+                DetailsPath(linkGenerator, created.Id),
                 created.ToResponse()
             ),
-            OrganisationAlreadyExists { ExistingId: var existingId } => AlreadyExists(httpContext, existingId),
+            OrganisationAlreadyExists { ExistingId: var existingId } => AlreadyExists(
+                httpContext,
+                DetailsPath(linkGenerator, existingId),
+                existingId
+            ),
             _ => throw new InvalidOperationException($"Unknown create result {result.GetType().Name}"),
         };
     }
 
-    private static ProblemHttpResult AlreadyExists(HttpContext httpContext, Guid existingId)
+    // The v2 read's path, built from its route name so the Location follows that endpoint
+    private static string DetailsPath(LinkGenerator linkGenerator, Guid id) =>
+        linkGenerator.GetPathByName(GetDetails.OperationId, new { id })
+        ?? throw new InvalidOperationException($"No route named {GetDetails.OperationId}");
+
+    private static ProblemHttpResult AlreadyExists(HttpContext httpContext, string location, Guid existingId)
     {
-        httpContext.Response.Headers.Location = $"/organisations/{existingId}";
+        httpContext.Response.Headers.Location = location;
 
         return TypedResults.Problem(
             statusCode: StatusCodes.Status409Conflict,
