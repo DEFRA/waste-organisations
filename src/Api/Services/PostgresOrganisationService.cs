@@ -56,7 +56,10 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
     /// No explicit transaction is opened: <c>EnableRetryOnFailure</c> is on, and its execution
     /// strategy rejects a transaction started outside it. The single save is the transaction.
     /// </remarks>
-    public async Task<Organisation> CreateAsync(Organisation organisation, CancellationToken cancellationToken)
+    public async Task<CreateOrganisationResult> CreateAsync(
+        Organisation organisation,
+        CancellationToken cancellationToken
+    )
     {
         // Each link's candidate, as the mapping built it. An attempt re-points the links at stored
         // rows, so the candidates are kept apart to look them up again on the retry
@@ -100,7 +103,7 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
 
         logger.LogInformation("Created organisation with id '{OrganisationId}'", organisation.Id);
 
-        return organisation;
+        return new OrganisationCreated(organisation);
     }
 
     public Task<Organisation?> GetAsync(Guid id, CancellationToken cancellationToken) =>

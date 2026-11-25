@@ -24,10 +24,11 @@ public interface IPostgresOrganisationService
 
     /// <summary>
     /// Stores the organisation, its links and every address the <c>address</c> table does not
-    /// already hold, in one save. Returns the organisation with its organisation type, usage
-    /// types and addresses set, as the v2 response needs them.
+    /// already hold, in one save. Returns <see cref="OrganisationCreated"/> holding the
+    /// organisation with its organisation type, usage types and addresses set, as the v2 response
+    /// needs them.
     /// </summary>
-    Task<Organisation> CreateAsync(Organisation organisation, CancellationToken cancellationToken);
+    Task<CreateOrganisationResult> CreateAsync(Organisation organisation, CancellationToken cancellationToken);
 
     /// <summary>
     /// The organisation with the given id, untracked, with its organisation type and only its

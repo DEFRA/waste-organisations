@@ -43,7 +43,7 @@ public class PostgresOrganisationServiceTests
         var organisation = NewOrganisation(Item([AddressType.Registered, AddressType.Principal]));
         var candidate = organisation.Addresses[0].Address;
 
-        var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+        var result = await CreatedAsync(organisation);
 
         Context.Saves.Should().ContainSingle().Which.Should().Equal((candidate, EntityState.Added));
         Subject.AddressLookups.Should().Be(1);
@@ -74,7 +74,7 @@ public class PostgresOrganisationServiceTests
         var stored = StoredAddress();
         Subject.StoredAddresses.Enqueue(stored);
 
-        var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+        var result = await CreatedAsync(organisation);
 
         var save = Context.Saves.Should().ContainSingle().Subject;
         save.Should().Contain((stored, EntityState.Unchanged));
@@ -92,7 +92,7 @@ public class PostgresOrganisationServiceTests
     {
         var organisation = NewOrganisation(Item([AddressType.Registered, AddressType.Principal]));
 
-        var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+        var result = await CreatedAsync(organisation);
 
         var response = result.ToResponse().Organisation;
         response.OrganisationType.Should().Be("LTD");
@@ -113,7 +113,7 @@ public class PostgresOrganisationServiceTests
         Subject.StoredAddresses.Enqueue(stored);
         Context.Failures.Enqueue(UniqueViolation("ux_address_values"));
 
-        var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+        var result = await CreatedAsync(organisation);
 
         Subject.AddressLookups.Should().Be(2);
         Context.Saves.Should().HaveCount(2);
@@ -210,6 +210,13 @@ public class PostgresOrganisationServiceTests
         var sql = Subject.CurrentAddressesSql(Guid.NewGuid());
 
         sql.Split("valid_to IS NULL").Should().HaveCount(2);
+    }
+
+    private async Task<Organisation> CreatedAsync(Organisation organisation)
+    {
+        var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        return result.Should().BeOfType<OrganisationCreated>().Subject.Organisation;
     }
 
     private static Organisation NewOrganisation(params AddressRequest[] items) =>

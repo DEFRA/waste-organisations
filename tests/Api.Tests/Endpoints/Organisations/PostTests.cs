@@ -319,7 +319,7 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
                 foreach (var link in organisation.Addresses)
                     link.UsageType = usageTypes.Single(u => u.Id == link.UsageTypeId);
 
-                return organisation;
+                return new OrganisationCreated(organisation);
             });
     }
 

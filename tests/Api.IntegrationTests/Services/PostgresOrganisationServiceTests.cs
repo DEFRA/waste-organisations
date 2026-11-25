@@ -134,7 +134,9 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
             Address(suffix, "12 High Street", AddressType.Registered)
         );
 
-        return (await service.CreateAsync(organisation, TestContext.Current.CancellationToken), service);
+        var result = await service.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        return (result.Should().BeOfType<OrganisationCreated>().Subject.Organisation, service);
     }
 
     private static async Task<Organisation> BuildAsync(

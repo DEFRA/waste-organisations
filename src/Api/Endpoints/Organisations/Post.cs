@@ -42,10 +42,11 @@ public static class Post
         );
         var usageTypeIds = await organisationService.UsageTypeIdsAsync(cancellationToken);
 
-        var created = await organisationService.CreateAsync(
+        var result = await organisationService.CreateAsync(
             organisation.ToEntity(organisationTypeId, usageTypeIds),
             cancellationToken
         );
+        var created = ((OrganisationCreated)result).Organisation;
 
         return TypedResults.Created($"/organisations/{created.Id}", created.ToResponse());
     }
