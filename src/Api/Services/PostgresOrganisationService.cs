@@ -71,7 +71,7 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
             organisation.CompaniesHouseNumber is { } companiesHouseNumber
             && await FindOrganisationIdAsync(companiesHouseNumber, cancellationToken) is { } existingId
         )
-            return new OrganisationAlreadyExists(existingId);
+            return AlreadyExists(existingId);
 
         // Each link's candidate, as the mapping built it. An attempt re-points the links at stored
         // rows, so the candidates are kept apart to look them up again on the retry
@@ -125,7 +125,7 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
             )
                 throw;
 
-            return new OrganisationAlreadyExists(holderId);
+            return AlreadyExists(holderId);
         }
 
         logger.LogInformation("Created organisation with id '{OrganisationId}'", organisation.Id);
@@ -237,6 +237,20 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
         context.Organisations.Add(organisation);
 
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Logs the refused create with the existing organisation's id only: the number and the request
+    /// are not logged (spec 0008, Logging).
+    /// </summary>
+    private OrganisationAlreadyExists AlreadyExists(Guid existingId)
+    {
+        logger.LogInformation(
+            "Create refused: organisation '{OrganisationId}' already holds the Companies House number",
+            existingId
+        );
+
+        return new OrganisationAlreadyExists(existingId);
     }
 
     private static bool IsCompaniesHouseNumberViolation(DbUpdateException exception) =>

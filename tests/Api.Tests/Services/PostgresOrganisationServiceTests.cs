@@ -6,7 +6,7 @@ using Defra.WasteOrganisations.Api.Extensions;
 using Defra.WasteOrganisations.Api.Mapping;
 using Defra.WasteOrganisations.Api.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Address = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Address;
 using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organisation;
@@ -33,9 +33,10 @@ public class PostgresOrganisationServiceTests
     );
 
     private FakeContext Context { get; } = new();
+    private RecordingLogger Logger { get; } = new();
     private TestService Subject { get; }
 
-    public PostgresOrganisationServiceTests() => Subject = new TestService(Context);
+    public PostgresOrganisationServiceTests() => Subject = new TestService(Context, Logger);
 
     [Fact]
     public async Task CreateAsync_WithANewAddress_ShouldAddItAndSaveOnce()
@@ -265,6 +266,32 @@ public class PostgresOrganisationServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenTheNumberIsStored_ShouldLogTheExistingIdWithoutTheNumber()
+    {
+        var existingId = Guid.CreateVersion7();
+        Subject.StoredOrganisationIds.Enqueue(existingId);
+        var organisation = NewOrganisation(Item([AddressType.Registered]));
+
+        await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        ShouldHaveLoggedTheRefusal(existingId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheSaveBreaksTheNumberIndex_ShouldLogTheExistingIdWithoutTheNumber()
+    {
+        var existingId = Guid.CreateVersion7();
+        Subject.StoredOrganisationIds.Enqueue(null);
+        Subject.StoredOrganisationIds.Enqueue(existingId);
+        Context.Failures.Enqueue(UniqueViolation("ux_organisation_companies_house_number"));
+        var organisation = NewOrganisation(Item([AddressType.Registered]));
+
+        await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
+
+        ShouldHaveLoggedTheRefusal(existingId);
+    }
+
+    [Fact]
     public async Task UsageTypeIdsAsync_ShouldGiveTheIdOfEveryKind()
     {
         var ids = await Subject.UsageTypeIdsAsync(TestContext.Current.CancellationToken);
@@ -295,6 +322,21 @@ public class PostgresOrganisationServiceTests
         var result = await Subject.CreateAsync(organisation, TestContext.Current.CancellationToken);
 
         return result.Should().BeOfType<OrganisationCreated>().Subject.Organisation;
+    }
+
+    private void ShouldHaveLoggedTheRefusal(Guid existingId)
+    {
+        Logger
+            .Entries.Should()
+            .ContainSingle(entry => entry.Message.Contains("Create refused"))
+            .Which.Should()
+            .Be(
+                (
+                    LogLevel.Information,
+                    $"Create refused: organisation '{existingId}' already holds the Companies House number"
+                )
+            );
+        Logger.Entries.Should().NotContain(entry => entry.Message.Contains("12345678"));
     }
 
     private static Organisation NewOrganisation(params AddressRequest[] items) =>
@@ -376,8 +418,26 @@ public class PostgresOrganisationServiceTests
         }
     }
 
-    private sealed class TestService(FakeContext context)
-        : PostgresOrganisationService(context, NullLogger<PostgresOrganisationService>.Instance)
+    private sealed class RecordingLogger : ILogger<PostgresOrganisationService>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) => Entries.Add((logLevel, formatter(state, exception)));
+    }
+
+    private sealed class TestService(FakeContext context, RecordingLogger logger)
+        : PostgresOrganisationService(context, logger)
     {
         public List<AddressUsageType> UsageTypeRows { get; } =
             UsageTypes.Select(usageType => new AddressUsageType { Id = usageType.Id, Name = usageType.Name }).ToList();
