@@ -59,4 +59,14 @@ public static class CompaniesHouseNumbers
     public const string GetWithValidTo = "10000025";
 
     public const string ErrorCreatedNotInV1 = "10000026";
+
+    public const string ServiceRetryFirst = "10000027";
+
+    public const string ServiceRetrySecond = "10000028";
+
+    public const string ServiceLinkFails = "10000029";
+
+    public const string ServiceRetryFailsStored = "10000030";
+
+    public const string ServiceRetryFailsSecond = "10000031";
 }
