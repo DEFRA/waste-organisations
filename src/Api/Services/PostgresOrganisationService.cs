@@ -120,6 +120,7 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
             // A clashing number can never be stored, so the save is not retried (spec 0008, Decisions)
             context.ChangeTracker.Clear();
 
+            // ux_organisation_companies_house_number holds only non-null numbers, so a clash means the number is set
             if (
                 await FindOrganisationIdAsync(organisation.CompaniesHouseNumber!, cancellationToken) is not { } holderId
             )
