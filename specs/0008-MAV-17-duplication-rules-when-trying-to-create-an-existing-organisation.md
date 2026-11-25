@@ -55,6 +55,8 @@ For a duplicate, the v2 create stores nothing and returns:
 
 `organisationId` is the id of the stored organisation. The body does not repeat the organisation's details: the caller reads them with `GET /organisations/{organisationId}` (Decisions, "`409` body"). The Companies House number is not echoed back.
 
+The body also carries the `traceId` member that the framework adds to every problem details response of this API. The tests assert the five members above by name and do not snapshot the body (assumption of the slice 2 plan, 25 November 2026).
+
 The order of checks is unchanged, with the duplicate check last: `401`, `403`, `406`, `415` and the unreadable-body `400` come first, then validation (`400`), then the duplicate check (`409`). So a caller without the `write` scope learns nothing about which numbers are stored, and an invalid request that also carries a stored number gets `400`.
 
 ### Enforcement
@@ -80,7 +82,7 @@ The handler returns `TypedResults.Created(...)` for `OrganisationCreated`. For `
 
 ### Logging
 
-One `Information` entry for a refused duplicate: "Create refused: organisation '{OrganisationId}' already holds the Companies House number", with the existing id only. The number and the request body are not logged (`rules/shared/security-logging.md`).
+One `Information` entry for a refused duplicate: "Create refused: organisation '{OrganisationId}' already holds the Companies House number", with the existing id only. The number and the request body are not logged (`rules/shared/security-logging.md`). The entry is written on both paths to a `409`: the look-up before the save and the index violation. The unit test reads it through a logger written in the test class, as no NuGet package is added (assumption of the slice 2 plan, 25 November 2026).
 
 ### Schema: Liquibase changelog
 
@@ -98,6 +100,8 @@ The entity follows it: `OrganisationConfiguration` gains `HasIndex(o => o.Compan
 ### OpenAPI
 
 `/openapi/v2.json`: the `CreateOrganisation` operation gains a `409` problem details response. Its description replaces "Duplicate organisations are not detected." with a sentence saying that a Companies House number already stored gives `409` with the existing organisation's id in `organisationId` and in `Location`, and that organisations without a number are not checked. `OpenApiTests.OpenApiV2_VerifyAsExpected` is re-verified in slice 2 after its diff is read. `/openapi/v1.json` does not change.
+
+The description reads (wording fixed by the slice 2 plan, 25 November 2026): "Create an organisation with its addresses. A Companies House number that is already stored gives 409, with the id of the existing organisation in organisationId and in the Location header. Organisations without a Companies House number are not checked."
 
 ### Code layout
 
