@@ -186,6 +186,9 @@ public class DuplicateOrganisationTests : IntegrationTestBase
         );
     }
 
+    private static object Ltd(string companiesHouseNumber, params object[] addresses) =>
+        Company("LTD", "Acme Waste Ltd", companiesHouseNumber, addresses);
+
     private static object Company(
         string organisationType,
         string name,
@@ -203,4 +206,28 @@ public class DuplicateOrganisationTests : IntegrationTestBase
                 addresses,
             },
         };
+
+    private static async Task<OrganisationResponse> ReadOrganisationAsync(HttpResponseMessage response) =>
+        (
+            await response.Content.ReadFromJsonAsync<CreateOrganisationResponse>(TestContext.Current.CancellationToken)
+        )!.Organisation;
+
+    private static async Task<HttpResponseMessage> GetAsync(string path)
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.TryAddWithoutValidation("Accept", AcceptV2);
+
+        return await client.SendAsync(request, TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<OrganisationDetailsResponse> ReadDetailsAsync(HttpResponseMessage response) =>
+        (
+            await response.Content.ReadFromJsonAsync<GetOrganisationDetailsResponse>(
+                TestContext.Current.CancellationToken
+            )
+        )!
+            .Organisations.Should()
+            .ContainSingle()
+            .Subject;
 }

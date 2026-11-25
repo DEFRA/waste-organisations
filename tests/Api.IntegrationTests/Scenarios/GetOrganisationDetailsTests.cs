@@ -26,7 +26,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     [Fact]
     public async Task Created_ShouldBeReadableAtItsLocation()
     {
-        var body = LtdWithTradingName(
+        var body = Ltd(
             CompaniesHouseNumbers.Generate(),
             Address(NewSuffix(), "REGISTERED", "PRINCIPAL"),
             Address(NewSuffix(), "CORRESPONDENCE")
@@ -37,7 +37,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK, content);
-        var read = await ReadDetailsAsync(response);
+        var read = await ReadOrganisationAsync(response);
         read.Id.Should().Be(created.Organisation.Id);
         created.Organisation.TradingName.Should().Be("Acme");
         read.Name.Should().Be(created.Organisation.Name);
@@ -63,9 +63,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     [InlineData("without hyphens")]
     public async Task IdInAnotherForm_ShouldBeOk(string form)
     {
-        var created = await CreateAsync(
-            LtdWithTradingName(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED"))
-        );
+        var created = await CreateAsync(Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED")));
         var id = created.Organisation.Id;
         var path = form switch
         {
@@ -87,7 +85,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     {
         var registeredSuffix = NewSuffix();
         var created = await CreateAsync(
-            LtdWithTradingName(
+            Ltd(
                 CompaniesHouseNumbers.Generate(),
                 Address(registeredSuffix, "REGISTERED", "PRINCIPAL"),
                 Address(NewSuffix(), "CORRESPONDENCE")
@@ -100,7 +98,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var response = await GetAsync(created.Location);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var address = (await ReadDetailsAsync(response)).Addresses.Should().ContainSingle().Subject;
+        var address = (await ReadOrganisationAsync(response)).Addresses.Should().ContainSingle().Subject;
         address.AddressLine1.Should().Be($"12 High Street {registeredSuffix}");
         address.AddressTypes.Should().BeEquivalentTo([AddressType.Registered, AddressType.Principal]);
     }
@@ -109,7 +107,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     public async Task EveryLinkEnded_ShouldReturnEmptyAddresses()
     {
         var created = await CreateAsync(
-            LtdWithTradingName(
+            Ltd(
                 CompaniesHouseNumbers.Generate(),
                 Address(NewSuffix(), "REGISTERED", "PRINCIPAL"),
                 Address(NewSuffix(), "CORRESPONDENCE")
@@ -131,7 +129,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     {
         var registeredSuffix = NewSuffix();
         var created = await CreateAsync(
-            LtdWithTradingName(
+            Ltd(
                 CompaniesHouseNumbers.Generate(),
                 Address(registeredSuffix, "REGISTERED"),
                 Address(NewSuffix(), "CORRESPONDENCE")
@@ -164,7 +162,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var response = await GetAsync(created.Location);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var addresses = (await ReadDetailsAsync(response)).Addresses;
+        var addresses = (await ReadOrganisationAsync(response)).Addresses;
         addresses.Should().HaveCount(2);
         addresses
             .Should()
@@ -183,7 +181,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     public async Task KindsOfOneAddressWithDifferentValidFrom_ShouldBeOneItem()
     {
         var created = await CreateAsync(
-            LtdWithTradingName(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED", "PRINCIPAL"))
+            Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED", "PRINCIPAL"))
         );
 
         await ChangeStoredAsync(created.Organisation.Id, organisation =>
@@ -195,7 +193,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var response = await GetAsync(created.Location);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var address = (await ReadDetailsAsync(response)).Addresses.Should().ContainSingle().Subject;
+        var address = (await ReadOrganisationAsync(response)).Addresses.Should().ContainSingle().Subject;
         address.AddressTypes.Should().BeEquivalentTo([AddressType.Registered, AddressType.Principal]);
     }
 
@@ -203,9 +201,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     [Fact]
     public async Task OrganisationWithValidTo_ShouldStillBeReturned()
     {
-        var created = await CreateAsync(
-            LtdWithTradingName(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED"))
-        );
+        var created = await CreateAsync(Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED")));
         var validTo = default(DateTime);
 
         await ChangeStoredAsync(created.Organisation.Id, organisation =>
@@ -217,7 +213,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var response = await GetAsync(created.Location);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var read = await ReadDetailsAsync(response);
+        var read = await ReadOrganisationAsync(response);
         read.Id.Should().Be(created.Organisation.Id);
         read.ValidTo.Should().Be(new DateTimeOffset(validTo));
         read.ValidTo.Value.Offset.Should().Be(TimeSpan.Zero);
@@ -322,7 +318,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         content.Should().BeEmpty();
     }
 
-    private static object LtdWithTradingName(string companiesHouseNumber, params object[] addresses) =>
+    private static object Ltd(string companiesHouseNumber, params object[] addresses) =>
         new
         {
             organisation = new
@@ -348,6 +344,30 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
 
         return (created!.Organisation, response.Headers.Location!.OriginalString);
     }
+
+    private static async Task<HttpResponseMessage> GetAsync(
+        string path,
+        string? accept = AcceptV2,
+        HttpClient? client = null
+    )
+    {
+        using var defaultClient = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        if (accept is not null)
+            request.Headers.TryAddWithoutValidation("Accept", accept);
+
+        return await (client ?? defaultClient).SendAsync(request, TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<OrganisationDetailsResponse> ReadOrganisationAsync(HttpResponseMessage response) =>
+        (
+            await response.Content.ReadFromJsonAsync<GetOrganisationDetailsResponse>(
+                TestContext.Current.CancellationToken
+            )
+        )!
+            .Organisations.Should()
+            .ContainSingle()
+            .Subject;
 
     private static void ShouldHaveNone(JsonObject json, params string[] propertyNames)
     {
