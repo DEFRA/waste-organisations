@@ -3,6 +3,7 @@ using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Mapping;
 using Defra.WasteOrganisations.Api.Services;
 using Defra.WasteOrganisations.Api.Versioning;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Defra.WasteOrganisations.Api.Endpoints.Organisations;
@@ -31,6 +32,7 @@ public static class Post
     private static async Task<IResult> Handle(
         [FromBody] CreateOrganisationRequest request,
         [FromServices] IPostgresOrganisationService organisationService,
+        HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
@@ -46,8 +48,27 @@ public static class Post
             organisation.ToEntity(organisationTypeId, usageTypeIds),
             cancellationToken
         );
-        var created = ((OrganisationCreated)result).Organisation;
 
-        return TypedResults.Created($"/organisations/{created.Id}", created.ToResponse());
+        return result switch
+        {
+            OrganisationCreated { Organisation: var created } => TypedResults.Created(
+                $"/organisations/{created.Id}",
+                created.ToResponse()
+            ),
+            OrganisationAlreadyExists { ExistingId: var existingId } => AlreadyExists(httpContext, existingId),
+            _ => throw new InvalidOperationException($"Unknown create result {result.GetType().Name}"),
+        };
+    }
+
+    private static ProblemHttpResult AlreadyExists(HttpContext httpContext, Guid existingId)
+    {
+        httpContext.Response.Headers.Location = $"/organisations/{existingId}";
+
+        return TypedResults.Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Organisation already exists",
+            detail: "An organisation with this companiesHouseNumber already exists.",
+            extensions: new Dictionary<string, object?> { ["organisationId"] = existingId }
+        );
     }
 }

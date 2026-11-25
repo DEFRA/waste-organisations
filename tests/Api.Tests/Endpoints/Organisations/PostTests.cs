@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json.Nodes;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Defra.WasteOrganisations.Api.Dtos;
@@ -263,6 +264,61 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
         await ShouldNotHaveCalledTheService();
     }
 
+    [Fact]
+    public async Task WhenOrganisationAlreadyExists_ShouldBeConflictWithTheExistingId()
+    {
+        GivenTheServiceStoresTheOrganisation();
+        var existingId = GivenTheNumberIsStored();
+
+        var response = await SendPost(Ltd());
+        var problem = JsonNode.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!;
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (response.Content.Headers.ContentType?.MediaType).Should().Be("application/problem+json");
+        response.Headers.Location.Should().Be($"/organisations/{existingId}");
+        problem["type"]!.GetValue<string>().Should().Be("https://tools.ietf.org/html/rfc9110#section-15.5.10");
+        problem["title"]!.GetValue<string>().Should().Be("Organisation already exists");
+        problem["status"]!.GetValue<int>().Should().Be(409);
+        problem["detail"]!
+            .GetValue<string>()
+            .Should()
+            .Be("An organisation with this companiesHouseNumber already exists.");
+        problem["organisationId"]!.GetValue<Guid>().Should().Be(existingId);
+    }
+
+    [Fact]
+    public async Task WhenInvalidAndTheNumberIsStored_ShouldBeBadRequest()
+    {
+        GivenTheNumberIsStored();
+
+        var response = await SendPost(
+            Ltd(
+                Address("REGISTERED"),
+                new
+                {
+                    addressTypes = s_correspondence,
+                    addressLine1 = "1 Mill Lane",
+                    townOrCity = "Testville",
+                    countryIso = "GB",
+                }
+            )
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await ShouldNotHaveCalledTheService();
+    }
+
+    [Fact]
+    public async Task WhenReadOnlyAndTheNumberIsStored_ShouldBeForbidden()
+    {
+        GivenTheNumberIsStored();
+
+        var response = await SendPost(Ltd(), CreateClient(testUser: TestUser.ReadOnly));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await ShouldNotHaveCalledTheService();
+    }
+
     private async Task ShouldBeValidationProblem(HttpResponseMessage response, params string[] keys)
     {
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -321,6 +377,17 @@ public class PostTests(ApiWebApplicationFactory factory, ITestOutputHelper outpu
 
                 return new OrganisationCreated(organisation);
             });
+    }
+
+    private Guid GivenTheNumberIsStored()
+    {
+        var existingId = Guid.NewGuid();
+
+        MockOrganisationService
+            .CreateAsync(Arg.Any<Organisation>(), Arg.Any<CancellationToken>())
+            .Returns(new OrganisationAlreadyExists(existingId));
+
+        return existingId;
     }
 
     private Task<HttpResponseMessage> SendPost(
