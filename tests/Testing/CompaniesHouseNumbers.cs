@@ -69,4 +69,50 @@ public static class CompaniesHouseNumbers
     public const string ServiceRetryFailsStored = "10000030";
 
     public const string ServiceRetryFailsSecond = "10000031";
+
+    public const string CreateVariantUpperCaseFirst = "10000032";
+
+    public const string CreateVariantUpperCaseSecond = "10000033";
+
+    public const string CreateVariantPostcodeFirst = "10000034";
+
+    public const string CreateVariantPostcodeSecond = "10000035";
+
+    public const string CreateVariantAddressLine2First = "10000036";
+
+    public const string CreateVariantAddressLine2Second = "10000037";
+
+    public const string CreateVariantCountyFirst = "10000038";
+
+    public const string CreateVariantCountySecond = "10000039";
+
+    public const string CreateVariantTownFirst = "10000040";
+
+    public const string CreateVariantTownSecond = "10000041";
+
+    public const string CreateVariantCountryFirst = "10000042";
+
+    public const string CreateVariantCountrySecond = "10000043";
+
+    public const string CreateFiveKinds = "10000044";
+
+    public const string CreateFiveAddresses = "10000045";
+
+    public const string CreateTrimmedAndUpperCased = "SC000046";
+
+    public const string CreateServerSetMembers = "10000047";
+
+    public const string CreatePunctuatedPostcode = "10000048";
+
+    public const string CreateNonUkPostcode = "10000049";
+
+    public const string CreateSameAddressTwoItems = "10000050";
+
+    public const string CreateSharedAddressFirst = "10000051";
+
+    public const string CreateSharedAddressSecond = "10000052";
+
+    public const string CreateAbsentParts = "10000053";
+
+    public const string CreateBlankParts = "10000054";
 }

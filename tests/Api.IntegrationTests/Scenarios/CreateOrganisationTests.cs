@@ -37,7 +37,7 @@ public class CreateOrganisationTests : IntegrationTestBase
             {
                 name = "Acme Waste Ltd",
                 tradingName = "Acme Recycling",
-                companiesHouseNumber = "12345678",
+                companiesHouseNumber = CompaniesHouseNumbers.FullPayload,
                 regulatorNation = "GB-ENG",
                 organisationType = "LTD",
                 addresses = new object[]
@@ -75,7 +75,7 @@ public class CreateOrganisationTests : IntegrationTestBase
         var stored = await ReadStoredAsync(created.Id);
         stored.Name.Should().Be("Acme Waste Ltd");
         stored.TradingName.Should().Be("Acme Recycling");
-        stored.CompaniesHouseNumber.Should().Be("12345678");
+        stored.CompaniesHouseNumber.Should().Be(CompaniesHouseNumbers.FullPayload);
         stored.RegulatorNation.Should().Be("GB-ENG");
         stored.OrganisationType!.Code.Should().Be("LTD");
         stored.ValidFrom.Should().Be(created.ValidFrom.UtcDateTime);
@@ -134,7 +134,7 @@ public class CreateOrganisationTests : IntegrationTestBase
     public async Task OneAddressWithAllFiveKinds_ShouldKeepTheOrderAndStoreOneAddress()
     {
         string[] kinds = ["CORRESPONDENCE", "AUDIT", "REGISTERED", "SERVICE_OF_NOTICE", "PRINCIPAL"];
-        var body = Ltd(Address(NewSuffix(), kinds));
+        var body = Ltd(CompaniesHouseNumbers.CreateFiveKinds, Address(NewSuffix(), kinds));
 
         var response = await PostAsync(body);
 
@@ -153,7 +153,10 @@ public class CreateOrganisationTests : IntegrationTestBase
     public async Task FiveDifferentAddresses_ShouldStoreFiveAddresses()
     {
         string[] kinds = ["REGISTERED", "PRINCIPAL", "AUDIT", "SERVICE_OF_NOTICE", "CORRESPONDENCE"];
-        var body = Ltd(kinds.Select(kind => Address(NewSuffix(), kind)).ToArray());
+        var body = Ltd(
+            CompaniesHouseNumbers.CreateFiveAddresses,
+            kinds.Select(kind => Address(NewSuffix(), kind)).ToArray()
+        );
 
         var response = await PostAsync(body);
 
@@ -243,7 +246,7 @@ public class CreateOrganisationTests : IntegrationTestBase
             {
                 name = "  Acme Waste Ltd  ",
                 tradingName = " Acme Recycling ",
-                companiesHouseNumber = " sc123456 ",
+                companiesHouseNumber = $" {CompaniesHouseNumbers.CreateTrimmedAndUpperCased.ToLowerInvariant()} ",
                 regulatorNation = " GB-NIR ",
                 organisationType = " LTD ",
                 addresses = new[]
@@ -268,7 +271,7 @@ public class CreateOrganisationTests : IntegrationTestBase
         var created = await ReadOrganisationAsync(response);
         created.Name.Should().Be("Acme Waste Ltd");
         created.TradingName.Should().Be("Acme Recycling");
-        created.CompaniesHouseNumber.Should().Be("SC123456");
+        created.CompaniesHouseNumber.Should().Be(CompaniesHouseNumbers.CreateTrimmedAndUpperCased);
         created.RegulatorNation.Should().Be(RegulatorNation.NorthernIreland);
         created.OrganisationType.Should().Be("LTD");
         created.Addresses[0].AddressLine1.Should().Be($"12 High Street {suffix}");
@@ -278,7 +281,7 @@ public class CreateOrganisationTests : IntegrationTestBase
         var stored = await ReadStoredAsync(created.Id);
         stored.Name.Should().Be("Acme Waste Ltd");
         stored.TradingName.Should().Be("Acme Recycling");
-        stored.CompaniesHouseNumber.Should().Be("SC123456");
+        stored.CompaniesHouseNumber.Should().Be(CompaniesHouseNumbers.CreateTrimmedAndUpperCased);
         stored.RegulatorNation.Should().Be("GB-NIR");
         var address = stored.Addresses.Single().Address;
         address.AddressLine1.Should().Be($"12 High Street {suffix}");
@@ -302,7 +305,7 @@ public class CreateOrganisationTests : IntegrationTestBase
             {
                 id = sentId,
                 name = "Acme Waste Ltd",
-                companiesHouseNumber = "12345678",
+                companiesHouseNumber = CompaniesHouseNumbers.CreateServerSetMembers,
                 regulatorNation = "GB-ENG",
                 organisationType = "LTD",
                 mainActivitySicCode = "38110",
@@ -354,6 +357,7 @@ public class CreateOrganisationTests : IntegrationTestBase
     {
         var suffix = NewSuffix();
         var body = Ltd(
+            CompaniesHouseNumbers.CreatePunctuatedPostcode,
             new
             {
                 addressTypes = Registered,
@@ -381,6 +385,7 @@ public class CreateOrganisationTests : IntegrationTestBase
     {
         var suffix = NewSuffix();
         var body = Ltd(
+            CompaniesHouseNumbers.CreateNonUkPostcode,
             new
             {
                 addressTypes = Registered,
@@ -455,7 +460,7 @@ public class CreateOrganisationTests : IntegrationTestBase
             postcode = "ab12cd",
             countryIso = "GB",
         };
-        var body = Ltd(Address(suffix, "PRINCIPAL"), unspacedPostcode);
+        var body = Ltd(CompaniesHouseNumbers.CreateSameAddressTwoItems, Address(suffix, "PRINCIPAL"), unspacedPostcode);
 
         var response = await PostAsync(body);
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -482,11 +487,13 @@ public class CreateOrganisationTests : IntegrationTestBase
     {
         var suffix = NewSuffix();
 
-        var first = await PostAsync(Ltd(Address(suffix, "REGISTERED")));
+        var first = await PostAsync(Ltd(CompaniesHouseNumbers.CreateSharedAddressFirst, Address(suffix, "REGISTERED")));
         first.StatusCode.Should().Be(HttpStatusCode.Created);
         var firstCreated = await ReadOrganisationAsync(first);
 
-        var second = await PostAsync(Ltd(Address(suffix, "REGISTERED", "AUDIT")));
+        var second = await PostAsync(
+            Ltd(CompaniesHouseNumbers.CreateSharedAddressSecond, Address(suffix, "REGISTERED", "AUDIT"))
+        );
         var content = await second.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         second.StatusCode.Should().Be(HttpStatusCode.Created, content);
@@ -527,8 +534,8 @@ public class CreateOrganisationTests : IntegrationTestBase
             countryIso = "GB",
         };
 
-        var first = await PostAsync(Ltd(absent));
-        var second = await PostAsync(Ltd(blank));
+        var first = await PostAsync(Ltd(CompaniesHouseNumbers.CreateAbsentParts, absent));
+        var second = await PostAsync(Ltd(CompaniesHouseNumbers.CreateBlankParts, blank));
 
         first.StatusCode.Should().Be(HttpStatusCode.Created);
         second.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -543,13 +550,41 @@ public class CreateOrganisationTests : IntegrationTestBase
     // The match is exact over the six parts: one part more, one part different or a difference
     // in case alone makes another address, stored as a second row
     [Theory]
-    [InlineData("addressLine1 in upper case")]
-    [InlineData("other postcode")]
-    [InlineData("addressLine2 added")]
-    [InlineData("county added")]
-    [InlineData("other townOrCity")]
-    [InlineData("other countryIso")]
-    public async Task AddressDifferingInOnePart_ShouldBeStoredAsSecondRow(string difference)
+    [InlineData(
+        "addressLine1 in upper case",
+        CompaniesHouseNumbers.CreateVariantUpperCaseFirst,
+        CompaniesHouseNumbers.CreateVariantUpperCaseSecond
+    )]
+    [InlineData(
+        "other postcode",
+        CompaniesHouseNumbers.CreateVariantPostcodeFirst,
+        CompaniesHouseNumbers.CreateVariantPostcodeSecond
+    )]
+    [InlineData(
+        "addressLine2 added",
+        CompaniesHouseNumbers.CreateVariantAddressLine2First,
+        CompaniesHouseNumbers.CreateVariantAddressLine2Second
+    )]
+    [InlineData(
+        "county added",
+        CompaniesHouseNumbers.CreateVariantCountyFirst,
+        CompaniesHouseNumbers.CreateVariantCountySecond
+    )]
+    [InlineData(
+        "other townOrCity",
+        CompaniesHouseNumbers.CreateVariantTownFirst,
+        CompaniesHouseNumbers.CreateVariantTownSecond
+    )]
+    [InlineData(
+        "other countryIso",
+        CompaniesHouseNumbers.CreateVariantCountryFirst,
+        CompaniesHouseNumbers.CreateVariantCountrySecond
+    )]
+    public async Task AddressDifferingInOnePart_ShouldBeStoredAsSecondRow(
+        string difference,
+        string firstNumber,
+        string secondNumber
+    )
     {
         var suffix = NewSuffix();
         var variant = difference switch
@@ -570,8 +605,8 @@ public class CreateOrganisationTests : IntegrationTestBase
             _ => throw new ArgumentOutOfRangeException(nameof(difference), difference, null),
         };
 
-        var first = await PostAsync(Ltd(Address(suffix, "REGISTERED")));
-        var second = await PostAsync(Ltd(variant));
+        var first = await PostAsync(Ltd(firstNumber, Address(suffix, "REGISTERED")));
+        var second = await PostAsync(Ltd(secondNumber, variant));
         var content = await second.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         first.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -629,13 +664,13 @@ public class CreateOrganisationTests : IntegrationTestBase
             countryIso,
         };
 
-    private static object Ltd(params object[] addresses) =>
+    private static object Ltd(string companiesHouseNumber, params object[] addresses) =>
         new
         {
             organisation = new
             {
                 name = "Acme Waste Ltd",
-                companiesHouseNumber = "12345678",
+                companiesHouseNumber,
                 regulatorNation = "GB-ENG",
                 organisationType = "LTD",
                 addresses,
