@@ -29,4 +29,16 @@ public static class CompaniesHouseNumbers
 
     public const string Organisation_WithoutName_IsRejectedByCheckConstraintUnlessTradingNameAndNoNumber_BlankName =
         "10000011";
+
+    public const string CreateNameAndTradingName = "10000012";
+
+    public const string CreateTypeLtd = "10000013";
+
+    public const string CreateTypePlc = "10000014";
+
+    public const string CreateTypeLimitedPartnership = "10000015";
+
+    public const string CreateTypeLlp = "10000016";
+
+    public const string CreateTypeCic = "10000017";
 }

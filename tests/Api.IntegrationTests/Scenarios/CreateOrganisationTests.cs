@@ -6,6 +6,7 @@ using Defra.WasteOrganisations.Api.Data.Postgres;
 using Defra.WasteOrganisations.Api.Data.Postgres.Entities;
 using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Extensions;
+using Defra.WasteOrganisations.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Address = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Address;
@@ -19,7 +20,8 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 // whole address table
 public class CreateOrganisationTests : IntegrationTestBase
 {
-    public static TheoryData<string> OrganisationTypes => new(OrganisationTypeCodes.All.Select(t => t.Code));
+    public static TheoryData<string, string?> OrganisationTypes =>
+        new(OrganisationTypeCodes.All.Select(t => (t.Code, NumberFor(t.Code))));
 
     private static readonly string[] Registered = ["REGISTERED"];
 
@@ -198,9 +200,9 @@ public class CreateOrganisationTests : IntegrationTestBase
 
     // Either type may send both names; both are stored and returned
     [Theory]
-    [InlineData("LTD")]
-    [InlineData("SOLE_TRADER")]
-    public async Task NameAndTradingName_ShouldBothBeStored(string organisationType)
+    [InlineData("LTD", CompaniesHouseNumbers.CreateNameAndTradingName)]
+    [InlineData("SOLE_TRADER", null)]
+    public async Task NameAndTradingName_ShouldBothBeStored(string organisationType, string? companiesHouseNumber)
     {
         var registered = IsRegisteredAtCompaniesHouse(organisationType);
         var body = new
@@ -209,7 +211,7 @@ public class CreateOrganisationTests : IntegrationTestBase
             {
                 name = "Acme Holdings",
                 tradingName = "Acme Skips",
-                companiesHouseNumber = registered ? "SC123456" : null,
+                companiesHouseNumber,
                 regulatorNation = "GB-SCT",
                 organisationType,
                 addresses = new[] { Address(NewSuffix(), RequiredKind(registered)) },
@@ -408,7 +410,10 @@ public class CreateOrganisationTests : IntegrationTestBase
     // against the seeded organisation_type rows
     [Theory]
     [MemberData(nameof(OrganisationTypes))]
-    public async Task EachOrganisationType_WithWhatItsFlagRequires_ShouldCreate(string organisationType)
+    public async Task EachOrganisationType_WithWhatItsFlagRequires_ShouldCreate(
+        string organisationType,
+        string? companiesHouseNumber
+    )
     {
         var registered = IsRegisteredAtCompaniesHouse(organisationType);
         var body = new
@@ -417,7 +422,7 @@ public class CreateOrganisationTests : IntegrationTestBase
             {
                 name = registered ? "Acme Waste" : null,
                 tradingName = registered ? null : "Acme Waste",
-                companiesHouseNumber = registered ? "OC123456" : null,
+                companiesHouseNumber,
                 regulatorNation = "GB-ENG",
                 organisationType,
                 addresses = new[] { Address(NewSuffix(), RequiredKind(registered)) },
@@ -579,6 +584,17 @@ public class CreateOrganisationTests : IntegrationTestBase
 
     private static bool IsRegisteredAtCompaniesHouse(string code) =>
         OrganisationTypeCodes.All.Single(t => t.Code == code).RegisteredAtCompaniesHouse;
+
+    private static string? NumberFor(string organisationType) =>
+        organisationType switch
+        {
+            "LTD" => CompaniesHouseNumbers.CreateTypeLtd,
+            "PLC" => CompaniesHouseNumbers.CreateTypePlc,
+            "LIMITED_PARTNERSHIP" => CompaniesHouseNumbers.CreateTypeLimitedPartnership,
+            "LLP" => CompaniesHouseNumbers.CreateTypeLlp,
+            "CIC" => CompaniesHouseNumbers.CreateTypeCic,
+            _ => null,
+        };
 
     private static string RequiredKind(bool registeredAtCompaniesHouse) =>
         registeredAtCompaniesHouse ? "REGISTERED" : "PRINCIPAL";
