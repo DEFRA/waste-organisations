@@ -1,6 +1,6 @@
 # Base dotnet image v10.0
 #  - using image digest only for immutability and security (see SonarCloud rule docker:S8431)
-FROM mcr.microsoft.com/dotnet/aspnet@sha256:de0ee358cdd672f7017a003bed21e9ac9ed48a27c922a59b18175b6e82fa7fee AS base
+FROM mcr.microsoft.com/dotnet/aspnet@sha256:ca396ece3f2a2e62c7a03f1d7d710b8bc7e8c9dea5597d091178d9f5bfca13f0 AS base
 WORKDIR /app
 
 # Add curl to template.
