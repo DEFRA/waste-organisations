@@ -6,11 +6,18 @@
 | Priority | P3 (Low): only local re-runs benefit, because CI starts a fresh stack for every run, and the README step from spec 0008 slice 1 already works round the problem (author, 25 November 2026) |
 | Parent | MAV-10 Access to org data via Org API, through MAV-17 |
 | Risk | Low (see Risks) |
-| Source | Spec 0008 and the preflight of its slice 1, DEFRA/waste-organisations pull request 282 (25 November 2026), which suggested this work as a story of its own; the author's answers of 25 November 2026 recorded in Decisions |
+| Source | Spec 0008 and the preflight of its slice 1, DEFRA/waste-organisations pull request 282 (25 November 2026), which suggested this work as a story of its own; the review comment on `tests/Testing/CompaniesHouseNumbers.cs` in that pull request (25 November 2026), which proposes generated numbers in place of the constants; the author's answers of 25 November 2026 recorded in Decisions |
 
 ## Problem/Opportunity
 
 The Postgres integration tests leave their rows behind. Before spec 0008 that was harmless: every test sent address values unique to it, and nothing in the schema stopped two organisations sharing data. Spec 0008 slice 1 added the unique index `ux_organisation_companies_house_number`, and the integration tests store organisations with fixed Companies House numbers from `CompaniesHouseNumbers`. A second run against the same stack is now rejected by the index on every one of those numbers, so the whole suite fails.
+
+Generating the numbers instead, as a review comment on pull request 282 proposes, does not remove the problem:
+
+- A test checked against a saved snapshot keeps a fixed number. `CreateOrganisationTests.FullPayload_ShouldCreateOrganisationAndRows` stores `12345678` and its snapshot holds it, so a second run fails on it every time.
+- A generator can keep numbers distinct within one run, but not from the rows earlier runs left behind. As those rows build up, an occasional run draws a number already stored and fails on the index, intermittently and without an obvious cause.
+
+This spec works with either approach: it does not depend on how the tests choose their numbers.
 
 Spec 0008 slice 1 worked round this in the README: rebuild the stack (`docker compose down -v --remove-orphans`, then `docker compose up --build -d`) before each run. A rebuild takes minutes, and a developer who forgets it sees index violations that look like a real defect.
 
@@ -80,7 +87,8 @@ One pull request: about 150 non-generated changed lines across the fixture, its 
 
 ## Out of Scope
 
-- Clearing Postgres before each test. The tests keep their distinct data, including the `CompaniesHouseNumbers` constants from spec 0008.
+- Clearing Postgres before each test. Tests within a run keep sharing the tables, so each still uses a Companies House number of its own.
+- How the tests choose their Companies House numbers: constants, as spec 0008 slice 1 has them, or generated, as the review comment on pull request 282 proposes. That is decided in spec 0008 and its pull requests.
 - Clearing Postgres after a run. The last run's data stays for inspection.
 - Clearing Postgres for `Api.V1.Tests`, which uses only Mongo.
 - Any change to how Mongo is cleared.
@@ -92,7 +100,8 @@ One pull request: about 150 non-generated changed lines across the fixture, its 
 | Topic | Decision |
 |---|---|
 | Story | Delivered under MAV-17 as a follow-up of spec 0008, in a spec of its own rather than a third slice of 0008 (author, 25 November 2026) |
-| When to clear | Once per run, before the first test, through an xUnit v3 assembly fixture. Clearing before each test was rejected, because it would make most `CompaniesHouseNumbers` constants of spec 0008 unnecessary and reopen that decision (author, 25 November 2026) |
+| When to clear | Once per run, before the first test, through an xUnit v3 assembly fixture (author, 25 November 2026). It removes every collision with an earlier run, whether a test uses a fixed number or a generated one, with one truncate per run rather than one per test. The tests within a run still need distinct numbers, which is spec 0008's concern. Clearing before each test was rejected, because it would add a truncate to every test and remove the last test's data before anyone could inspect it |
+| Number approach | This spec does not choose between the constants of spec 0008 slice 1 and the generated numbers proposed in review of pull request 282, and holds for either (author, 25 November 2026) |
 | What to clear | `organisation_address`, `organisation` and `address`, named in one `TRUNCATE` without `CASCADE`. A table added later is never cleared by accident, and one that references these makes the truncate fail loudly |
 | Guard | The fixture refuses to truncate unless the database is `waste_organisations` and `databasechangelog` holds `v1.0.0` (author, 25 November 2026). The host is not checked separately: it is fixed at `127.0.0.1` in `IntegrationTestBase`. Checking `v1.0.0` rather than the latest tag means the guard does not change with each new changelog |
 | Settings | The fixture reuses `IntegrationTestBase.BuildServiceProvider`, made `internal static`, so the Postgres settings live in one place |
