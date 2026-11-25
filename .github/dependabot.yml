@@ -95,7 +95,6 @@ updates:
           - 'Microsoft.EntityFrameworkCore*'
           - 'MongoDB.Driver*'
           - 'Npgsql*'
-          - 'Snappier'
         update-types:
           - 'minor'
           - 'patch'

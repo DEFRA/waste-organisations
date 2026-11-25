@@ -39,8 +39,6 @@
     <!-- added due to https://github.com/advisories/GHSA-v5pm-xwqc-g5wc -->
     <PackageReference Include="Microsoft.OpenApi" Version="2.13.1" />
     <PackageReference Include="Amazon.CloudWatch.EMF" Version="2.2.0" />
-    <!-- added due to https://github.com/advisories/GHSA-pggp-6c3x-2xmx -->
-    <PackageReference Include="Snappier" Version="1.3.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
   </ItemGroup>
 
