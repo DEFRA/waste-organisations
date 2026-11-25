@@ -6,29 +6,27 @@ public static class CompaniesHouseNumbers
 {
     public const string FullPayload = "12345678";
 
-    public const string Organisation_WithTypeAndTwoAddresses_RoundTrips = "10000001";
+    public const string SchemaRoundTrip = "10000001";
 
-    public const string SecondCurrentRegisteredAddress_IsRejectedThenAcceptedWhenFirstClosed = "10000002";
+    public const string SchemaSecondCurrentAddress = "10000002";
 
-    public const string OrganisationAddress_WithUnknownUsageType_IsRejectedByForeignKey = "10000003";
+    public const string SchemaUnknownUsageType = "10000003";
 
-    public const string DeletingOrganisationWithAddresses_IsRejectedByRestrict = "10000004";
+    public const string SchemaDeleteRestrict = "10000004";
 
-    public const string OrganisationAddressValidToBeforeValidFrom_IsRejectedByCheckConstraint = "10000005";
+    public const string SchemaValidToBeforeValidFrom = "10000005";
 
-    public const string Organisation_WithUnknownOrganisationType_IsRejectedByForeignKey = "10000006";
+    public const string SchemaUnknownOrganisationType = "10000006";
 
-    public const string Organisation_WithRegulatorNationOutsideTheUkNations_IsRejectedByCheckConstraint = "10000007";
+    public const string SchemaRegulatorNation = "10000007";
 
-    public const string TwoOrganisations_MayLinkTheSameAddressRow_First = "10000008";
+    public const string SchemaSharedAddressFirst = "10000008";
 
-    public const string TwoOrganisations_MayLinkTheSameAddressRow_Second = "10000009";
+    public const string SchemaSharedAddressSecond = "10000009";
 
-    public const string Organisation_WithoutName_IsRejectedByCheckConstraintUnlessTradingNameAndNoNumber_NullName =
-        "10000010";
+    public const string SchemaNullName = "10000010";
 
-    public const string Organisation_WithoutName_IsRejectedByCheckConstraintUnlessTradingNameAndNoNumber_BlankName =
-        "10000011";
+    public const string SchemaBlankName = "10000011";
 
     public const string CreateNameAndTradingName = "10000012";
 

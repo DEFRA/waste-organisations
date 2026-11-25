@@ -20,7 +20,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
         var principalId = await UsageTypeIdAsync(provider, "PRINCIPAL");
 
-        var organisation = NewOrganisation(CompaniesHouseNumbers.Organisation_WithTypeAndTwoAddresses_RoundTrips);
+        var organisation = NewOrganisation(CompaniesHouseNumbers.SchemaRoundTrip);
         organisation.OrganisationTypeId = await OrganisationTypeIdAsync(provider, "LLP");
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, principalId, "2 Mill Lane"));
@@ -82,9 +82,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var provider = BuildServiceProvider();
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
 
-        var organisation = NewOrganisation(
-            CompaniesHouseNumbers.SecondCurrentRegisteredAddress_IsRejectedThenAcceptedWhenFirstClosed
-        );
+        var organisation = NewOrganisation(CompaniesHouseNumbers.SchemaSecondCurrentAddress);
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         await SaveOrganisationAsync(provider, organisation);
 
@@ -121,9 +119,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
     public async Task OrganisationAddress_WithUnknownUsageType_IsRejectedByForeignKey()
     {
         await using var provider = BuildServiceProvider();
-        var organisation = NewOrganisation(
-            CompaniesHouseNumbers.OrganisationAddress_WithUnknownUsageType_IsRejectedByForeignKey
-        );
+        var organisation = NewOrganisation(CompaniesHouseNumbers.SchemaUnknownUsageType);
         await SaveOrganisationAsync(provider, organisation);
 
         await using var scope = provider.CreateAsyncScope();
@@ -160,9 +156,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var provider = BuildServiceProvider();
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
 
-        var organisation = NewOrganisation(
-            CompaniesHouseNumbers.DeletingOrganisationWithAddresses_IsRejectedByRestrict
-        );
+        var organisation = NewOrganisation(CompaniesHouseNumbers.SchemaDeleteRestrict);
         organisation.Addresses.Add(NewOrganisationAddress(organisation.Id, registeredId, "1 High Street"));
         await SaveOrganisationAsync(provider, organisation);
 
@@ -184,9 +178,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
     {
         await using var provider = BuildServiceProvider();
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
-        var organisation = NewOrganisation(
-            CompaniesHouseNumbers.OrganisationAddressValidToBeforeValidFrom_IsRejectedByCheckConstraint
-        );
+        var organisation = NewOrganisation(CompaniesHouseNumbers.SchemaValidToBeforeValidFrom);
         await SaveOrganisationAsync(provider, organisation);
 
         await using var scope = provider.CreateAsyncScope();
@@ -207,9 +199,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        var organisation = NewOrganisation(
-            CompaniesHouseNumbers.Organisation_WithUnknownOrganisationType_IsRejectedByForeignKey
-        );
+        var organisation = NewOrganisation(CompaniesHouseNumbers.SchemaUnknownOrganisationType);
         organisation.OrganisationTypeId = Guid.CreateVersion7();
         context.Organisations.Add(organisation);
 
@@ -299,9 +289,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
 
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
-        var organisation = NewOrganisation(
-            CompaniesHouseNumbers.Organisation_WithRegulatorNationOutsideTheUkNations_IsRejectedByCheckConstraint
-        );
+        var organisation = NewOrganisation(CompaniesHouseNumbers.SchemaRegulatorNation);
         organisation.RegulatorNation = regulatorNation;
         context.Organisations.Add(organisation);
 
@@ -334,16 +322,8 @@ public class OrganisationSchemaTests : IntegrationTestBase
     }
 
     [Theory]
-    [InlineData(
-        null,
-        "Acme",
-        CompaniesHouseNumbers.Organisation_WithoutName_IsRejectedByCheckConstraintUnlessTradingNameAndNoNumber_NullName
-    )]
-    [InlineData(
-        "  ",
-        "Acme",
-        CompaniesHouseNumbers.Organisation_WithoutName_IsRejectedByCheckConstraintUnlessTradingNameAndNoNumber_BlankName
-    )]
+    [InlineData(null, "Acme", CompaniesHouseNumbers.SchemaNullName)]
+    [InlineData("  ", "Acme", CompaniesHouseNumbers.SchemaBlankName)]
     [InlineData(null, null, null)]
     [InlineData(null, "", null)]
     [InlineData(null, "  ", null)]
@@ -642,12 +622,12 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await using var provider = BuildServiceProvider();
         var registeredId = await UsageTypeIdAsync(provider, "REGISTERED");
 
-        var first = NewOrganisation(CompaniesHouseNumbers.TwoOrganisations_MayLinkTheSameAddressRow_First);
+        var first = NewOrganisation(CompaniesHouseNumbers.SchemaSharedAddressFirst);
         var firstLink = NewOrganisationAddress(first.Id, registeredId, "1 High Street");
         first.Addresses.Add(firstLink);
         await SaveOrganisationAsync(provider, first);
 
-        var second = NewOrganisation(CompaniesHouseNumbers.TwoOrganisations_MayLinkTheSameAddressRow_Second);
+        var second = NewOrganisation(CompaniesHouseNumbers.SchemaSharedAddressSecond);
         second.Addresses.Add(
             new OrganisationAddress
             {
