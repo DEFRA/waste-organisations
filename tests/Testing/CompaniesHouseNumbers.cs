@@ -115,4 +115,6 @@ public static class CompaniesHouseNumbers
     public const string CreateAbsentParts = "10000053";
 
     public const string CreateBlankParts = "10000054";
+
+    public const string SchemaDuplicateNumber = "10000055";
 }

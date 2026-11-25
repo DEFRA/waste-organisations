@@ -368,6 +368,40 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await ShouldViolateAsync(save, "ck_organisation_name");
     }
 
+    // Changelog 1.5 stores a Companies House number once: ux_organisation_companies_house_number
+    // rejects a second organisation row with a number already stored
+    [Fact]
+    public async Task Organisation_WithAStoredCompaniesHouseNumber_IsRejectedByUniqueIndex()
+    {
+        await using var provider = BuildServiceProvider();
+
+        await using (var saveScope = provider.CreateAsyncScope())
+        {
+            var context = saveScope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+            context.Organisations.Add(NewOrganisation(CompaniesHouseNumbers.SchemaDuplicateNumber));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var scope = provider.CreateAsyncScope();
+        var duplicateContext = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        duplicateContext.Organisations.Add(NewOrganisation(CompaniesHouseNumbers.SchemaDuplicateNumber));
+
+        var save = async () => await duplicateContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await ShouldViolateAsync(save, "ux_organisation_companies_house_number");
+    }
+
+    // The index is filtered on companies_house_number IS NOT NULL, so any number of organisations,
+    // such as sole traders, may be stored without one
+    [Fact]
+    public async Task TwoOrganisations_WithoutCompaniesHouseNumber_AreAccepted()
+    {
+        await using var provider = BuildServiceProvider();
+        await SaveOrganisationAsync(provider, NewOrganisation(null));
+
+        var save = async () => await SaveOrganisationAsync(provider, NewOrganisation(null));
+        await save.Should().NotThrowAsync();
+    }
+
     // country_iso is ISO 3166-1 alpha-2: ck_address_country_iso allows only two upper-case letters
     [Theory]
     [InlineData("GBR")]
