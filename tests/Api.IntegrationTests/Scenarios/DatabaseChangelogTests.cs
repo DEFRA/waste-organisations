@@ -31,12 +31,14 @@ public class DatabaseChangelogTests : IntegrationTestBase
     // - v1.2.0: the v2 create schema (shared addresses, the ten organisation types)
     // - v1.3.0: the GDS address columns and the fourteen-column ux_address_values
     // - v1.4.0: the GDS checks and the six-column ux_address_values
+    // - v1.5.0: the unique filtered ux_organisation_companies_house_number
     [Theory]
     [InlineData("v1.0.0")]
     [InlineData("v1.1.0")]
     [InlineData("v1.2.0")]
     [InlineData("v1.3.0")]
     [InlineData("v1.4.0")]
+    [InlineData("v1.5.0")]
     public async Task DatabaseChangelog_ShouldHoldTag(string tag)
     {
         await using var provider = BuildServiceProvider();

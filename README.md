@@ -50,6 +50,8 @@ The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) ch
 
 `db.changelog-1.4.xml` deletes the organisations whose address rows still hold the nine old parts (no `address_line_1`), with their links and those address rows, drops the eight old address columns, rebuilds `ux_address_values` over the six GDS columns, and adds three checks: `address_line_1` and `town_or_city` are not blank, and a `GB` address has a `postcode`.
 
+`db.changelog-1.5.xml` adds the unique index `ux_organisation_companies_house_number` on `organisation.companies_house_number`, filtered to rows that have a number, so two organisations cannot hold the same Companies House number and any number of organisations can hold none.
+
 To change the schema:
 
 - Add a new `changelog/db.changelog-1.N.xml` file (the next number after the latest one) containing the new changesets.
