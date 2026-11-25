@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using Defra.WasteOrganisations.Api.Authentication;
 using Defra.WasteOrganisations.Api.Data;
@@ -58,6 +59,28 @@ public abstract class IntegrationTestBase
 
     // Unique per test and per run, so a test never meets an address row another stored
     protected static string NewSuffix() => Guid.NewGuid().ToString("N")[..12];
+
+    protected static object Address(string suffix, params string[] addressTypes) =>
+        new
+        {
+            addressTypes,
+            addressLine1 = $"12 High Street {suffix}",
+            townOrCity = "Testville",
+            postcode = "AB1 2CD",
+            countryIso = "GB",
+        };
+
+    protected static async Task<HttpResponseMessage> PostAsync(object body)
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, Testing.Endpoints.Organisations.Post())
+        {
+            Content = JsonContent.Create(body),
+        };
+        request.Headers.TryAddWithoutValidation("Accept", AcceptV2);
+
+        return await client.SendAsync(request, TestContext.Current.CancellationToken);
+    }
 
     private static string GenerateJwt(string clientId)
     {

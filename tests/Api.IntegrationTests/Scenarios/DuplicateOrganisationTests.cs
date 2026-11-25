@@ -149,16 +149,6 @@ public class DuplicateOrganisationTests : IntegrationTestBase
         );
     }
 
-    private static object Address(string suffix, params string[] addressTypes) =>
-        new
-        {
-            addressTypes,
-            addressLine1 = $"12 High Street {suffix}",
-            townOrCity = "Testville",
-            postcode = "AB1 2CD",
-            countryIso = "GB",
-        };
-
     private static object Ltd(string companiesHouseNumber, params object[] addresses) =>
         Company("LTD", "Acme Waste Ltd", companiesHouseNumber, addresses);
 
@@ -179,18 +169,6 @@ public class DuplicateOrganisationTests : IntegrationTestBase
                 addresses,
             },
         };
-
-    private static async Task<HttpResponseMessage> PostAsync(object body)
-    {
-        using var client = CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, Testing.Endpoints.Organisations.Post())
-        {
-            Content = JsonContent.Create(body),
-        };
-        request.Headers.TryAddWithoutValidation("Accept", AcceptV2);
-
-        return await client.SendAsync(request, TestContext.Current.CancellationToken);
-    }
 
     private static async Task<OrganisationResponse> ReadOrganisationAsync(HttpResponseMessage response) =>
         (
