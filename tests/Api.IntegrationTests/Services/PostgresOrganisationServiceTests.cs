@@ -28,8 +28,8 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
         var suffix = NewSuffix();
         await using var provider = BuildServiceProvider();
 
-        var first = await CreateAsync(provider, CompaniesHouseNumbers.ServiceRetryFirst, suffix, missedLookUps: 0);
-        var second = await CreateAsync(provider, CompaniesHouseNumbers.ServiceRetrySecond, suffix, missedLookUps: 1);
+        var first = await CreateAsync(provider, CompaniesHouseNumbers.Generate(), suffix, missedLookUps: 0);
+        var second = await CreateAsync(provider, CompaniesHouseNumbers.Generate(), suffix, missedLookUps: 1);
 
         second.Service.AddressLookups.Should().Be(2);
 
@@ -68,7 +68,7 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
 
         var organisation = await BuildAsync(
             service,
-            CompaniesHouseNumbers.ServiceLinkFails,
+            CompaniesHouseNumbers.Generate(),
             Address(suffix, "12 High Street", AddressType.Registered),
             Address(suffix, "14 High Street", AddressType.Principal)
         );
@@ -93,13 +93,13 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
         var suffix = NewSuffix();
         await using var provider = BuildServiceProvider();
 
-        await CreateAsync(provider, CompaniesHouseNumbers.ServiceRetryFailsStored, suffix, missedLookUps: 0);
+        await CreateAsync(provider, CompaniesHouseNumbers.Generate(), suffix, missedLookUps: 0);
 
         await using var scope = provider.CreateAsyncScope();
         var service = new MissingLookUpsService(scope.ServiceProvider.GetRequiredService<PostgresDbContext>(), 2);
         var organisation = await BuildAsync(
             service,
-            CompaniesHouseNumbers.ServiceRetryFailsSecond,
+            CompaniesHouseNumbers.Generate(),
             Address(suffix, "12 High Street", AddressType.Registered)
         );
 

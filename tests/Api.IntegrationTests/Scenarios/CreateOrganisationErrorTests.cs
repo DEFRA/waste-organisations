@@ -118,7 +118,7 @@ public class CreateOrganisationErrorTests : IntegrationTestBase
     {
         var addressLine1 = $"12 High Street {Guid.NewGuid():N}";
         var body = ValidBody
-            .Replace("\"12345678\"", $"\"{CompaniesHouseNumbers.ErrorCreatedNotInV1}\"")
+            .Replace("\"12345678\"", $"\"{CompaniesHouseNumbers.Generate()}\"")
             .Replace("\"12 High Street\"", $"\"{addressLine1}\"");
         var response = await PostAsync(JsonBody(body));
 

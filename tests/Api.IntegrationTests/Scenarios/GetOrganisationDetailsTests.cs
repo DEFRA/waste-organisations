@@ -27,7 +27,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     public async Task Created_ShouldBeReadableAtItsLocation()
     {
         var body = Ltd(
-            CompaniesHouseNumbers.GetCreated,
+            CompaniesHouseNumbers.Generate(),
             Address(NewSuffix(), "REGISTERED", "PRINCIPAL"),
             Address(NewSuffix(), "CORRESPONDENCE")
         );
@@ -59,11 +59,11 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     // Any form of the GUID the route accepts finds the organisation, which comes back with its id
     // in lower case with hyphens
     [Theory]
-    [InlineData("upper case", CompaniesHouseNumbers.GetIdUpperCase)]
-    [InlineData("without hyphens", CompaniesHouseNumbers.GetIdWithoutHyphens)]
-    public async Task IdInAnotherForm_ShouldBeOk(string form, string companiesHouseNumber)
+    [InlineData("upper case")]
+    [InlineData("without hyphens")]
+    public async Task IdInAnotherForm_ShouldBeOk(string form)
     {
-        var created = await CreateAsync(Ltd(companiesHouseNumber, Address(NewSuffix(), "REGISTERED")));
+        var created = await CreateAsync(Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED")));
         var id = created.Organisation.Id;
         var path = form switch
         {
@@ -86,7 +86,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var registeredSuffix = NewSuffix();
         var created = await CreateAsync(
             Ltd(
-                CompaniesHouseNumbers.GetEndedLink,
+                CompaniesHouseNumbers.Generate(),
                 Address(registeredSuffix, "REGISTERED", "PRINCIPAL"),
                 Address(NewSuffix(), "CORRESPONDENCE")
             )
@@ -108,7 +108,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     {
         var created = await CreateAsync(
             Ltd(
-                CompaniesHouseNumbers.GetEveryLinkEnded,
+                CompaniesHouseNumbers.Generate(),
                 Address(NewSuffix(), "REGISTERED", "PRINCIPAL"),
                 Address(NewSuffix(), "CORRESPONDENCE")
             )
@@ -130,7 +130,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
         var registeredSuffix = NewSuffix();
         var created = await CreateAsync(
             Ltd(
-                CompaniesHouseNumbers.GetKindRelinked,
+                CompaniesHouseNumbers.Generate(),
                 Address(registeredSuffix, "REGISTERED"),
                 Address(NewSuffix(), "CORRESPONDENCE")
             )
@@ -181,7 +181,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     public async Task KindsOfOneAddressWithDifferentValidFrom_ShouldBeOneItem()
     {
         var created = await CreateAsync(
-            Ltd(CompaniesHouseNumbers.GetKindsDifferentValidFrom, Address(NewSuffix(), "REGISTERED", "PRINCIPAL"))
+            Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED", "PRINCIPAL"))
         );
 
         await ChangeStoredAsync(created.Organisation.Id, organisation =>
@@ -201,7 +201,7 @@ public class GetOrganisationDetailsTests : IntegrationTestBase
     [Fact]
     public async Task OrganisationWithValidTo_ShouldStillBeReturned()
     {
-        var created = await CreateAsync(Ltd(CompaniesHouseNumbers.GetWithValidTo, Address(NewSuffix(), "REGISTERED")));
+        var created = await CreateAsync(Ltd(CompaniesHouseNumbers.Generate(), Address(NewSuffix(), "REGISTERED")));
         var validTo = default(DateTime);
 
         await ChangeStoredAsync(created.Organisation.Id, organisation =>
