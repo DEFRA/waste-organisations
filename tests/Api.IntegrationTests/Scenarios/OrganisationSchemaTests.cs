@@ -497,7 +497,7 @@ public class OrganisationSchemaTests : IntegrationTestBase
         await save.Should().NotThrowAsync();
     }
 
-    // A unique townOrCity keeps the accepted cases clear of ux_address_values on a second run
+    // A unique townOrCity keeps the accepted cases clear of ux_address_values and of the address rows other tests in the run store
     private static Address AddressOfKind(string kind) =>
         kind switch
         {
