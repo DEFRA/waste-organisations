@@ -36,7 +36,7 @@ A new xUnit v3 assembly fixture, `PostgresTestDataFixture` in `tests/Api.Integra
 
 1. Build a service provider with the Postgres settings of `IntegrationTestBase.BuildServiceProvider`. That method becomes `internal static` so the fixture can call it; its settings are not copied.
 2. Check the database with `EnsureComposeDatabase` (see "The guard"). If the check fails, it throws `InvalidOperationException` and the run stops there, so the truncate is never reached.
-3. Call `ClearAsync`, which runs `TRUNCATE organisation_address, organisation, address` through `PostgresDbContext.Database.ExecuteSqlRawAsync`. The statement is a constant with no input, so the stack rule's ban on SQL built from strings does not apply. There is no `CASCADE`: if a later changelog adds a table that references one of the three, the truncate fails and the run stops, rather than emptying a table nobody listed.
+3. Call `ClearAsync`, which runs `TRUNCATE organisation_address, organisation, address` through `PostgresDbContext.Database.ExecuteSqlAsync`. The statement has no input, but it goes through the interpolated method that the stack rule asks raw SQL to use, so any value added to it later becomes a parameter. The fixture's other queries use `Database.SqlQuery` for the same reason. There is no `CASCADE`: if a later changelog adds a table that references one of the three, the truncate fails and the run stops, rather than emptying a table nobody listed.
 
 `DisposeAsync` does nothing.
 
