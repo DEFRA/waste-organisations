@@ -33,6 +33,7 @@ public class PostgresTestDataFixture : IAsyncLifetime
                 .ToListAsync(cancellationToken)
             : [];
 
+        // ValidateDataAnnotations requires PostgresOptions.DefaultHost, so .Value never yields a null DefaultHost
         EnsureComposeDatabase(databaseName, options.DefaultHost!, tags);
         await ClearAsync(context, cancellationToken);
     }
