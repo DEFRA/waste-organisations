@@ -71,7 +71,7 @@ The test of the clear step calls a method of the fixture that `InitializeAsync` 
 
 ### Work breakdown
 
-One pull request: about 170 non-generated changed lines across the fixture, its tests, one access change in `IntegrationTestBase`, the README, `doc/constraints.md` and one comment, well within the size guide and one concern.
+One pull request: about 170 non-generated changed lines across the fixture, its tests, one access change in `IntegrationTestBase`, the README, `doc/constraints.md` and four comments, well within the size guide and one concern.
 
 | Slice | Work | Verified by |
 |---|---|---|
