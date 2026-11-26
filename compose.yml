@@ -58,7 +58,6 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__DatabaseUri: mongodb://mongodb:27017/
       Postgres__DefaultHost: postgres
-      PORT: 8080
       AWS_EMF_ENVIRONMENT: Local
       # Limited-scope clients for the v1 tests (tests/Api.V1.Tests), so 403 can be tested.
       # The full-scope clients are in src/Api/appsettings.Development.json.
@@ -73,9 +72,9 @@ services:
       Acl__Clients__WriteOnlyOAuth__Type: OAuth
       Acl__Clients__WriteOnlyOAuth__Scopes__0: write
     ports:
-      - 8080:8080
+      - 8085:8085
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/all"]
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health/all"]
       interval: 5s
       timeout: 5s
       retries: 10

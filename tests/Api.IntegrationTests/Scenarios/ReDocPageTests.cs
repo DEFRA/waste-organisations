@@ -7,7 +7,7 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 // HTTP-level test passed, so this loads the page from the API in Compose in headless Chrome
 public class ReDocPageTests : IntegrationTestBase
 {
-    private const string ApiOrigin = "http://localhost:8080";
+    private const string ApiOrigin = "http://localhost:8085";
     private const float RenderTimeoutMilliseconds = 30_000;
 
     [Theory]

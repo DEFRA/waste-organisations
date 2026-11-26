@@ -16,7 +16,7 @@ public abstract class V1TestBase
     /// <summary>Overrides the API address, for example to run the suite against another host.</summary>
     public const string BaseAddressVariable = "V1_TESTS_BASE_ADDRESS";
 
-    private const string DefaultBaseAddress = "http://localhost:8080";
+    private const string DefaultBaseAddress = "http://localhost:8085";
 
     // The API truncates timestamps to the millisecond, so a second request made without
     // a pause could get the same `updated` value and hide whether it advanced.
