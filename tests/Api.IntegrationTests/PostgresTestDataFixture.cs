@@ -22,14 +22,14 @@ public class PostgresTestDataFixture : IAsyncLifetime
         var options = scope.ServiceProvider.GetRequiredService<IOptions<PostgresOptions>>().Value;
 
         var databaseName = await context
-            .Database.SqlQueryRaw<string>("SELECT current_database() AS \"Value\"")
+            .Database.SqlQuery<string>($"SELECT current_database() AS \"Value\"")
             .SingleAsync(cancellationToken);
         var changelogExists = await context
-            .Database.SqlQueryRaw<bool>("SELECT to_regclass('public.databasechangelog') IS NOT NULL AS \"Value\"")
+            .Database.SqlQuery<bool>($"SELECT to_regclass('public.databasechangelog') IS NOT NULL AS \"Value\"")
             .SingleAsync(cancellationToken);
         var tags = changelogExists
             ? await context
-                .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
+                .Database.SqlQuery<string>($"SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
                 .ToListAsync(cancellationToken)
             : [];
 
@@ -60,5 +60,5 @@ public class PostgresTestDataFixture : IAsyncLifetime
     }
 
     public static Task ClearAsync(PostgresDbContext context, CancellationToken cancellationToken) =>
-        context.Database.ExecuteSqlRawAsync("TRUNCATE organisation_address, organisation, address", cancellationToken);
+        context.Database.ExecuteSqlAsync($"TRUNCATE organisation_address, organisation, address", cancellationToken);
 }

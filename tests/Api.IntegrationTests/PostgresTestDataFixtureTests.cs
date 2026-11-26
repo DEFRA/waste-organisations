@@ -89,7 +89,7 @@ public class PostgresTestDataFixtureTests : IntegrationTestBase
             await context.OrganisationTypes.CountAsync(cancellationToken),
             await context.AddressUsageTypes.CountAsync(cancellationToken),
             await context
-                .Database.SqlQueryRaw<int>("SELECT COUNT(*)::int AS \"Value\" FROM databasechangelog")
+                .Database.SqlQuery<int>($"SELECT COUNT(*)::int AS \"Value\" FROM databasechangelog")
                 .SingleAsync(cancellationToken)
         );
 }
