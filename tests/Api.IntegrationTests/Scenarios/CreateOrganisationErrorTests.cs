@@ -112,8 +112,8 @@ public class CreateOrganisationErrorTests : IntegrationTestBase
         await VerifyJson(content).UseParameters(scenario);
     }
 
-    // A valid request with an address unique to the call, as address rows are shared and
-    // cleared only at the start of a run (spec 0009) (see CreateOrganisationTests)
+    // A valid request with an address unique to the call, as address rows are shared and cleared only
+    // at the start of a run (spec 0009; see CreateOrganisationTests)
     private static async Task<Guid> CreateAsync()
     {
         var addressLine1 = $"12 High Street {Guid.NewGuid():N}";
