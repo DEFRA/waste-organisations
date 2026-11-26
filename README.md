@@ -50,6 +50,8 @@ The Postgres schema is managed by the [Liquibase](https://docs.liquibase.com) ch
 
 `db.changelog-1.4.xml` deletes the organisations whose address rows still hold the nine old parts (no `address_line_1`), with their links and those address rows, drops the eight old address columns, rebuilds `ux_address_values` over the six GDS columns, and adds three checks: `address_line_1` and `town_or_city` are not blank, and a `GB` address has a `postcode`.
 
+`db.changelog-1.5.xml` adds the unique index `ux_organisation_companies_house_number` on `organisation.companies_house_number`, filtered to rows that have a number, so two organisations cannot hold the same Companies House number and any number of organisations can hold none.
+
 To change the schema:
 
 - Add a new `changelog/db.changelog-1.N.xml` file (the next number after the latest one) containing the new changesets.
@@ -106,9 +108,13 @@ dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-
 Running integration tests with dependencies:
 
 ```bash
+docker compose down -v --remove-orphans
+docker compose up --build -d
 dotnet build tests/Api.IntegrationTests/Api.IntegrationTests.csproj
 dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build
 ```
+
+The integration tests leave their Postgres rows in place, so clear the stack before each run. On a second run against the same stack, `ux_organisation_companies_house_number` rejects each fixed Companies House number the tests store.
 
 Running v1 API tests (with the API running in Docker):
 
@@ -122,6 +128,8 @@ The v1 API tests are black-box tests that pin the current behaviour of the v1 AP
 Running all tests (with the integration-test dependencies available):
 
 ```bash
+docker compose down -v --remove-orphans
+docker compose up --build -d
 dotnet build
 dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build
 dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build

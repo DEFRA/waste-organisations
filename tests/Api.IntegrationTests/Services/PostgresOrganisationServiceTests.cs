@@ -3,6 +3,7 @@ using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Api.Dtos;
 using Defra.WasteOrganisations.Api.Mapping;
 using Defra.WasteOrganisations.Api.Services;
+using Defra.WasteOrganisations.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,8 +28,8 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
         var suffix = NewSuffix();
         await using var provider = BuildServiceProvider();
 
-        var first = await CreateAsync(provider, suffix, missedLookUps: 0);
-        var second = await CreateAsync(provider, suffix, missedLookUps: 1);
+        var first = await CreateAsync(provider, CompaniesHouseNumbers.Generate(), suffix, missedLookUps: 0);
+        var second = await CreateAsync(provider, CompaniesHouseNumbers.Generate(), suffix, missedLookUps: 1);
 
         second.Service.AddressLookups.Should().Be(2);
 
@@ -67,6 +68,7 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
 
         var organisation = await BuildAsync(
             service,
+            CompaniesHouseNumbers.Generate(),
             Address(suffix, "12 High Street", AddressType.Registered),
             Address(suffix, "14 High Street", AddressType.Principal)
         );
@@ -91,11 +93,15 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
         var suffix = NewSuffix();
         await using var provider = BuildServiceProvider();
 
-        await CreateAsync(provider, suffix, missedLookUps: 0);
+        await CreateAsync(provider, CompaniesHouseNumbers.Generate(), suffix, missedLookUps: 0);
 
         await using var scope = provider.CreateAsyncScope();
         var service = new MissingLookUpsService(scope.ServiceProvider.GetRequiredService<PostgresDbContext>(), 2);
-        var organisation = await BuildAsync(service, Address(suffix, "12 High Street", AddressType.Registered));
+        var organisation = await BuildAsync(
+            service,
+            CompaniesHouseNumbers.Generate(),
+            Address(suffix, "12 High Street", AddressType.Registered)
+        );
 
         var create = () => service.CreateAsync(organisation, TestContext.Current.CancellationToken);
 
@@ -112,6 +118,7 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
     // Each create in its own scope, so its own context, as each request has
     private static async Task<(Organisation Organisation, MissingLookUpsService Service)> CreateAsync(
         ServiceProvider provider,
+        string companiesHouseNumber,
         string suffix,
         int missedLookUps
     )
@@ -121,13 +128,18 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
             scope.ServiceProvider.GetRequiredService<PostgresDbContext>(),
             missedLookUps
         );
-        var organisation = await BuildAsync(service, Address(suffix, "12 High Street", AddressType.Registered));
+        var organisation = await BuildAsync(
+            service,
+            companiesHouseNumber,
+            Address(suffix, "12 High Street", AddressType.Registered)
+        );
 
         return (await service.CreateAsync(organisation, TestContext.Current.CancellationToken), service);
     }
 
     private static async Task<Organisation> BuildAsync(
         PostgresOrganisationService service,
+        string companiesHouseNumber,
         params AddressRequest[] addresses
     )
     {
@@ -135,7 +147,7 @@ public class PostgresOrganisationServiceTests : IntegrationTestBase
         var request = new OrganisationRequest
         {
             Name = "Acme Waste Ltd",
-            CompaniesHouseNumber = "12345678",
+            CompaniesHouseNumber = companiesHouseNumber,
             RegulatorNation = "GB-ENG",
             OrganisationType = "LTD",
             Addresses = [.. addresses],
