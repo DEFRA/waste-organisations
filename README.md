@@ -108,13 +108,12 @@ dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-
 Running integration tests with dependencies:
 
 ```bash
-docker compose down -v --remove-orphans
 docker compose up --build -d
 dotnet build tests/Api.IntegrationTests/Api.IntegrationTests.csproj
 dotnet test --test-modules tests/Api.IntegrationTests/bin/Debug/net10.0/Api.IntegrationTests.dll --no-build
 ```
 
-The integration tests leave their Postgres rows in place, so clear the stack before each run. On a second run against the same stack, `ux_organisation_companies_house_number` rejects each fixed Companies House number the tests store.
+The integration tests empty `organisation_address`, `organisation` and `address` at the start of each run, and only on the Compose database.
 
 Running v1 API tests (with the API running in Docker):
 
@@ -128,7 +127,6 @@ The v1 API tests are black-box tests that pin the current behaviour of the v1 AP
 Running all tests (with the integration-test dependencies available):
 
 ```bash
-docker compose down -v --remove-orphans
 docker compose up --build -d
 dotnet build
 dotnet test --test-modules tests/Api.Tests/bin/Debug/net10.0/Api.Tests.dll --no-build

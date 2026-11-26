@@ -19,7 +19,8 @@ Rules that exist only in this repo, and its accepted deviations from the shared 
 
 - `Api.V1.Tests` has no project reference to `src/Api` or `tests/Testing` and must not gain one: production types would let a v2 change alter what the tests send and expect.
 - v1 tests are named `Action_WhenCondition_ReturnsOutcome` and carry one `[Trait("Scenario", "ID")]` per spec 0001 scenario. Integration tests carry `[Trait("Category", "IntegrationTests")]`.
-- The Mongo integration tests clear the `Organisation` collection before each test (`MongoTestBase`); Postgres tests create their own distinct data.
+- The Mongo integration tests clear the `Organisation` collection before each test (`MongoTestBase`).
+- The Postgres integration tests empty `organisation_address`, `organisation` and `address` once at the start of each run; within a run each test still creates its own distinct data.
 - Snapshots live in `Snapshots/<TestClass>/` beside the test class and are committed as `*.verified.*`; `*.received.*` files are gitignored. Review a new `*.received.*` file before accepting it as `*.verified.*`.
 - Coverage comes from `Api.Tests` only (currently about 98%). Integration and v1 tests do not count towards the Sonar gate, so business logic needs unit tests even when an integration test also covers it.
 
