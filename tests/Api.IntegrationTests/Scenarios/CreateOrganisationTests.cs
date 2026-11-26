@@ -589,16 +589,6 @@ public class CreateOrganisationTests : IntegrationTestBase
     private static string RequiredKind(bool registeredAtCompaniesHouse) =>
         registeredAtCompaniesHouse ? "REGISTERED" : "PRINCIPAL";
 
-    private static object Address(string suffix, params string[] addressTypes) =>
-        new
-        {
-            addressTypes,
-            addressLine1 = $"12 High Street {suffix}",
-            townOrCity = "Testville",
-            postcode = "AB1 2CD",
-            countryIso = "GB",
-        };
-
     // Address(suffix, "REGISTERED") with one part changed, added or removed
     private static object VariantAddress(
         string addressLine1,
@@ -634,18 +624,6 @@ public class CreateOrganisationTests : IntegrationTestBase
 
     private static OrganisationAddress LinkOf(Organisation organisation, string usageType) =>
         organisation.Addresses.Single(a => a.UsageType.Name == usageType);
-
-    private static async Task<HttpResponseMessage> PostAsync(object body)
-    {
-        using var client = CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, Testing.Endpoints.Organisations.Post())
-        {
-            Content = JsonContent.Create(body),
-        };
-        request.Headers.TryAddWithoutValidation("Accept", AcceptV2);
-
-        return await client.SendAsync(request, TestContext.Current.CancellationToken);
-    }
 
     private static async Task<OrganisationResponse> ReadOrganisationAsync(HttpResponseMessage response) =>
         (

@@ -55,6 +55,8 @@ For a duplicate, the v2 create stores nothing and returns:
 
 `organisationId` is the id of the stored organisation. The body does not repeat the organisation's details: the caller reads them with `GET /organisations/{organisationId}` (Decisions, "`409` body"). The Companies House number is not echoed back.
 
+The body also carries the `traceId` member that the framework adds to every problem details response of this API. The tests assert the five members above by name and do not snapshot the body (assumption of the slice 2 plan, 25 November 2026).
+
 The order of checks is unchanged, with the duplicate check last: `401`, `403`, `406`, `415` and the unreadable-body `400` come first, then validation (`400`), then the duplicate check (`409`). So a caller without the `write` scope learns nothing about which numbers are stored, and an invalid request that also carries a stored number gets `400`.
 
 ### Enforcement
@@ -80,7 +82,7 @@ The handler returns `TypedResults.Created(...)` for `OrganisationCreated`. For `
 
 ### Logging
 
-One `Information` entry for a refused duplicate: "Create refused: organisation '{OrganisationId}' already holds the Companies House number", with the existing id only. The number and the request body are not logged (`rules/shared/security-logging.md`).
+One `Information` entry for a refused duplicate: "Create refused: organisation '{OrganisationId}' already holds the Companies House number", with the existing id only. The number and the request body are not logged (`rules/shared/security-logging.md`). The entry is written on both paths to a `409`: the look-up before the save and the index violation. The unit test reads it through a logger written in the test class, as no NuGet package is added (assumption of the slice 2 plan, 25 November 2026).
 
 ### Schema: Liquibase changelog
 
@@ -98,6 +100,8 @@ The entity follows it: `OrganisationConfiguration` gains `HasIndex(o => o.Compan
 ### OpenAPI
 
 `/openapi/v2.json`: the `CreateOrganisation` operation gains a `409` problem details response. Its description replaces "Duplicate organisations are not detected." with a sentence saying that a Companies House number already stored gives `409` with the existing organisation's id in `organisationId` and in `Location`, and that organisations without a number are not checked. `OpenApiTests.OpenApiV2_VerifyAsExpected` is re-verified in slice 2 after its diff is read. `/openapi/v1.json` does not change.
+
+The description reads (wording fixed by the slice 2 plan, 25 November 2026): "Create an organisation with its addresses. A Companies House number that is already stored gives 409, with the id of the existing organisation in organisationId and in the Location header. Organisations without a Companies House number are not checked."
 
 ### Code layout
 
@@ -127,9 +131,9 @@ Test numbers are generated (Decisions, "Test data"). `CompaniesHouseNumbers` iss
 | `Api.IntegrationTests` (`Scenarios/OrganisationSchemaTests.cs`) | 1 | A second `organisation` row with a stored number is rejected by `ux_organisation_companies_house_number`; two rows with a null number are accepted |
 | `Api.IntegrationTests` (`Scenarios/CreateOrganisationTests.cs`, `CreateOrganisationErrorTests.cs`, `GetOrganisationDetailsTests.cs`, `Services/PostgresOrganisationServiceTests.cs`, `Scenarios/OrganisationSchemaTests.cs`) | 1 | Shared fixed numbers replaced by numbers from `CompaniesHouseNumbers.Generate`, the snapshot test keeping `12345678`; every test passes on a freshly built stack |
 | `Api.Tests` (`Services/PostgresOrganisationServiceTests.cs`) | 2 | A stored number gives `OrganisationAlreadyExists` with its id and saves nothing; a violation of `ux_organisation_companies_house_number` gives `OrganisationAlreadyExists` after a fresh look-up; the same violation on the save after the `ux_address_values` retry does too; a violation whose holder is gone is thrown; no number gives `OrganisationCreated` without a look-up |
-| `Api.Tests` (`Endpoints/Organisations/PostTests.cs`) | 2 | `OrganisationAlreadyExists` gives `409`, the problem details body, `organisationId` and the `Location` header; an invalid request gives `400` without calling the service; a read-only caller gets `403` |
+| `Api.Tests` (`Endpoints/Organisations/PostTests.cs`) | 2 | `OrganisationAlreadyExists` gives `409`, the problem details body, `organisationId` and the `Location` header |
 | `Api.Tests` (`Endpoints/OpenApi/OpenApiTests.cs`) | 2 | v2 snapshot re-verified as above; v1 snapshot unchanged |
-| `Api.IntegrationTests` (new `Scenarios/DuplicateOrganisationTests.cs`) | 2 | The Jira scenario end to end: create, then the same request: `409`, body, `organisationId` and `Location` equal the first `201`'s id, and the `organisation`, `organisation_address` and `address` row counts are unchanged. A number sent in lower case with spaces round it (for example ` sc654321 `) after its upper-case form: `409`. Every number in this class comes from `CompaniesHouseNumbers.Generate`. The same number with a different name, type and address: `409`, and a `GET` of the stored organisation returns what the first `201` returned. Two identical requests for a type without a number: two `201`s with different ids. Ten concurrent requests with one new number: one `201`, nine `409`s naming its id, one `organisation` row |
+| `Api.IntegrationTests` (new `Scenarios/DuplicateOrganisationTests.cs`) | 2 | The Jira scenario end to end: create, then the same request: `409`, body, `organisationId` and `Location` equal the first `201`'s id, and the `organisation`, `organisation_address` and `address` row counts are unchanged. A number sent in lower case with spaces round it (for example ` sc654321 `) after its upper-case form: `409`. Every number in this class comes from `CompaniesHouseNumbers.Generate`. The same number with a different name, type and address: `409`, and a `GET` of the stored organisation returns what the first `201` returned. Two identical requests for a type without a number: two `201`s with different ids. Ten concurrent requests with one new number: one `201`, nine `409`s naming its id, one `organisation` row. With a number already stored, an invalid request gets `400` with its validation error and no row is added, and the `ReadOnlyOAuth` client gets `403` with an empty body; these prove the check order against stored data, which a mocked service in `PostTests` cannot (review of pull request 284, 25 November 2026) |
 | `Api.V1.Tests` | all | No test or snapshot changes; every test passes as it is |
 
 ### Work breakdown

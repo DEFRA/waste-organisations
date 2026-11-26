@@ -9,10 +9,12 @@ namespace Defra.WasteOrganisations.Api.Endpoints.Organisations;
 
 public static class GetDetails
 {
+    public const string OperationId = "GetOrganisationDetails";
+
     public static void MapOrganisationsGetDetails(this IEndpointRouteBuilder app)
     {
         app.MapGet("/organisations/{id:guid}", Handle)
-            .WithName("GetOrganisationDetails")
+            .WithName(OperationId)
             .WithTags("Organisations")
             .WithSummary("Get organisation details")
             .WithDescription("Returns the stored organisation with the given id as it is, with its current addresses.")

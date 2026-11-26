@@ -19,6 +19,7 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
     : IPostgresOrganisationService
 {
     private const string AddressValuesIndex = "ux_address_values";
+    private const string CompaniesHouseNumberIndex = "ux_organisation_companies_house_number";
 
     public async Task<Guid> OrganisationTypeIdAsync(string code, CancellationToken cancellationToken) =>
         await context
@@ -44,20 +45,34 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
     }
 
     /// <summary>
-    /// Finds each distinct address of the organisation in the <c>address</c> table and links the
+    /// Returns <see cref="OrganisationAlreadyExists"/> and saves nothing when an organisation already
+    /// holds the Companies House number (spec 0008, Enforcement); an organisation without a number
+    /// is not checked. Otherwise finds each distinct address of the organisation in the <c>address</c> table and links the
     /// organisation to the stored row, or inserts the address when there is none; then saves once,
     /// so everything is stored or nothing is. Two requests inserting the same new address at the
     /// same time both miss the look-up and the later save fails on <c>ux_address_values</c>; that
     /// save is rolled back and run once more with a fresh look-up, which then finds the row, and
-    /// with its timestamps unset, so they are stamped afresh. A second failure, or any other
-    /// failure, is thrown.
+    /// with its timestamps unset, so they are stamped afresh. A save that fails on
+    /// <c>ux_organisation_companies_house_number</c>, because a concurrent request stored the
+    /// number first, is not retried: the holder is looked up again and
+    /// <see cref="OrganisationAlreadyExists"/> returned, or the failure thrown when there is none. A
+    /// second address failure, or any other failure, is thrown.
     /// </summary>
     /// <remarks>
     /// No explicit transaction is opened: <c>EnableRetryOnFailure</c> is on, and its execution
     /// strategy rejects a transaction started outside it. The single save is the transaction.
     /// </remarks>
-    public async Task<Organisation> CreateAsync(Organisation organisation, CancellationToken cancellationToken)
+    public async Task<CreateOrganisationResult> CreateAsync(
+        Organisation organisation,
+        CancellationToken cancellationToken
+    )
     {
+        if (
+            organisation.CompaniesHouseNumber is { } companiesHouseNumber
+            && await FindOrganisationIdAsync(companiesHouseNumber, cancellationToken) is { } existingId
+        )
+            return AlreadyExists(existingId);
+
         // Each link's candidate, as the mapping built it. An attempt re-points the links at stored
         // rows, so the candidates are kept apart to look them up again on the retry
         var links = organisation.Addresses.Select(link => (Link: link, Candidate: link.Address)).ToList();
@@ -74,33 +89,49 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
 
         try
         {
-            await SaveAsync(organisation, organisationType, usageTypes, links, cancellationToken);
-        }
-        catch (DbUpdateException exception) when (IsAddressValuesViolation(exception))
-        {
-            logger.LogInformation(
-                exception,
-                "An address of organisation '{OrganisationId}' was stored by a concurrent request; retrying once",
-                organisation.Id
-            );
+            try
+            {
+                await SaveAsync(organisation, organisationType, usageTypes, links, cancellationToken);
+            }
+            catch (DbUpdateException exception) when (IsAddressValuesViolation(exception))
+            {
+                logger.LogInformation(
+                    exception,
+                    "An address of organisation '{OrganisationId}' was stored by a concurrent request; retrying once",
+                    organisation.Id
+                );
 
-            // Forgets the failed attempt: its organisation, links and new addresses were Added and
-            // would be inserted again, and a row found then is looked up afresh
+                // Forgets the failed attempt: its organisation, links and new addresses were Added and
+                // would be inserted again, and a row found then is looked up afresh
+                context.ChangeTracker.Clear();
+
+                // TimestampInterceptor sets ValidFrom only when it is unset but CreatedAt and UpdatedAt
+                // always, so the failed attempt's ValidFrom would outlive it and the three would differ;
+                // unset, all three are the retried save's instant
+                organisation.ValidFrom = default;
+                foreach (var (link, _) in links)
+                    link.ValidFrom = default;
+
+                await SaveAsync(organisation, organisationType, usageTypes, links, cancellationToken);
+            }
+        }
+        catch (DbUpdateException exception) when (IsCompaniesHouseNumberViolation(exception))
+        {
+            // A clashing number can never be stored, so the save is not retried (spec 0008, Decisions)
             context.ChangeTracker.Clear();
 
-            // TimestampInterceptor sets ValidFrom only when it is unset but CreatedAt and UpdatedAt
-            // always, so the failed attempt's ValidFrom would outlive it and the three would differ;
-            // unset, all three are the retried save's instant
-            organisation.ValidFrom = default;
-            foreach (var (link, _) in links)
-                link.ValidFrom = default;
+            // ux_organisation_companies_house_number holds only non-null numbers, so a clash means the number is set
+            if (
+                await FindOrganisationIdAsync(organisation.CompaniesHouseNumber!, cancellationToken) is not { } holderId
+            )
+                throw;
 
-            await SaveAsync(organisation, organisationType, usageTypes, links, cancellationToken);
+            return AlreadyExists(holderId);
         }
 
         logger.LogInformation("Created organisation with id '{OrganisationId}'", organisation.Id);
 
-        return organisation;
+        return new OrganisationCreated(organisation);
     }
 
     public Task<Organisation?> GetAsync(Guid id, CancellationToken cancellationToken) =>
@@ -119,6 +150,21 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
                 .ThenInclude(link => link.Address)
             .Include(organisation => organisation.Addresses.Where(link => link.ValidTo == null))
                 .ThenInclude(link => link.UsageType);
+
+    /// <summary>
+    /// The id of the organisation holding the given normalised Companies House number, or null.
+    /// <c>ux_organisation_companies_house_number</c> serves the query and allows at most one such
+    /// row.
+    /// </summary>
+    protected virtual async Task<Guid?> FindOrganisationIdAsync(
+        string companiesHouseNumber,
+        CancellationToken cancellationToken
+    ) =>
+        await context
+            .Organisations.AsNoTracking()
+            .Where(organisation => organisation.CompaniesHouseNumber == companiesHouseNumber)
+            .Select(organisation => (Guid?)organisation.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>The <c>organisation_type</c> row with the given id, untracked.</summary>
     protected virtual Task<OrganisationType?> FindOrganisationTypeAsync(Guid id, CancellationToken cancellationToken) =>
@@ -193,6 +239,28 @@ public class PostgresOrganisationService(PostgresDbContext context, ILogger<Post
 
         await context.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Logs the refused create with the existing organisation's id only: the number and the request
+    /// are not logged (spec 0008, Logging).
+    /// </summary>
+    private OrganisationAlreadyExists AlreadyExists(Guid existingId)
+    {
+        logger.LogInformation(
+            "Create refused: organisation '{OrganisationId}' already holds the Companies House number",
+            existingId
+        );
+
+        return new OrganisationAlreadyExists(existingId);
+    }
+
+    private static bool IsCompaniesHouseNumberViolation(DbUpdateException exception) =>
+        exception.InnerException
+            is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: CompaniesHouseNumberIndex,
+            };
 
     private static bool IsAddressValuesViolation(DbUpdateException exception) =>
         exception.InnerException

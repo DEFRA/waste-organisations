@@ -17,7 +17,7 @@
           "Organisations"
         ],
         "summary": "Create organisation",
-        "description": "Create an organisation with its addresses. Duplicate organisations are not detected.",
+        "description": "Create an organisation with its addresses. A Companies House number that is already stored gives 409, with the id of the existing organisation in organisationId and in the Location header. Organisations without a Companies House number are not checked.",
         "operationId": "CreateOrganisation",
         "parameters": [
           {
@@ -60,6 +60,16 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
