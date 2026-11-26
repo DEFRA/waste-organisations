@@ -1,4 +1,9 @@
+using System.Net;
 using AwesomeAssertions;
+using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests;
 
@@ -35,4 +40,47 @@ public class PostgresTestDataFixtureTests : IntegrationTestBase
         var message = act.Should().Throw<InvalidOperationException>().Which.Message;
         message.Should().Contain("waste_organisations").And.Contain(Host).And.Contain("v1.0.0");
     }
+
+    [Fact]
+    public async Task ClearAsync_AfterAnOrganisationIsStored_ShouldEmptyTestTablesAndKeepSeededRows()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var body = new
+        {
+            organisation = new
+            {
+                name = "Acme Waste Ltd",
+                companiesHouseNumber = CompaniesHouseNumbers.Generate(),
+                regulatorNation = "GB-ENG",
+                organisationType = "LTD",
+                addresses = new[] { Address(NewSuffix(), "REGISTERED") },
+            },
+        };
+        var response = await PostAsync(body);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        await using var provider = BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var seededBefore = await CountSeededRowsAsync(context, cancellationToken);
+        (await context.Organisations.AnyAsync(cancellationToken)).Should().BeTrue();
+
+        await PostgresTestDataFixture.ClearAsync(context, cancellationToken);
+
+        (await CountSeededRowsAsync(context, cancellationToken)).Should().Be(seededBefore);
+        (await context.Organisations.AnyAsync(cancellationToken)).Should().BeFalse();
+        (await context.OrganisationAddresses.AnyAsync(cancellationToken)).Should().BeFalse();
+        (await context.Addresses.AnyAsync(cancellationToken)).Should().BeFalse();
+    }
+
+    private static async Task<(int OrganisationTypes, int AddressUsageTypes, int Changesets)> CountSeededRowsAsync(
+        PostgresDbContext context,
+        CancellationToken cancellationToken
+    ) =>
+        (
+            await context.OrganisationTypes.CountAsync(cancellationToken),
+            await context.AddressUsageTypes.CountAsync(cancellationToken),
+            await context
+                .Database.SqlQueryRaw<int>("SELECT COUNT(*)::int AS \"Value\" FROM databasechangelog")
+                .SingleAsync(cancellationToken)
+        );
 }

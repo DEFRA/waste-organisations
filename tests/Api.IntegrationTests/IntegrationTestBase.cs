@@ -15,7 +15,7 @@ public abstract class IntegrationTestBase
 {
     protected const string AcceptV2 = "application/vnd.defra.waste-organisations+json; version=2";
 
-    protected static ServiceProvider BuildServiceProvider(TimeProvider? timeProvider = null)
+    internal static ServiceProvider BuildServiceProvider(TimeProvider? timeProvider = null)
     {
         // The Postgres section of src/Api/appsettings.Development.json, which compose.yml matches
         var configuration = new ConfigurationBuilder()

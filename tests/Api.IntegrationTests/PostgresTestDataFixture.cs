@@ -1,3 +1,6 @@
+using Defra.WasteOrganisations.Api.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace Defra.WasteOrganisations.Api.IntegrationTests;
 
 public static class PostgresTestDataFixture
@@ -19,4 +22,7 @@ public static class PostgresTestDataFixture
                     + $"databasechangelog does not hold the tag '{BaselineTag}'"
             );
     }
+
+    public static Task ClearAsync(PostgresDbContext context, CancellationToken cancellationToken) =>
+        context.Database.ExecuteSqlRawAsync("TRUNCATE organisation_address, organisation, address", cancellationToken);
 }
