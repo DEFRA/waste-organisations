@@ -34,11 +34,11 @@ Start the API as follows:
 dotnet run --project ./src/Api --launch-profile Api
 ```
 
-The same port (8080) is used for launch profile and Docker compose configuration, therefore only one can run at any one time. 
+The same port (8085) is used for launch profile and Docker compose configuration, therefore only one can run at any one time.
 
 ### Documentation
 
-API documentation can be viewed at http://localhost:8080/redoc/index.html once the service is running.
+API documentation can be viewed at http://localhost:8085/redoc/index.html once the service is running.
 
 ### Postgres schema changes
 

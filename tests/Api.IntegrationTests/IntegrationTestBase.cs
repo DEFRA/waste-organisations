@@ -46,7 +46,7 @@ public abstract class IntegrationTestBase
     // A client named in compose.yml's Acl__Clients, or no Authorization header when null
     protected static HttpClient CreateClient(string? clientId)
     {
-        var client = new HttpClient { BaseAddress = new Uri("http://localhost:8080") };
+        var client = new HttpClient { BaseAddress = new Uri("http://localhost:8085") };
 
         if (clientId is not null)
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
