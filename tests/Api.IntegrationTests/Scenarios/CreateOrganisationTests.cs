@@ -15,9 +15,9 @@ using Organisation = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Organis
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
 // The v2 create against the Compose stack, checked through the response and the stored rows.
-// Address rows are shared and never cleaned up, so every test sends address values unique to it
-// (a suffix in `addressLine1`) and counts addresses through its own organisation's links, never the
-// whole address table
+// Address rows are shared and cleared only at the start of a run (spec 0009), so every test sends
+// address values unique to it (a suffix in `addressLine1`) and counts addresses through its own
+// organisation's links, never the whole address table
 public class CreateOrganisationTests : IntegrationTestBase
 {
     public static TheoryData<string> OrganisationTypes => new(OrganisationTypeCodes.All.Select(t => t.Code));

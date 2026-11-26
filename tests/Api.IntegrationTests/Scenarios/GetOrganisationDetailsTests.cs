@@ -18,7 +18,8 @@ using StoredAddress = Defra.WasteOrganisations.Api.Data.Postgres.Entities.Addres
 namespace Defra.WasteOrganisations.Api.IntegrationTests.Scenarios;
 
 // The v2 read against the Compose stack, mostly of organisations this class creates through the v2 POST.
-// Address rows are shared and never cleaned up, so every test sends address values unique to it
+// Address rows are shared and cleared only at the start of a run (spec 0009), so every test sends
+// address values unique to it
 public class GetOrganisationDetailsTests : IntegrationTestBase
 {
     // Following the Location of a create returns what the 201 returned, without the dates the read

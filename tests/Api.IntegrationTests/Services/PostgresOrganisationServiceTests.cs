@@ -17,8 +17,8 @@ namespace Defra.WasteOrganisations.Api.IntegrationTests.Services;
 // The ux_address_values race: the address is stored first, then a create whose look-ups miss it, as
 // a request that lost the race would. Api.Tests cover the retry's branches with a faked save; this
 // proves the real unique violation is the one the service retries, that the context can save again
-// after it, and that a failed save stores nothing. Address rows are shared and never cleaned up, so
-// each addressLine1 holds a suffix unique to the test
+// after it, and that a failed save stores nothing. Address rows are shared and
+// cleared only at the start of a run (spec 0009), so each addressLine1 holds a suffix unique to the test
 public class PostgresOrganisationServiceTests : IntegrationTestBase
 {
     [Fact]
