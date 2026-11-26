@@ -1,12 +1,47 @@
 using Defra.WasteOrganisations.Api.Data;
+using Defra.WasteOrganisations.Api.IntegrationTests;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+
+[assembly: AssemblyFixture(typeof(PostgresTestDataFixture))]
 
 namespace Defra.WasteOrganisations.Api.IntegrationTests;
 
-public static class PostgresTestDataFixture
+public class PostgresTestDataFixture : IAsyncLifetime
 {
     private const string ComposeDatabaseName = "waste_organisations";
     private const string BaselineTag = "v1.0.0";
+
+    public async ValueTask InitializeAsync()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var provider = IntegrationTestBase.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<PostgresDbContext>();
+        var options = scope.ServiceProvider.GetRequiredService<IOptions<PostgresOptions>>().Value;
+
+        var databaseName = await context
+            .Database.SqlQueryRaw<string>("SELECT current_database() AS \"Value\"")
+            .SingleAsync(cancellationToken);
+        var changelogExists = await context
+            .Database.SqlQueryRaw<bool>("SELECT to_regclass('public.databasechangelog') IS NOT NULL AS \"Value\"")
+            .SingleAsync(cancellationToken);
+        var tags = changelogExists
+            ? await context
+                .Database.SqlQueryRaw<string>("SELECT tag AS \"Value\" FROM databasechangelog WHERE tag IS NOT NULL")
+                .ToListAsync(cancellationToken)
+            : [];
+
+        EnsureComposeDatabase(databaseName, options.DefaultHost!, tags);
+        await ClearAsync(context, cancellationToken);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
+    }
 
     public static void EnsureComposeDatabase(string databaseName, string host, IReadOnlyCollection<string> tags)
     {

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using AwesomeAssertions;
 using Defra.WasteOrganisations.Api.Data;
 using Defra.WasteOrganisations.Testing;
@@ -39,6 +40,14 @@ public class PostgresTestDataFixtureTests : IntegrationTestBase
 
         var message = act.Should().Throw<InvalidOperationException>().Which.Message;
         message.Should().Contain("waste_organisations").And.Contain(Host).And.Contain("v1.0.0");
+    }
+
+    [Fact]
+    public void Assembly_ShouldRegisterPostgresTestDataFixture()
+    {
+        var fixtures = typeof(PostgresTestDataFixture).Assembly.GetCustomAttributes<AssemblyFixtureAttribute>();
+
+        fixtures.Should().ContainSingle(f => f.AssemblyFixtureType == typeof(PostgresTestDataFixture));
     }
 
     [Fact]
