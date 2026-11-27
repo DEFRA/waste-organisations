@@ -50,6 +50,8 @@ public class PostgresTestDataFixtureTests : IntegrationTestBase
         fixtures.Should().ContainSingle(f => f.AssemblyFixtureType == typeof(PostgresTestDataFixture));
     }
 
+    // Clears the tables partway through a run. Safe only while every Postgres test class is in the
+    // "Integration Tests" collection, so no other test is running (spec 0009, "Tests")
     [Fact]
     public async Task ClearAsync_AfterAnOrganisationIsStored_ShouldEmptyTestTablesAndKeepSeededRows()
     {

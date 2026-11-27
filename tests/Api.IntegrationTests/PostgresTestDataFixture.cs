@@ -59,6 +59,8 @@ public class PostgresTestDataFixture : IAsyncLifetime
             );
     }
 
+    // No CASCADE: a table that references one of these three makes the truncate fail, so it gets
+    // added to this list on purpose, never cleared by accident (spec 0009, Decisions, "What to clear")
     public static Task ClearAsync(PostgresDbContext context, CancellationToken cancellationToken) =>
         context.Database.ExecuteSqlAsync($"TRUNCATE organisation_address, organisation, address", cancellationToken);
 }
